@@ -60,7 +60,7 @@ class Mult(Block):
     def update(self, in1, in2):
         return in1*in2
 
-#TODO: Finish Code Gen class
+#FIXME: Fix CA Code Gen class to match output of skeleton
 class CA(Block):
     
     def __init__(self):
@@ -104,7 +104,7 @@ class CA(Block):
 
     def update(self, tick, sv_num):
         if self.prev_tick == 0 and tick == 1:
-            self.curr_out = self.shift()
+            self.curr_out = self.PRN()
         self.prev_tick = tick
         return self.curr_out
 
