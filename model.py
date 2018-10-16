@@ -22,14 +22,14 @@ class NCO(Block):
         self.code = code;
 
     def update(self, step_size):
-        self.count += self.step_size
+        self.count += step_size
         if self.count > self.count_max:
             self.count -= self.count_max
         if (self.code):
-            return np.sin(2*np.pi*self.count / self.count_max),
+            return np.sin(2*np.pi*self.count / self.count_max), \
                    np.sin(2*np.pi*2*self.count / self.count_max)  
         else: 
-            return np.cos(2*np.pi*self.count / self.count_max), 
+            return np.cos(2*np.pi*self.count / self.count_max), \
                    np.sin(2*np.pi*self.count / self.count_max)
 
 #TODO: Finish DLL class
@@ -47,35 +47,40 @@ class ADC(Block):
     
     def __init__(self, data):
         self.data = data
-        self.index = 0
+        self.index = -1
 
     def update(self):
         self.index += 1
-        if index > len(data):
-            return data[index]
+        if self.index < len(self.data):
+            return self.data[self.index]
 
 #FIXME: Figure out sizing for multiplier class
 class Mult(Block):
 
-    def update(self, in1, in2)
+    def update(self, in1, in2):
         return in1*in2
 
 #TODO: Finish Code Gen class
 class CA(Block):
-    pass
+
+    def update(self, f, f2):
+        return 1, 1, 1
 
 #TODO: Finish Costas Loop class
 class Costas(Block):
-    pass
+    
+    def update(self, I_pint, Q_pint):
+        return 1
 
 #TODO: Finish Integrate and Dump class
 class IntDump(Block):
-    pass
+    def update(self, sample):
+        return [1, 1, 1]
 
 #TODO: Finish Packetizer class
 class Packet(Block):
-    pass
-
+    def update(self, I_int, Q_int):
+        return 0
 
 def main():
     num_cycles = 100
@@ -103,20 +108,22 @@ def main():
     intdump = IntDump()
 
     dll = DLL(1,1)
-    
+    costas = Costas()    
+
     nco_code = NCO(10, True)
+    packet = Packet()
     
     # FIXME: Initial DLL and Costas loop values
     dll_out = 1
     costas_out = 1
 
-    for (x in range (0, num_cycles):
+    for x in range(0, num_cycles):
         adc_data = adc.update() 
-        cos_out, sin_out  = nco_carrier.updatei(costas_out)        
+        cos_out, sin_out  = nco_carrier.update(costas_out)        
         I = mult1.update(adc_data, cos_out) 
         Q = mult2.update(adc_data, sin_out)
 
-        f_out, f2_out = nco_code1.update(dll_out)
+        f_out, f2_out = nco_code.update(dll_out)
         e, p, l = ca.update(f_out, f2_out)
 
         I_e = mult3.update(I, e)        
