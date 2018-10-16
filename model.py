@@ -62,6 +62,10 @@ class Mult(Block):
 
 #TODO: Finish Code Gen class
 class CA(Block):
+    
+    def __init__(self):
+        self.prev_tick = 0
+        self.curr_out = 0
 
     SV = {
        1: [2,6],
@@ -98,8 +102,11 @@ class CA(Block):
       32: [4,9],
     }
 
-    def update(self, f, f2):
-        return 1, 1, 1
+    def update(self, tick, sv_num):
+        if self.prev_tick == 0 and tick == 1:
+            self.curr_out = self.shift()
+        self.prev_tick = tick
+        return self.curr_out
 
     def shift(register, feedback, output):
         """GPS Shift Register
