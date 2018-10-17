@@ -42,23 +42,44 @@ class CA(Block):
     }
     
     def __init__(self):
-        self.prev_tick = 0
+        self.prev_tick = -1
+        self.prev_tick2x = -1
         self.curr_index = 0
+        self.curr_index2x = 0
+        self.curr_sv = None
+        self.curr_prn_list = None
 
 
-    def update(self, tick, sv_num):
-        prn_list = self.PRN(sv_num)
+    def update(self, tick, tick_2x, sv_num):
+        self.curr_prn_list = self.PRN(sv_num)
+        if self.curr_sv is None or self.curr_sv != sv_num:
+           self.curr_sv = sv_num
+           self.curr_index = 0
+           self.curr_index2x = 0
+           self.prev_tick = -1
+           self.prev_tick2x = -1 
+        tick_result = self.check_tick(tick)
+        tick_2x_result = self.check_tick2x(tick_2x)
+        return tick_result, tick_2x_result[0], tick_2x_result[1]
+
+    def check_tick(tick):
         if self.prev_tick == 0 and tick == 1:
             self.curr_index += 1
-            if self.curr_index >= len(prn_list):
+            if self.curr_index >= len(self.curr_prn_list):
                 self.curr_index = 0
         self.prev_tick = tick
-        if (self.curr_index == len(prn_list) - 1):  
+        if (self.curr_index == len(self.curr_prn_list) - 1):  
             early_index = 0
         else: 
             early_index = self.curr_index + 1
-        return prn_list[early_index], prn_list[self.curr_index], prn_list[self.curr_index - 1]
-
+        return self.curr_prn_list[early_index] #, prn_list[self.curr_index], prn_list[self.curr_index - 1]
+    def check_tick2x(tick_2x):
+        if self.prev_tick2x == 0 and tick ==1:
+            self.curr_index2x += 1
+            if self.curr_index2x >= len(self.curr_prn_list):
+                self.curr_index2x = 0
+        self.prev_tick2x = tick_2x
+        return self.curr_prn_list[self.curr_index2x], self.curr_prn_list[self.curr_index2x - 1]    
     def shift(self, register, feedback, output):
         """GPS Shift Register
         
