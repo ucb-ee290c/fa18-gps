@@ -14,5 +14,8 @@ for j in range(SUBFRAME_LENGTH):
 p.update(WORD_LENGTH * SUBFRAME_LENGTH, 0, 0)
 
 flatten = lambda l: [item for sublist in l for item in sublist]
+out_flat = flatten(p.out)
 if (flatten(p.out) == data_in):
     print("Test successful.")
+else:
+    out_flat = flatten(p.out)

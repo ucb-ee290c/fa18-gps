@@ -16,37 +16,36 @@ class State(Enum):
 #TODO: Finish Packetizer class
 class Packet(Block):
     def __init__(self):
-        self.fifo = [0] * 8
-        self.state = State.WAITING
-        self.data = []
-        self.word = []
-        self.word_idx = 0
-        self.bit_idx = 0
-        self.out = []
-        self.valid = False
+        self.fifo = [0] * 8 # Bits are shifted into this register upon arrival
+        self.state = State.WAITING # State machine
+        self.data = [[] for i in range(SUBFRAME_LENGTH)] # Subframe contents - self.data[i][j] accesses the jth bit of the ith word of the subframe
+        self.word_idx = 0 # Word number being read
+        self.bit_idx = 0 # Bit number being read
+        self.out = [] # MMIO registers
+        self.valid = False # Valid signal
 
     def update(self, cycle, I_int, Q_int):
         self.fifo = self.fifo[1:] + [I_int]
         print(str(cycle) + ": Packetizer FIFO contains " + ''.join(map(str, self.fifo)))
-        if self.state == State.WAITING:
+        if self.state == State.WAITING: # Not currently reading a subframe
             if self.fifo == PREAMBLE:
                 print("Preamble detected!")
                 self.state = State.PARSING
-                self.word[:] = self.fifo[:]
+                self.data[0][:] = self.fifo[:]
                 self.bit_idx = 8
                 self.word_idx = 0
-        elif self.state == State.PARSING:
-            self.word.append(I_int)
-            self.bit_idx += 1
-            if self.bit_idx == WORD_LENGTH:
-                self.data.append(self.word[:])
-                self.word[:] = []
-                self.bit_idx = 0
-                self.word_idx += 1
-                if self.word_idx == SUBFRAME_LENGTH:
+        elif self.state == State.PARSING: # Reading a subframe
+            self.data[self.word_idx].append(I_int)
+            if self.bit_idx == WORD_LENGTH - 1:
+                if self.word_idx == SUBFRAME_LENGTH - 1:
                     self.state = State.DONE
                     return
-        elif self.state == State.DONE:
+                else:
+                    self.bit_idx = 0
+                    self.word_idx += 1
+            else:
+                self.bit_idx += 1
+        elif self.state == State.DONE: # Out is valid
             print("Writing data to memory map.")
             self.out[:] = self.data[:]
             self.data[:] = []
