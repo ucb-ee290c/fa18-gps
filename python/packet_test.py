@@ -1,4 +1,4 @@
-from packet_model import *
+from blocks.packet_model import *
 import random
 
 p = Packet()
