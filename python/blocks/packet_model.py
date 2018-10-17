@@ -51,9 +51,10 @@ class Parser(Block):
                     self.state = Parser_State.DONE
                     print("Writing data to memory map.")
                     self.out[:] = self.data[:]
-                    self.d_star = self.data[SUBFRAME_LENGTH - 1][WORD_LENGTH-2:]
+                    # self.d_star = self.data[SUBFRAME_LENGTH - 1][WORD_LENGTH-2:]
                     self.data[:] = []
                 else:
+                    print(self.d_star)
                     self.bit_idx = 0
                     self.word_idx += 1
             else:
