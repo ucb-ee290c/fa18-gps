@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
-from .block import Block
+from block import Block
 
 #FIXME: Fix CA Code Gen class to match output of skeleton
 class CA(Block):
@@ -51,6 +50,7 @@ class CA(Block):
 
 
     def update(self, tick, tick_2x, sv_num):
+        assert sv_num >= 1 and sv_num <= 38, "Invalid sattelite choice"
         self.curr_prn_list = self.PRN(sv_num)
         if self.curr_sv is None or self.curr_sv != sv_num:
            self.curr_sv = sv_num
@@ -62,7 +62,7 @@ class CA(Block):
         tick_2x_result = self.check_tick2x(tick_2x)
         return tick_result, tick_2x_result[0], tick_2x_result[1]
 
-    def check_tick(tick):
+    def check_tick(self, tick):
         if self.prev_tick == 0 and tick == 1:
             self.curr_index += 1
             if self.curr_index >= len(self.curr_prn_list):
@@ -73,8 +73,8 @@ class CA(Block):
         else: 
             early_index = self.curr_index + 1
         return self.curr_prn_list[early_index] #, prn_list[self.curr_index], prn_list[self.curr_index - 1]
-    def check_tick2x(tick_2x):
-        if self.prev_tick2x == 0 and tick ==1:
+    def check_tick2x(self, tick_2x):
+        if self.prev_tick2x == 0 and tick_2x ==1:
             self.curr_index2x += 1
             if self.curr_index2x >= len(self.curr_prn_list):
                 self.curr_index2x = 0
