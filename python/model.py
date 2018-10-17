@@ -46,7 +46,8 @@ def main():
     mult8 = MUL()
     
     #FIXME: Integrate and Dump may need more args
-    intdump = IntDump()
+    I_intdump = IntDump()
+    Q_intdump = IntDump()
 
     dll = DLL(1, 1, 1)
     costas = Costas()    
@@ -77,9 +78,11 @@ def main():
         I_sample = [I_e, I_p, I_l]
         Q_sample = [Q_e, Q_p, Q_l]
 
+        dump = 0 #needs to be updated so that it is an output of the PRN generator
+
         # I_int and Q_int are lists of size 3
-        I_int = intdump.update(I_sample)
-        Q_int = intdump.update(Q_sample)
+        I_int = I_intdump.update(I_sample, dump)
+        Q_int = Q_intdump.update(Q_sample, dump)
 
         dll_out = dll.update(I_int, Q_int, 0, 0)
         costas_out = costas.update(I_int[1], I_int[1])
