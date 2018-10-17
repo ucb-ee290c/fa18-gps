@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from enum import Enum
 
-from block import Block
+from .block import Block
 
 PREAMBLE = [1, 0, 0, 0, 1, 0, 1, 1]
 WORD_LENGTH = 30
