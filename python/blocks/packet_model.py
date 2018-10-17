@@ -75,12 +75,13 @@ class Parity_Checker(Block):
             self.data_out[:] = data[:][:24]
             for i in range(len(data)):
                 if i == 0:
-                    print("Parity check result: " + str(self.check_parity(d_star, data[i])))
+                    self.correct[i] = self.check_parity(d_star, data[i])
                 else:
-                    print("Parity check result: " + str(self.check_parity(data[i-1][WORD_LENGTH-2:], data[i])))
-                pass
+                    self.correct[i] = self.check_parity(data[i-1][WORD_LENGTH-2:], data[i])
+            print(str(sum(self.correct)) + " words passed parity check.")
         else:
             print("Parity checker idle.")
+        self.valid_out = valid_in
 
     def check_parity(self, d_star, d):
         calc_parity = [0] * 6
