@@ -51,16 +51,15 @@ class Parser(Block):
                     self.state = Parser_State.DONE
                     print("Writing data to memory map.")
                     self.out[:] = self.data[:]
-                    # self.d_star = self.data[SUBFRAME_LENGTH - 1][WORD_LENGTH-2:]
                     self.data[:] = []
                 else:
-                    print(self.d_star)
                     self.bit_idx = 0
                     self.word_idx += 1
             else:
                 self.bit_idx += 1
         elif self.state == Parser_State.DONE: # Out is valid
             self.state = Parser_State.WAITING
+            self.d_star[:] = self.out[SUBFRAME_LENGTH - 1][WORD_LENGTH - 2:]
         else:
             raise Exception("Invalid state detected in packetizer.")
         self.valid = (self.state == Parser_State.DONE)
@@ -73,10 +72,12 @@ class Parity_Checker(Block):
 
     def update(self, cycle, data, valid_in, d_star):
         if valid_in:
-            # print(data)
             self.data_out[:] = data[:][:24]
             for i in range(len(data)):
-                print("Parity check result: " + str(self.check_parity(d_star, data[i])))
+                if i == 0:
+                    print("Parity check result: " + str(self.check_parity(d_star, data[i])))
+                else:
+                    print("Parity check result: " + str(self.check_parity(data[i-1][WORD_LENGTH-2:], data[i])))
                 pass
         else:
             print("Parity checker idle.")
