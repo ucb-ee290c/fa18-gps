@@ -27,15 +27,15 @@ class DLL(Block):
     def discriminator1(ie, il, qe, ql):
         e = np.sqrt(ie**2 + qe**2)
         l = np.sqrt(il**2 + ql**2)
-        return 1/2(e-l)/(e+l)
+        return 1/2*(e-l)/(e+l)
 
     @staticmethod
     def discriminator2(ie, il, qe, ql):
         e = ie**2 + qe**2
         l = il**2 + ql**2
-        return 1/2(e-l)
+        return 1/2*(e-l)
 
-    def update(self, I_sample, Q_sample, carrier_aid, code_bias):
+    def update(self, I_sample, Q_sample, carrier_bias, code_bias):
         """ DLL update
 
         Parameters
@@ -48,9 +48,9 @@ class DLL(Block):
         if self.discriminator_num == 1:
             dis_out = self.discriminator1(I_sample[0], I_sample[2],
                 Q_sample[0], Q_sample[2])
-        else self.discriminator_num == 2:
+        elif self.discriminator_num == 2:
             dis_out = self.discriminator2(I_sample[0], I_sample[2],
                 Q_sample[0], Q_sample[2])
 
-        return carrier_aid + code_aid + dis_out
+        return carrier_bias + code_bias + dis_out
 

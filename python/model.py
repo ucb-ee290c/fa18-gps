@@ -48,7 +48,7 @@ def main():
     #FIXME: Integrate and Dump may need more args
     intdump = IntDump()
 
-    dll = DLL(1,1)
+    dll = DLL(1, 1, 1)
     costas = Costas()    
 
     nco_code = NCO(10, True)
@@ -81,7 +81,7 @@ def main():
         I_int = intdump.update(I_sample)
         Q_int = intdump.update(Q_sample)
 
-        dll_out = dll.update(I_int, Q_int)
+        dll_out = dll.update(I_int, Q_int, 0, 0)
         costas_out = costas.update(I_int[1], I_int[1])
 
         packet.update(x, I_int, Q_int)
