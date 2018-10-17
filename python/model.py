@@ -1,18 +1,27 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from dll_model      import DLL
-from nco_model      import NCO
-from adc_model      import ADC
-from mul_model      import MUL
-from ca_model       import CA
-from costas_model   import Costas
-from intdump_model  import IntDump
-from packet_model   import Packet
+from blocks import *
+
+#from dll_model      import DLL
+#from nco_model      import NCO
+#from adc_model      import ADC
+#from mul_model      import MUL
+#from ca_model       import CA
+#from costas_model   import Costas
+#from intdump_model  import IntDump
+#from packet_model   import Packet
+
 
 raw_data = np.fromfile('adc_sample_data.bin', dtype=np.int8)
-# Pick random sv
-sv = 1;
+# The data contains the following SV's with at the following frequencies:
+sv_list = [22, 3, 19, 14, 18, 11, 32, 6]
+sv_freqs = [4.128460, 4.127190, 4.129280,
+            4.133130, 4.127310, 4.133280,
+            4.134060,4.127220]
+
+sv = sv_list[0]
+sv_freq = sv_freqs[0]
 
 def main():
     num_cycles = 100
