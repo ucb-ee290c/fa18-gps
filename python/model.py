@@ -3,18 +3,10 @@ import matplotlib.pyplot as plt
 
 from blocks import *
 
-#from dll_model      import DLL
-#from nco_model      import NCO
-#from adc_model      import ADC
-#from mul_model      import MUL
-#from ca_model       import CA
-#from costas_model   import Costas
-#from intdump_model  import IntDump
-#from packet_model   import Packet
-
 
 raw_data = np.fromfile('adc_sample_data.bin', dtype=np.int8)
 # The data contains the following SV's with at the following frequencies:
+# The frequencies are in MHz
 sv_list = [22, 3, 19, 14, 18, 11, 32, 6]
 sv_freqs = [4.128460, 4.127190, 4.129280,
             4.133130, 4.127310, 4.133280,
@@ -30,7 +22,7 @@ def main():
     nco_carrier = NCO(10, False)
 
     # Technically don't need to make multiple multiplier objects as they all
-    # behave the same.  But in the code we are creating multiple object
+    # behave the same. But in the code we are creating multiple object
     # instances to know how many hardware multipliers we will need. 
     mult1 = MUL()
     mult2 = MUL()
@@ -78,8 +70,8 @@ def main():
         Q_sample = [Q_e, Q_p, Q_l]
 
         # I_int and Q_int are lists of size 3
-        I_int = intdump.update(I_sample)
-        Q_int = intdump.update(Q_sample)
+        I_int = intdump.update(I_sample, False)
+        Q_int = intdump.update(Q_sample, False)
 
         dll_out = dll.update(I_int, Q_int, 0, 0)
         costas_out = costas.update(I_int[1], I_int[1])
