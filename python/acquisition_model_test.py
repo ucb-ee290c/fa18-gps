@@ -1,6 +1,6 @@
 """
 @Author: Zhaokai Liu
-@File: raw_data_reader.py
+@File: acquisition_model_test.py
 @Time: 10/12/18 14:15
 @Description: 
 
