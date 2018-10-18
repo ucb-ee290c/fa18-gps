@@ -42,7 +42,7 @@ def main():
     intdumpQ = IntDump()
 
     dll = DLL(1, 1, 1)
-    costas = Costas()    
+    costas = Costas(1,[1,1,1],1,1,1)    
 
     nco_code = NCO(10, True)
     packet = Packet()
@@ -75,7 +75,7 @@ def main():
         Q_int = intdumpQ.update(Q_sample, dump)
 
         dll_out = dll.update(I_int, Q_int, 0, 0)
-        costas_out = costas.update(I_int[1], I_int[1])
+        costas_out = costas.update(I_int[1], I_int[1], 0)
 
         #packet.update(x, I_int, Q_int)
 
