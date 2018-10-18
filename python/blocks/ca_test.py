@@ -1,13 +1,11 @@
 import numpy as np
 from ca_model import CA
 ca = CA()
-tick = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-tick2x = tick * 2
+tick = [0, 0, 1, 1, 0, 0, 1, 1, 0, 0]*3
+tick2x = [0, 1, 0, 1, 0]*3
 res_list = []
 for i in range(len(tick2x)):
     res_list.append(ca.update(tick[i//2], tick2x[i], 1))
-if not any(res_list):
-    print("Success")
-else:
-    print("Fail, result was: ")
-    print(res_list)
+print("First 10 values of PRN list: ")
+print(ca.curr_prn_list[:10])
+print("result: ", res_list)
