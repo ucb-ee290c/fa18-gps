@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from block import Block
+from .block import Block
 
 #FIXME: Fix CA Code Gen class to match output of skeleton
 class CA(Block):

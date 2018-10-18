@@ -38,7 +38,8 @@ def main():
     mult8 = MUL()
     
     #FIXME: Integrate and Dump may need more args
-    intdump = IntDump()
+    intdumpI = IntDump()
+    intdumpQ = IntDump()
 
     dll = DLL(1, 1, 1)
     costas = Costas()    
@@ -57,7 +58,7 @@ def main():
         Q = mult2.update(adc_data, sin_out)
 
         f_out, f2_out = nco_code.update(dll_out)
-        e, p, l = ca.update(f_out, sv)
+        e, p, l, dump = ca.update(f_out, sv, 22)
 
         I_e = mult3.update(I, e)        
         I_p = mult4.update(I, p)
@@ -70,13 +71,13 @@ def main():
         Q_sample = [Q_e, Q_p, Q_l]
 
         # I_int and Q_int are lists of size 3
-        I_int = intdump.update(I_sample, False)
-        Q_int = intdump.update(Q_sample, False)
+        I_int = intdumpI.update(I_sample, dump)
+        Q_int = intdumpQ.update(Q_sample, dump)
 
         dll_out = dll.update(I_int, Q_int, 0, 0)
         costas_out = costas.update(I_int[1], I_int[1])
 
-        packet.update(x, I_int, Q_int)
+        #packet.update(x, I_int, Q_int)
 
 
 if __name__ == "__main__": 

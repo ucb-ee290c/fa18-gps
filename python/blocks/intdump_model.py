@@ -14,11 +14,11 @@ class IntDump(Block):
         integ : int
             The sum for correlation that is dumped after an integration period.
         """
-        self.integ = np.array([0, 0, 0])
+        self.integ = np.array([0, 0, 0], dtype=np.float64)
 
     def update(self, sample, dump):
         if dump:
-            self.integ = np.array([0, 0, 0])
+            self.integ = np.array([0, 0, 0], dtype=np.float64)
         self.integ += sample
         return self.integ
 
