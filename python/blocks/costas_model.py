@@ -8,6 +8,7 @@ from .block import Block
 class Costas(Block):
     
     def __init__(self, int_time, lf_coeff, pd_mode, cd_mode, fd_mode):
+        
         self._avg_mag = 0
         self._count = 0
         self._phase_err_sum = 0
@@ -153,7 +154,7 @@ class Costas(Block):
         self._phase_err_sum += phase_err
         return lf_coeff[0] * phase_err + lf_coeff[1] * self._phase_err_sum + lf_coeff[2] * freq_err
 
-    def update(self, Ips, Qps, freq_os):
+    def update(self, Ips, Qps, freq_bias):
         """
         Parameters
         ----------
@@ -181,7 +182,7 @@ class Costas(Block):
         freq_err = self.frequency_detector(Ips, Qps, mode=self._fd_mode)
 
         # get loop filter output
-        lf_out = self.loop_filter(costas_err, freq_err, self._lf_coeff) + freq_os
+        lf_out = self.loop_filter(costas_err, freq_err, self._lf_coeff) + freq_bias
 
         self._Ips_d = Ips
         self._Qps_d = Qps
