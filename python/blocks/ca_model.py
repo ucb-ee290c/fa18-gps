@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-
-from .block import Block
+from block import Block
 
 #FIXME: Fix CA Code Gen class to match output of skeleton
 class CA(Block):
@@ -44,21 +43,30 @@ class CA(Block):
     def __init__(self):
         self.prev_tick = 0
         self.curr_index = 0
+        self.curr_sv = None
+        self.curr_prn_list = None
+        self.shift_reg = ShiftRegister()
 
+    def update(self, tick, tick_2x, sv_num):
+        assert sv_num >= 1 and sv_num <= 38, "Invalid sattelite choice"
+        self.curr_prn_list = self.PRN(sv_num)
+        if self.curr_sv is None or self.curr_sv != sv_num:
+           self.curr_sv = sv_num
+           self.curr_index = 0
+           self.prev_tick = 0
+        early = self.check_tick(tick)
+        self.shift_reg.insert(early)
+        punctual, late = self.shift_reg.update(tick_2x)
+        return early, punctual, late
 
-    def update(self, tick, sv_num):
-        prn_list = self.PRN(sv_num)
+    def check_tick(self, tick):
         if self.prev_tick == 0 and tick == 1:
             self.curr_index += 1
-            if self.curr_index >= len(prn_list):
+            if self.curr_index >= len(self.curr_prn_list):
                 self.curr_index = 0
         self.prev_tick = tick
-        if (self.curr_index == len(prn_list) - 1):  
-            early_index = 0
-        else: 
-            early_index = self.curr_index + 1
-        return prn_list[early_index], prn_list[self.curr_index], prn_list[self.curr_index - 1]
-
+        return self.curr_prn_list[self.curr_index]
+    
     def shift(self, register, feedback, output):
         """GPS Shift Register
         
@@ -113,3 +121,17 @@ class CA(Block):
         # return C/A code!
         return ca
 
+class ShiftRegister(Block):
+    def __init__(self):
+        self.input = None
+        self.curr_index = 0
+        self.prev_tick = -1
+        self.my_list = [1, 1] #always length 2
+    def update(self, tick):
+        if self.prev_tick == 0 and tick == 1:
+            self.my_list[1] = self.my_list[0]
+            self.my_list[0] = self.input
+        self.prev_tick = tick
+        return self.my_list[0], self.my_list[1]
+    def insert(self, val):
+        self.input = val
