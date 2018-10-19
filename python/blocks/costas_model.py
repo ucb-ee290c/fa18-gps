@@ -8,7 +8,21 @@ from .block import Block
 class Costas(Block):
     
     def __init__(self, int_time, lf_coeff, pd_mode, cd_mode, fd_mode):
-        
+        """
+        Costas block
+
+        Parameters
+        ----------
+        int_time: int 
+        lf_coeff: list
+        pd_mode: int
+        cd_mode: int
+        fd_mode: int
+
+        Returns
+        -------
+        Costas object
+        """
         self._avg_mag = 0
         self._count = 0
         self._phase_err_sum = 0
