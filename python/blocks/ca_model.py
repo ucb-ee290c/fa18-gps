@@ -135,7 +135,7 @@ class ShiftRegister(Block):
         self.prev_tick = -1
         self.my_list = [1, 1] #always length 2
     def update(self, tick):
-        temp_return = self.my_list
+        temp_return = self.my_list[:]
         if self.prev_tick < 0 and tick >= 0:
             self.my_list[1] = self.my_list[0]
             self.my_list[0] = self.input
