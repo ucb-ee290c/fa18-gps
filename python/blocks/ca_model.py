@@ -57,10 +57,13 @@ class CA(Block):
         early = self.check_tick(tick)
         self.shift_reg.insert(early)
         punctual, late = self.shift_reg.update(tick_2x)
+        early = 2*early - 1
+        punctual = 2*punctual - 1
+        late = 2*late - 1
         return early, punctual, late, self.done
 
     def check_tick(self, tick):
-        if self.prev_tick == 0 and tick == 1:
+        if self.prev_tick < 0 and tick >= 0:
             self.curr_index += 1
             if self.curr_index >= len(self.curr_prn_list):
                 self.curr_index = 0
@@ -131,7 +134,7 @@ class ShiftRegister(Block):
         self.prev_tick = -1
         self.my_list = [1, 1] #always length 2
     def update(self, tick):
-        if self.prev_tick == 0 and tick == 1:
+        if self.prev_tick < 0 and tick >= 0:
             self.my_list[1] = self.my_list[0]
             self.my_list[0] = self.input
         self.prev_tick = tick

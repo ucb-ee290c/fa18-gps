@@ -72,7 +72,7 @@ def main():
         Q = multQ.update(adc_data, sin_out)
 
         f_out, f2_out = nco_code.update(dll_out)
-        e, p, l, dump = ca.update(f_out, sv, 22)
+        e, p, l, dump = ca.update(f_out, f2_out, sv)
 
         I_e = multIe.update(I, e)        
         I_p = multIp.update(I, p)
@@ -83,14 +83,16 @@ def main():
 
         I_sample = [I_e, I_p, I_l]
         Q_sample = [Q_e, Q_p, Q_l]
+        print(Q_sample, e, p, l)
 
         # I_int and Q_int are lists of size 3
         I_int = intdumpI.update(I_sample, dump)
         Q_int = intdumpQ.update(Q_sample, dump)
 
         if dump:
-            dll_out = dll.update(last_integ_I, last_integ_Q, carrier_nco_code, 0)
-            print(dll_out)
+            print(last_integ_I, last_integ_Q)
+            dll_out = round(dll.update(last_integ_I, last_integ_Q,
+                carrier_nco_code, 0))
         # Commenting this out for now
         # costas_out = costas.update(I_int[1], I_int[1], 0)
 
