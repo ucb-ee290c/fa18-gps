@@ -49,8 +49,8 @@ class CA(Block):
         self.done = 0
     def update(self, tick, tick_2x, sv_num):
         assert sv_num >= 1 and sv_num <= 38, "Invalid sattelite choice"
-        self.curr_prn_list = self.PRN(sv_num)
         if self.curr_sv is None or self.curr_sv != sv_num:
+           self.curr_prn_list = self.PRN(sv_num)
            self.curr_sv = sv_num
            self.curr_index = 0
            self.prev_tick = 0
