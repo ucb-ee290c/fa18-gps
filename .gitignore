@@ -1,2 +1,11 @@
 __pycache__/
 .DS_Store
+target/
+.idea/
+*.fir
+*.v
+test_run_dir/
+generated-src/
+hammer-vlsi*
+out/
+*-output.json
