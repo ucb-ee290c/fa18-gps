@@ -5,11 +5,6 @@ import dsptools.DspTester
 import chisel3._
 
 class ParserTester(c: Parser) extends DspTester(c) {
-  // val preamble = (1, 0, 1, 1, 1, 0, 0, 0)
-  // for (b <- 0 until 8) {
-  //   poke(c.io.iIn, preamble[b].toBool())
-  // }
-
   poke(c.io.iIn, true)
   step(1)
   poke(c.io.iIn, false)
@@ -25,7 +20,7 @@ class ParserTester(c: Parser) extends DspTester(c) {
   poke(c.io.iIn, true)
   step(1)
   poke(c.io.iIn, true)
-  step(2)
+  step(1)
 
   expect(c.io.stateOut, 1)
 }

@@ -40,6 +40,7 @@ class Parser (
   })
 
   val fifo = RegInit(0.U(params.preambleLength.W))
+  val fifoNext = Wire(UInt(params.preambleLength.W))
   val dStar = RegInit(0.U(2.W))
   val state = RegInit(0.U(2.W))
   val subframe = RegInit(Vec(Seq.fill(10)(0.U(params.wordLength.W))))
@@ -47,11 +48,13 @@ class Parser (
   val current_word = RegInit(0.U(log2Ceil(params.subframeLength).W))
   val completeSubframe = RegInit(Vec(Seq.fill(10)(0.U(params.wordLength.W))))
 
+  fifoNext := (fifo << 1) + io.iIn.asUInt()
+
   switch (state) {
     is(0.U) {
-      when (params.preamble === fifo) {
+      when (params.preamble === fifoNext) {
         state := 1.U
-        subframe(0) := Cat(0.U((params.wordLength - params.preambleLength).W), fifo)
+        subframe(0) := Cat(0.U((params.wordLength - params.preambleLength).W), fifoNext)
         current_word := 0.U
         current_bit := (params.preambleLength).U
       }
@@ -78,7 +81,7 @@ class Parser (
     }
   }
 
-  fifo := (fifo << 1) + io.iIn.asUInt()
+  fifo := fifoNext
   io.dStarOut := dStar
   io.subframeValid := (state === 2.U)
   io.dataOut := completeSubframe
