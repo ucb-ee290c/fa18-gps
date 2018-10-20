@@ -5,13 +5,13 @@ import chisel3.experimental.FixedPoint
 import chisel3.util._
 import dsptools.numbers._
 
-case class CAParams[T<:Int] (
-  val fcoWidth: T,
-  val codeWidth: T
+case class CAParams (
+  val fcoWidth: Int,
+  val codeWidth: Int
 )
 
 
-class CA[T<:Int](params: CAParams[T]) extends Module {
+class CA(params: CAParams) extends Module {
     val io = IO(new Bundle {
         val satellite = Input(UInt(6.W)) //There are 32 possible feedbacks. Need 6 bits
         val fco = Input(SInt(params.fcoWidth.W))

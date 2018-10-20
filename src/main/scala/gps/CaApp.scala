@@ -38,8 +38,8 @@ object CaApp extends App {
         println(usage)
         val (newArgs, newParams) = argParse(tail, params)
         ("--help" +: newArgs, newParams)
-      case "--fcoW" :: Int(xy) :: tail => argParse(tail, params.copy(fcoWidth = fco_w))
-      case "--codeW" :: Int(z) :: tail => argParse(tail, params.copy(codeWidth = code_w))
+      case "--fcoW" :: Int(fcoW) :: tail => argParse(tail, params.copy(fcoWidth = fcoW))
+      case "--codeW" :: Int(codeW) :: tail => argParse(tail, params.copy(codeWidth = codeW))
       case chiselOpt :: tail => {
         val (newArgs, newParams) = argParse(tail, params)
         (chiselOpt +: newArgs, newParams)
