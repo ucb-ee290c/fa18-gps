@@ -36,6 +36,7 @@ class Parser (
     val subframeValid = Output(Bool())
     val dataOut = Output(Vec(params.subframeLength, UInt(params.wordLength.W)))
     val dStarOut = Output(UInt(2.W))
+    val stateOut = Output(UInt(2.W))
   })
 
   val fifo = RegInit(0.U(params.preambleLength.W))
@@ -69,7 +70,7 @@ class Parser (
       }
     }
     is (2.U) {
-      dStar := (completeSubframe(params.subframeLength - 1))(params.wordLength - 2, params.wordLength - 1)
+      dStar := (completeSubframe(params.subframeLength - 1))(params.wordLength - 1, params.wordLength - 2)
       completeSubframe := subframe
       for (word <- 0 until params.subframeLength) {
         subframe(word) := 0.U
@@ -77,10 +78,11 @@ class Parser (
     }
   }
 
-  fifo := (fifo << 1) + io.iIn
+  fifo := (fifo << 1) + io.iIn.asUInt()
   io.dStarOut := dStar
   io.subframeValid := (state === 2.U)
   io.dataOut := completeSubframe
+  io.stateOut := state
 }
 
 class ParityChecker (
@@ -93,10 +95,10 @@ class ParityChecker (
   })
 }
 
-class Test extends Module {
-  val io = IO(new Bundle{})
-
-  val preamble = "b10001011".U(8.W)
-  val params = PacketizerParams(10, 30, 8, preamble)
-  val pk = Module(new Packetizer(params))
-}
+// class Test extends Module {
+//   val io = IO(new Bundle{})
+//
+//   val preamble = "b10001011".U(8.W)
+//   val params = PacketizerParams(10, 30, 8, preamble)
+//   val pk = Module(new Packetizer(params))
+// }
