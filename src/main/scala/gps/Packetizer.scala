@@ -42,17 +42,45 @@ class Parser (
   val dStar = RegInit(0.U(2.W))
   val state = RegInit(0.U(2.W))
   val subframe = RegInit(Vec(Seq.fill(10)(0.U(params.wordLength.W))))
+  val current_bit = RegInit(0.U(log2Ceil(params.wordLength).W))
+  val current_word = RegInit(0.U(log2Ceil(params.subframeLength).W))
+  val completeSubframe = RegInit(Vec(Seq.fill(10)(0.U(params.wordLength.W))))
 
   switch (state) {
     is(0.U) {
       when (params.preamble === fifo) {
         state := 1.U
+        subframe(0) := Cat(0.U((params.wordLength - params.preambleLength).W), fifo)
+        current_word := 0.U
+        current_bit := (params.preambleLength).U
+      }
+    }
+    is (1.U) {
+      subframe(current_word) := (subframe(current_word) << 1) + io.iIn
+      when (current_bit === (params.wordLength - 1).U) {
+        when (current_word === (params.subframeLength - 1).U) {
+          state := 2.U
+        } .otherwise {
+          current_bit := 0.U
+          current_word := current_word + 1.U
+        }
+      } .otherwise {
+        current_bit := current_bit + 1
+      }
+    }
+    is (2.U) {
+      dStar := (completeSubframe(params.subframeLength - 1))(params.wordLength - 2, params.wordLength - 1)
+      completeSubframe := subframe
+      for (word <- 0 until params.subframeLength) {
+        subframe(word) := 0.U
       }
     }
   }
 
   fifo := (fifo << 1) + io.iIn
   io.dStarOut := dStar
+  io.subframeValid := (state === 2.U)
+  io.dataOut := completeSubframe
 }
 
 class ParityChecker (
