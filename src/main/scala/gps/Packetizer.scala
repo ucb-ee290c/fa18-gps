@@ -7,10 +7,10 @@ import chisel3.util._
 import dsptools.numbers._
 
 case class PacketizerParams (
-  val SubframeLength: Int,
-  val WordLength: Int,
-  val PreambleLength: Int,
-  val Preamble: UInt
+  val subframeLength: Int,
+  val wordLength: Int,
+  val preambleLength: Int,
+  val preamble: UInt
 )
 
 class Packetizer (
@@ -21,35 +21,47 @@ class Packetizer (
   })
 
   val parser = Module(new Parser(Params))
-  val parity_checker = Module(new ParityChecker(Params))
+  val parityChecker = Module(new ParityChecker(Params))
 
-  parity_checker.io.subframe_valid := parser.io.subframe_valid
-  parity_checker.io.data_in := parser.io.data_out
-  parity_checker.io.d_star := parser.io.d_star
+  parityChecker.io.subframeValid := parser.io.subframeValid
+  parityChecker.io.dataIn := parser.io.dataOut
+  parityChecker.io.dStarIn := parser.io.dStarOut
 }
 
 class Parser (
-  Params: PacketizerParams
+  params: PacketizerParams
 ) extends Module {
   val io = IO(new Bundle{
-    val I_in = Input(UInt(1.W))
-    val subframe_valid = Output(Bool())
-    val data_out = Output(Vec(Params.SubframeLength, UInt(Params.WordLength.W)))
-    val d_star = Output(UInt(2.W))
+    val iIn = Input(UInt(1.W))
+    val subframeValid = Output(Bool())
+    val dataOut = Output(Vec(params.subframeLength, UInt(params.wordLength.W)))
+    val dStarOut = Output(UInt(2.W))
   })
 
-  val fifo = RegInit(0.U(Params.PreambleLength.W))
+  val fifo = RegInit(0.U(params.preambleLength.W))
+  val dStar = RegInit(0.U(2.W))
+  val state = RegInit(0.U(2.W))
+  val subframe = RegInit(Vec(Seq.fill(10)(0.U(params.wordLength.W))))
 
-  fifo := (fifo << 1) + io.I_in
+  switch (state) {
+    is(0.U) {
+      when (params.preamble === fifo) {
+        state := 1.U
+      }
+    }
+  }
+
+  fifo := (fifo << 1) + io.iIn
+  io.dStarOut := dStar
 }
 
 class ParityChecker (
-  Params: PacketizerParams
+  params: PacketizerParams
 ) extends Module {
   val io = IO(new Bundle{
-    val subframe_valid = Input(Bool())
-    val data_in = Input(Vec(Params.SubframeLength, UInt(Params.WordLength.W)))
-    val d_star = Input(UInt(2.W))
+    val subframeValid = Input(Bool())
+    val dataIn = Input(Vec(params.subframeLength, UInt(params.wordLength.W)))
+    val dStarIn = Input(UInt(2.W))
   })
 }
 
