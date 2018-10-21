@@ -1,6 +1,6 @@
 """
 @Author: Zhaokai Liu
-@File: acquisition_model_test.py
+@File: raw_data_reader.py
 @Time: 10/12/18 14:15
 @Description: 
 
@@ -8,7 +8,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
 
 def readRawData():
@@ -65,9 +67,9 @@ def caGen(i, chiprate, fs, nSamples):
     return ca
 
 
-def FFTSearch(data, fs, fc, nSamples):
+def FFTSearch(data, fs, fc, nSamples, sv):
     fchip = 1023000
-    caCode = caGen(21, fchip, fs, nSamples)
+    caCode = caGen(sv, fchip, fs, nSamples)
     t = np.linspace(0, (nSamples - 1) * fc / fs, nSamples)
     sin = np.sin(2 * np.pi * t)
     cos = np.cos(2 * np.pi * t)
@@ -84,18 +86,18 @@ def FFTSearch(data, fs, fc, nSamples):
     return C
 
 
-def acquisition():
-    fcarrier = 4128460
+def acquisition(sv):
+    fcarrier = 4130400
     fsample = 16367600
-    dopOffset = 3000
-    dopStep = 100
-    nSample = 200000
+    dopOffset = 10000
+    dopStep = 500
+    nSample = 16368
     k = 10
 
     c = np.zeros((2 * dopOffset // dopStep + 1, nSample), float)
     data = readRawData()
     dataIdx = 0
-    print(list(range(fcarrier - dopOffset, fcarrier + dopOffset + dopStep, dopStep)))
+    # print(list(range(fcarrier - dopOffset, fcarrier + dopOffset + dopStep, dopStep)))
     for idx, freq in enumerate(list(range(fcarrier - dopOffset, fcarrier + dopOffset + dopStep, dopStep))):
         dataIdx = 0
         for j in range(k):
@@ -103,19 +105,32 @@ def acquisition():
             dataIdx = dataIdx + nSample
             # print("debugfreq:", idx,k)
 
-            c[idx] = c[idx] + FFTSearch(_data, fsample, freq, nSample)
+            c[idx] = c[idx] + FFTSearch(_data, fsample, freq, nSample, sv)
     xxx = np.linspace(0, (2 * dopOffset // dopStep), (2 * dopOffset // dopStep) + 1)
-    xy = np.linspace(0, nSample, nSample)
+    xy = np.linspace(nSample, 0, nSample)
 
-    ax = plt.axes(projection='3d')
-    X, Y = np.meshgrid(xxx, xy)
-    print(np.shape(c), np.shape(X), np.shape(Y))
-    print('max', c.max(), 'mean', c.mean(), 'ratio', c.max() / c.mean())
-    ax.plot_surface(X, Y, c.transpose())
+    # print('max', c.max(), 'mean', c.mean(), 'ratio', c.max() / c.mean())
+    if c.max() / c.mean() > 20:
+        fig = plt.figure()
+        ax = plt.axes(projection='3d')
+        X, Y = np.meshgrid(xxx, xy)
+        # print(np.shape(c), np.shape(X), np.shape(Y))
+        print("[RESULT:]#%d :FOUND" % (sv+1))
+        print("LOC: freq:%d, phase:%d" % (np.argmax(c) // nSample*dopStep+fcarrier - dopOffset, nSample-np.argmax(c) % nSample))
+        surf = ax.plot_surface(X, Y, c.transpose(), cmap=cm.coolwarm, antialiased=False, linewidth=0)
+        fig.colorbar(surf, shrink=0.5, aspect=5)
+        fig.suptitle("[RESULT:]#%d :FOUND" % (sv+1))
+        # ax.zaxis.set_major_locator(LinearLocator(10))
+        # ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+    else:
+        print("[RESULT:]#%d :NOT FOUND" % (sv+1))
+
 
 
 if __name__ == "__main__":
-    acquisition()
+    for i in range(33):
+        acquisition(i)
+    # acquisition(21)
     # fcarrier = 4128460
     # fsample = 16367600
     # dopOffset = 2000
