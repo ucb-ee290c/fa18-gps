@@ -130,18 +130,9 @@ def acquisition(sv):
 if __name__ == "__main__":
     for i in range(32):
         acquisition(i)
-    # acquisition(21)
-    # fcarrier = 4128460
-    # fsample = 16367600
-    # dopOffset = 2000
-    # dopStep = 100
-    # nSample = 20000
-    # k = 10
-    #
-    # data = readRawData()
-    # _data = data[0:nSample]
-    # t=FFTSearch(_data, fsample, fcarrier, nSample)
+    plt.show()
 
+    # ---- check the data properties, should be compared with the data source(fft, time, bar) -----
     # data = readRawData()
     # n = nSample
     # plt.figure()
@@ -149,4 +140,3 @@ if __name__ == "__main__":
     # yf = np.abs(np.fft.fft(dataarray))[0:n // 2]
     # plt.plot(np.linspace(0,0.5*16367600,n//2), 2*yf/n)
     # plt.bar([-3,-1,1,3],[data.count(-3),data.count(-1),data.count(1),data.count(3)])
-    plt.show()
