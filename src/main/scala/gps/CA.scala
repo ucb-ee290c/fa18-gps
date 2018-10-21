@@ -23,13 +23,13 @@ class CA(params: CAParams) extends Module {
         val done = Output(Bool()) //Goes high when the full length of the code has finished
     })
     //require((io.satellite >= 1.U) && (io.satellite <= 32.U))
-    val feedback_pos = Reg(VecInit(Seq(0.U, 0.U)))
+    val feedbackPos = RegInit(VecInit(Seq.fill(2)(0.U(params.codeWidth.W))))
     switch(io.satellite) {
-     is(1.U){ feedback_pos := Seq(2.U,6.U) }
+     is(1.U){ feedbackPos := Seq(2.U,6.U) }
      /*
-     is(2.U){ feedback_pos := Seq(3.U,7.U) }
-     is(3.U){ feedback_pos := Seq(4.U,8.U) }
-     is(4.U){ feedback_pos := Seq(5.U,9.U) }
+     is(2.U){ feedbackPos := Seq(3.U,7.U) }
+     is(3.U){ feedbackPos := Seq(4.U,8.U) }
+     is(4.U){ feedbackPos := Seq(5.U,9.U) }
      */
      /*
      case 5.U => Seq(1.U,9.U)
@@ -63,26 +63,35 @@ class CA(params: CAParams) extends Module {
      */
     }
     
-    val prev_tick = Reg(SInt(params.fcoWidth.W))
-    val curr_index = Reg(UInt(10.W)) //Codes are a fixed length of 1023. Can hardcode this
-    val curr_sv = Reg(UInt(6.W)) //32 sattelites, can hardcode this width
-    val counter = RegInit(0.U(log2Ceil(1024).W))
- 
+    val curr_sv = RegInit(0.U(6.W)) //32 sattelites, can hardcode this width
+    val counter = RegInit(0.U(log2Ceil(1024).W)) //Code length always 1023, can hardcode width
+    val g1FeedbackReg = RegInit(0.S(params.codeWidth.W)) 
+    val g2FeedbackReg = RegInit(0.S(params.codeWidth.W)) 
     val g1 = RegInit(VecInit(Seq.fill(10)(1.S(params.codeWidth.W))))
     val g2 = RegInit(VecInit(Seq.fill(10)(1.S(params.codeWidth.W))))
-   
-    //Feedback to the first element in the shift register by adding mod 2, AKA XOR 
-    g1(0.U) := g1(2.U) ^ g1(9.U) //feedback is always 3 and 9, but that's for 1 indexing
-    g2(0.U) := g2(1.U) ^ g2(2.U) ^ g2(5.U) ^ g2(7.U) ^ g2(8.U) ^ g2(9.U)
-    //Feedback is 2, 3, 6, 8, 9, 10, off by 1 for the same reason 
-    //Push the rest of the elements down the list.
-    for (i <- 1 until 10) {
-        g1(i.U) := g1(i.U-1.U)
-        g2(i.U) := g2(i.U-1.U)
+    //Want to restart the sequence if the satellite changes or if we complete one full sequence 
+    when((curr_sv =/= io.satellite) || (counter === 1023.U)) {
+        curr_sv := io.satellite
+        g1 := RegInit(VecInit(Seq.fill(10)(1.S(params.codeWidth.W))))
+        g2 := RegInit(VecInit(Seq.fill(10)(1.S(params.codeWidth.W))))
+    }.otherwise {
+      //Feedback to the first element in the shift register by adding mod 2 
+      g1FeedbackReg := (g1(2.U) + g1(9.U)) % 2.S //feedback is always 3 and 9, but that's for 1 indexing
+      g2FeedbackReg := (g2(1.U) + g2(2.U) + g2(5.U) + g2(7.U) + g2(8.U) + g2(9.U)) % 2.S
+      //Feedback is 2, 3, 6, 8, 9, 10, off by 1 for the same reason 
+      //Push the rest of the elements down the list.
+      for (i <- 1 until 10) {
+          g1(i.U) := g1(i.U-1.U)
+          g2(i.U) := g2(i.U-1.U)
+      }
+      g1(0.U) := g1FeedbackReg
+      g2(0.U) := g2FeedbackReg
     }
     //Feedback for g1 is always from position 10 (off by 1)
     //Feedback for g2 is an xor of 2 positions based on the sattelite
-    val res = g1(9.U) ^ (g2(feedback_pos(0.U)) ^ g2(feedback_pos(1.U)))
+    val res = (g1(9.U) + (g2(feedbackPos(0.U)) + g2(feedbackPos(1.U)))) % 2.S
     io.early := Mux(res === 1.S, 1.S(params.codeWidth.W), -1.S(params.codeWidth.W)) 
+    io.punctual := 0.S(params.codeWidth.W)
+    io.late := 0.S(params.codeWidth.W)
     io.done := counter === 1023.U
 }
