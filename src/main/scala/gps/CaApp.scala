@@ -49,7 +49,7 @@ object CaApp extends App {
   }
   val defaultParams = CAParams(
     fcoWidth = 10,
-    codeWidth = 1
+    codeWidth = 2
   )
   val (chiselArgs, params) = argParse(args.toList, defaultParams)
   // Run the Chisel driver to generate a cordic
