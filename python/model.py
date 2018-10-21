@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from blocks import *
 
 
-raw_data = np.fromfile('adc_sample_data.bin', dtype=np.int8)
+raw_data = np.fromfile('adc_sample_data.bin', dtype=np.int8)[15040:]
 
 # Data sample rate
 fs = 1.023*16*1e6
@@ -28,9 +28,10 @@ carrier_nco_code = round(ideal_carrier_nco_code)
 print(f"Rounding the NCO frequency to {carrier_nco_code}")
 
 def main():
-    num_cycles = len(raw_data)
+    num_cycles = len(raw_data)//10
+    print(num_cycles)
 
-    adc = ADC(raw_data)
+    adc = ADC(np.sign(raw_data))
     nco_carrier = NCO(10, False)
 
     # Technically don't need to make multiple multiplier objects as they all
@@ -51,7 +52,7 @@ def main():
     intdumpI = IntDump()
     intdumpQ = IntDump()
 
-    # ki = 1, kp = 1, first discriminator
+    # ki = 1, kp = 1, second discriminator
     dll = DLL(1, 1, 1)
     # Disabling the Costas loop for now and forcing the right frequency
     costas = Costas(1,[1,1,1],1,1,1)    
@@ -60,19 +61,26 @@ def main():
     packet = Packet()
     
     # FIXME: Initial DLL and Costas loop values
-    dll_out = carrier_nco_code
+    dll_out = 1023e3*(2**nco_width)/fs
     costas_out = carrier_nco_code
     last_integ_I = [0,0,0]
     last_integ_Q = [0,0,0]
+    dll_out_arr = []
+    processed = False
+    dll_I_e = []
+    dll_I_p = []
+    dll_I_l = []
+    dis_out_arr = []
 
     for x in range(0, num_cycles):
         adc_data = adc.update()
         cos_out, sin_out  = nco_carrier.update(costas_out)        
-        I = multI.update(adc_data, cos_out) 
+        I = multI.update(adc_data, cos_out)
         Q = multQ.update(adc_data, sin_out)
 
         f_out, f2_out = nco_code.update(dll_out)
         e, p, l, dump = ca.update(f_out, f2_out, sv)
+        # print(e, p, l, f_out, f2_out)
 
         I_e = multIe.update(I, e)        
         I_p = multIp.update(I, p)
@@ -83,22 +91,40 @@ def main():
 
         I_sample = [I_e, I_p, I_l]
         Q_sample = [Q_e, Q_p, Q_l]
-        print(Q_sample, e, p, l)
 
+        # We'll do this calc here, since intdump throws things away when dump=1
+        if dump and not processed:
+            print(x)
+            dll_out, dis_out = dll.update(I_int, Q_int, 1023e3*(2**nco_width)/fs, 0)
+            print(f"Early: {I_int[0]}, Late: {I_int[2]}, Out: {dll_out}")
+            dll_I_e.append(I_int[0])
+            dll_I_p.append(I_int[1])
+            dll_I_l.append(I_int[2])
+            dll_out = np.round(dll_out)
+            dll_out_arr.append(dll_out)
+            processed = True
+        elif not dump: 
+            processed = False
+        
+        # Commenting this out for now
+        # costas_out = costas.update(I_int[1], I_int[1], 0)
+        
         # I_int and Q_int are lists of size 3
         I_int = intdumpI.update(I_sample, dump)
         Q_int = intdumpQ.update(Q_sample, dump)
 
-        if dump:
-            print(last_integ_I, last_integ_Q)
-            dll_out = round(dll.update(last_integ_I, last_integ_Q,
-                carrier_nco_code, 0))
-        # Commenting this out for now
-        # costas_out = costas.update(I_int[1], I_int[1], 0)
-
-        last_integ_I = I_int
-        last_integ_q = Q_int
         # packet.update(x, I_int, Q_int)
+
+    plt.figure()
+    plt.plot(dll_out_arr)
+    plt.figure()
+    plt.plot(dll_I_e, label='early')
+    plt.plot(dll_I_p, label='prompt')
+    plt.plot(dll_I_l, label='late')
+    plt.legend()
+    
+    
+    plt.show()
 
 
 if __name__ == "__main__": 

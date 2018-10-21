@@ -21,6 +21,7 @@ class DLL(Block):
         """
         self.kp = kp
         self.ki = ki
+        self.acc = 0
         self.discriminator_num = discriminator_num
 
     @staticmethod
@@ -33,7 +34,16 @@ class DLL(Block):
     def discriminator2(ie, il, qe, ql):
         e = ie**2 + qe**2
         l = il**2 + ql**2
-        return 1/2*(e-l)
+        return 1/2*(e-l)/(e + l)
+
+    def loop_filter(self, val):
+        self.acc += val*self.kp 
+        print("DIS OUT: ", val)
+        if self.acc > 10:
+            self.acc = 10
+        if self.acc < -10:
+            self.acc = -10
+        return self.acc
 
     def update(self, I_sample, Q_sample, carrier_bias, code_bias):
         """ DLL update
@@ -52,5 +62,6 @@ class DLL(Block):
             dis_out = self.discriminator2(I_sample[0], I_sample[2],
                 Q_sample[0], Q_sample[2])
 
-        return carrier_bias + code_bias + dis_out
+        lf_out = self.loop_filter(dis_out)
+        return carrier_bias + code_bias + lf_out, lf_out
 

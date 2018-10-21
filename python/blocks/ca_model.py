@@ -133,13 +133,13 @@ class ShiftRegister(Block):
         self.input = None
         self.curr_index = 0
         self.prev_tick = -1
-        self.my_list = [1, 1] #always length 2
+        self.my_list = [1, 1, 1] #always length 2
     def update(self, tick):
-        temp_return = self.my_list[:]
         if self.prev_tick < 0 and tick >= 0:
+            self.my_list[2] = self.my_list[1]
             self.my_list[1] = self.my_list[0]
             self.my_list[0] = self.input
         self.prev_tick = tick
-        return temp_return[0], temp_return[1]
+        return self.my_list[1], self.my_list[2]
     def insert(self, val):
         self.input = val
