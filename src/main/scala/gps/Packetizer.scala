@@ -64,7 +64,7 @@ class Parser (
       when (current_bit === (params.wordLength - 1).U) {
         when (current_word === (params.subframeLength - 1).U) {
           state := 2.U
-          dStar := (completeSubframe(params.subframeLength - 1))(params.wordLength - 1, params.wordLength - 2)
+          dStar := (completeSubframe(params.subframeLength - 1))(1, 0)
           completeSubframe := subframe
         } .otherwise {
           current_bit := 0.U
