@@ -128,7 +128,7 @@ def acquisition(sv):
 
 
 if __name__ == "__main__":
-    for i in range(33):
+    for i in range(32):
         acquisition(i)
     # acquisition(21)
     # fcarrier = 4128460
