@@ -16,6 +16,7 @@ class AcquisitionControl(Block):
         self.k_idx = 0;
         self.freq_cph_opt = [{'sum': 0,
                               'max': 0,
+                              'mean': 0,
                               'satellite_found': False,
                               'freq_idx_opt': 0,
                               'cph_opt': 0
@@ -31,6 +32,7 @@ class AcquisitionControl(Block):
     def reset_acq_result(self, satellite_idx):
         self.freq_cph_opt[satellite_idx]['sum'] = 0
         self.freq_cph_opt[satellite_idx]['max'] = 0
+        self.freq_cph_opt[satellite_idx]['mean'] = 0
 
     def update(self, c_row):
 
@@ -47,6 +49,7 @@ class AcquisitionControl(Block):
             if (np.max(self.c_row) > self.freq_cph_opt[self.satellite_idx]['max']):
                 print('max updated', np.max(self.c_row), self.freq_idx, np.argmax(self.c_row))
                 self.freq_cph_opt[self.satellite_idx]['max'] = np.max(self.c_row)
+                self.freq_cph_opt[self.satellite_idx]['mean'] = np.mean(self.c_row)
                 self.freq_cph_opt[self.satellite_idx]['freq_idx_opt'] = self.freq_idx
                 self.freq_cph_opt[self.satellite_idx]['cph_opt'] = np.argmax(self.c_row)
 
@@ -60,11 +63,10 @@ class AcquisitionControl(Block):
             # return the acquisition result for the current satellite and
             # begin acquisition for the next satellite
             else:
-                # idx_opt = np.argmax(self.c)
-                # freq_idx_opt = idx_opt // self.nSample
-                # cph_opt = idx_opt % self.nSample
-                mean = self.freq_cph_opt[self.satellite_idx]['sum'] / (self.nSample * (self.freq_idx_max + 1))
+
+                # mean = self.freq_cph_opt[self.satellite_idx]['sum'] / (self.nSample * (self.freq_idx_max + 1))
                 max = self.freq_cph_opt[self.satellite_idx]['max']
+                mean = self.freq_cph_opt[self.satellite_idx]['mean']
                 ratio = max / mean
                 print(max, mean, ratio)
                 satellite_found = ratio > self.threshold
