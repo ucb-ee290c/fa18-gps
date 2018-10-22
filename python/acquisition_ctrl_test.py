@@ -1,14 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from acquisition_model_test import FFTSearch, readRawData
+from acquisition_model_test import FFTSearch, SFFTSearch, readRawData
 from blocks.acq_ctrl_model import *
 from blocks.block import Block
+import math
+from functools import partial
 
 
 
 
-def test(k_max):
+def test(k_max, sparse):
 
     fcarrier = 4128460
     fsample = 16367600
@@ -41,7 +43,16 @@ def test(k_max):
 
         _data = data[dataIdx: dataIdx + nSample]
         freq_curr = freq_init + dopStep * acq_ctrl_model.freq_idx
-        FFT_result = FFTSearch(_data, fsample, freq_curr, nSample)
+
+        subsamprate = int(math.sqrt(math.log2(nSample)))
+
+        if (sparse):
+            fftfunc = partial(SFFTSearch, fs=fsample, nSamples=nSample, sv=21, p=subsamprate)
+        else:
+            fftfunc = partial(FFTSearch, fs=fsample, nSamples=nSample, sv=21)
+
+        FFT_result, _time = fftfunc(data=_data, fc=freq_curr)
+         # = SFFTSearch(_data, fsample, freq_curr, nSample, sv=21)
 
         acq_ctrl_model.update(FFT_result)
 
@@ -74,5 +85,5 @@ def test(k_max):
 
 
 if __name__ == "__main__":
-    test(k_max=10)
+    test(k_max=10, sparse = False)
     plt.show()
