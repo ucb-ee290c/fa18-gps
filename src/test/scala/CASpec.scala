@@ -9,9 +9,7 @@ class CASpec extends FlatSpec with Matchers {
     fcoWidth = 10,
     codeWidth = 2,
   )
-  it should "give the correct early PRN" in {
-      val prnCodeRaw = io.Source.fromFile("/home/nwerblun/ee290c/fa18-gps/src/test/scala/PRNCode.csv").getLines.toList.map(_.split(","))
-  //val prnCode = prnCodeRaw(0).map(_.toInt)
+  val prnCodeRaw = io.Source.fromFile("/home/nwerblun/ee290c/fa18-gps/src/test/scala/PRNCode.csv").getLines.toList.map(_.split(","))
   //Creates an array of 32 arrays each of which has a 1023 length PRN sequence
   val prnCodes = Array.ofDim[Int](prnCodeRaw.length, prnCodeRaw(0).length)
   for(i <- 0 until prnCodeRaw.length) {
@@ -22,20 +20,22 @@ class CASpec extends FlatSpec with Matchers {
     if (i % 2 == 0) { ncoInput(i) = -1 }
     else { ncoInput(i) = 1 }
   }
+  it should "give the correct early PRN" in {
+
   //Tests if the early signal is what's expected.
     CAEarlyTester(params, prnCodes, ncoInput) should be (true)
   }
-  /*
   //Tests if there's never a zero crossing on the NCO that the output is always the same
   it should "never change" in {
-    val trials_2 = 
-    CANoChangeTester(params, trials_2) should be (true)
+    val ncoInput2 = Array.fill[Int](1023*2)(0) 
+    CANoOutputTester(params, prnCodes, ncoInput2) should be (true)
   }
+
+  /*
   //tests what happens if you switch the satellite midway through 
   it should "correctly reset" in {
    val trials_3 = 
    CASatelliteSwitchTester(params, trials_3) should be (true)
-   }
-  */
+   }*/
 }
 
