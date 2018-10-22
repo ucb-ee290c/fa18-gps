@@ -5,7 +5,9 @@
 @Description: 
 
 """
+import timeit
 import numpy as np
+from functools import partial
 import matplotlib.pyplot as plt
 import math
 from matplotlib import cm
@@ -79,35 +81,82 @@ def FFTSearch(data, fs, fc, nSamples, sv):
     i = np.multiply(dataArray, cos)
     q = np.multiply(dataArray, sin)
 
+    _start = timeit.default_timer()
     inFFT = np.fft.fft(i + 1j * q)
     caFFT = np.fft.fft(caCode)
-
     C = np.square(np.abs(np.fft.ifft(np.multiply(np.conjugate(inFFT), caFFT))))
-    return C
+    _stop = timeit.default_timer()
+    # print("[-FFT analysis]: runtime %f" % (_stop-_start))
+
+    return C, _stop-_start
 
 
-def acquisition(sv):
+def SFFTSearch(data, fs, fc, nSamples, sv,p=4):
+    fchip = 1023000
+    caCode = caGen(sv, fchip, fs, nSamples)
+    t = np.linspace(0, (nSamples - 1) * fc / fs, nSamples)
+    sin = np.sin(2 * np.pi * t)
+    cos = np.cos(2 * np.pi * t)
+
+    dataArray = np.asarray(data)
+
+    i = np.multiply(dataArray, cos)
+    q = np.multiply(dataArray, sin)
+
+    sig = i + 1j * q
+    _start0 = timeit.default_timer()
+
+    sublen = math.ceil(nSamples/p)
+    subsig = [0]*sublen
+    subca = [0]*sublen
+    for i in range(sublen):
+        subsig[i] = sum(sig[i::sublen])
+        subca[i] = sum(caCode[i::sublen])
+
+    _start = timeit.default_timer()
+    inFFT = np.fft.fft(subsig)
+    caFFT = np.fft.fft(subca)
+    # print(len(sig),len(caCode))
+    C = np.square(np.abs(np.fft.ifft(np.multiply(np.conjugate(inFFT), caFFT))))
+    _stop = timeit.default_timer()
+    # print("[-FFT analysis]: fft runtime %f" % (_stop-_start))
+    # print("[-FFT analysis]: fft runtime + data preproccess%f" % (_stop-_start0))
+    return C, _stop-_start
+
+
+def acquisition(sv, k, sfft=False):
     fcarrier = 4130400
     fsample = 16367600
     dopOffset = 10000
     dopStep = 500
     nSample = 16368
-    k = 10
 
-    c = np.zeros((2 * dopOffset // dopStep + 1, nSample), float)
+    subsamprate = int(math.sqrt(math.log2(nSample)))
+    print("SUBSAMPLERATE", subsamprate)
+    # subsamprate = 4
+    size = nSample // subsamprate if sfft else nSample
+    c = np.zeros((2 * dopOffset // dopStep + 1, size), float)
     data = readRawData()
-    dataIdx = 0
+    t = 0
     # print(list(range(fcarrier - dopOffset, fcarrier + dopOffset + dopStep, dopStep)))
+    fftfunc = partial(SFFTSearch,  fs=fsample, nSamples=nSample, sv=sv, p=subsamprate) if sfft else partial(FFTSearch, fs=fsample, nSamples=nSample, sv=sv)
+    search_start = timeit.default_timer()
     for idx, freq in enumerate(list(range(fcarrier - dopOffset, fcarrier + dopOffset + dopStep, dopStep))):
         dataIdx = 0
         for j in range(k):
             _data = data[dataIdx: dataIdx + nSample]
             dataIdx = dataIdx + nSample
             # print("debugfreq:", idx,k)
+            _fft, _time = fftfunc(data=_data, fc=freq)
+            t += _time
+            c[idx] = c[idx] + _fft
 
-            c[idx] = c[idx] + FFTSearch(_data, fsample, freq, nSample, sv)
+            # c[idx] = c[idx] + SFFTSearch(_data, fsample, freq, nSample, sv)
+    search_stop = timeit.default_timer()
+    print("[FFT analysis]: total runtime of search %f" % (t))
+
     xxx = np.linspace(0, (2 * dopOffset // dopStep), (2 * dopOffset // dopStep) + 1)
-    xy = np.linspace(nSample, 0, nSample)
+    xy = np.linspace(size, 0, size)
 
     # print('max', c.max(), 'mean', c.mean(), 'ratio', c.max() / c.mean())
     if c.max() / c.mean() > 20:
@@ -115,21 +164,27 @@ def acquisition(sv):
         ax = plt.axes(projection='3d')
         X, Y = np.meshgrid(xxx, xy)
         # print(np.shape(c), np.shape(X), np.shape(Y))
-        print("[RESULT:]#%d :FOUND" % (sv+1))
-        print("LOC: freq:%d, phase:%d" % (np.argmax(c) // nSample*dopStep+fcarrier - dopOffset, nSample-np.argmax(c) % nSample))
+        print("[RESULT]#%d :FOUND" % (sv+1))
+        print("LOC: freq:%d, phase:%d" % (np.argmax(c) // size * dopStep+fcarrier - dopOffset,
+                                          subsamprate*size - np.argmax(c) % size))
         surf = ax.plot_surface(X, Y, c.transpose(), cmap=cm.coolwarm, antialiased=False, linewidth=0)
         fig.colorbar(surf, shrink=0.5, aspect=5)
-        fig.suptitle("[RESULT:]#%d :FOUND" % (sv+1))
+        fig.suptitle("[RESULT]#%d :FOUND, k=%d" % (sv+1, k))
         # ax.zaxis.set_major_locator(LinearLocator(10))
         # ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
     else:
-        print("[RESULT:]#%d :NOT FOUND" % (sv+1))
-
+        print("[RESULT]#%d :NOT FOUND" % (sv+1))
 
 
 if __name__ == "__main__":
-    for i in range(32):
-        acquisition(i)
+    ffttime=0
+    # ---- Search for all SV ----
+    # for i in range(32):
+    #     acquisition(sv=i, k=5)
+    # ---- Test the effect of k ----
+    # for k in [1,2,5,10,20,40]:
+    #     acquisition(sv=21, k=k)
+    acquisition(sv=21, k=10, sfft=True)
     plt.show()
 
     # ---- check the data properties, should be compared with the data source(fft, time, bar) -----
