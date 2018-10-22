@@ -17,7 +17,6 @@ class CAEarlyTester(c: CA, prnCodes: Array[Array[Int]], ncoInput: Array[Int]) ex
     for(i <- 0 until ncoInput.length - 1000) {
       poke(c.io.fco, ncoInput(i))
       peek(c.io.fco)
-      peek(c.io.testVec)
       step(1)
       expect(c.io.early, 2*prnCodes(j)(i) - 1) 
       //outputs(i) = c.io.early
