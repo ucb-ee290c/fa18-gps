@@ -22,6 +22,12 @@ class ParserTester(c: Parser) extends DspTester(c) {
   expect(c.io.stateOut, 2)
   expect(c.io.subframeValid, 1)
   expect(c.io.dataOut(0), (139 << 22))
+  for (w <- 1 until 10) {
+    expect(c.io.dataOut(w), 0)
+  }
+  step(1)
+  expect(c.io.stateOut, 0)
+  expect(c.io.subframeValid, 0)
 }
 
 object ParserTester {

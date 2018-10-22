@@ -47,23 +47,24 @@ class Parser (
   val current_bit = RegInit(0.U(log2Ceil(params.wordLength).W))
   val current_word = RegInit(0.U(log2Ceil(params.subframeLength).W))
   val completeSubframe = RegInit(Vec(Seq.fill(10)(0.U(params.wordLength.W))))
+  val sIdle :: sRecording :: sDone :: Nil = Enum(3)
 
   fifoNext := (fifo << 1) + io.iIn.asUInt()
 
   switch (state) {
-    is(0.U) {
+    is(sIdle) {
       when (params.preamble === fifoNext) {
-        state := 1.U
+        state := sRecording
         subframe(0) := Cat(0.U((params.wordLength - params.preambleLength).W), fifoNext)
         current_word := 0.U
         current_bit := (params.preambleLength).U
       }
     }
-    is (1.U) {
+    is (sRecording) {
       subframe(current_word) := (subframe(current_word) << 1) + io.iIn
       when (current_bit === (params.wordLength - 1).U) {
         when (current_word === (params.subframeLength - 1).U) {
-          state := 2.U
+          state := sDone
           dStar := (completeSubframe(params.subframeLength - 1))(1, 0)
           completeSubframe := subframe
         } .otherwise {
@@ -74,10 +75,11 @@ class Parser (
         current_bit := current_bit + 1
       }
     }
-    is (2.U) {
+    is (sDone) {
       for (word <- 0 until params.subframeLength) {
         subframe(word) := 0.U
       }
+      state := sIdle
     }
   }
 
@@ -96,12 +98,11 @@ class ParityChecker (
     val dataIn = Input(Vec(params.subframeLength, UInt(params.wordLength.W)))
     val dStarIn = Input(UInt(2.W))
   })
-}
 
-// class Test extends Module {
-//   val io = IO(new Bundle{})
-//
-//   val preamble = "b10001011".U(8.W)
-//   val params = PacketizerParams(10, 30, 8, preamble)
-//   val pk = Module(new Packetizer(params))
-// }
+  val subframe = Reg(Vec(UInt(params.wordLength.W)))
+  val dStar = Reg
+
+  when (io.subframeValid) {
+    subframe := io.dataIn
+  }
+}
