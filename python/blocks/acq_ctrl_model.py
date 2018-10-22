@@ -53,7 +53,6 @@ class AcquisitionControl(Block):
                 self.freq_cph_opt[self.satellite_idx]['freq_idx_opt'] = self.freq_idx
                 self.freq_cph_opt[self.satellite_idx]['cph_opt'] = np.argmax(self.c_row)
 
-
             self.c_row = np.zeros(self.nSample, float)
 
             self.k_idx = 0
@@ -64,9 +63,7 @@ class AcquisitionControl(Block):
             # return the acquisition result for the current satellite and
             # begin acquisition for the next satellite
             else:
-                # idx_opt = np.argmax(self.c)
-                # freq_idx_opt = idx_opt // self.nSample
-                # cph_opt = idx_opt % self.nSample
+
                 # mean = self.freq_cph_opt[self.satellite_idx]['sum'] / (self.nSample * (self.freq_idx_max + 1))
                 max = self.freq_cph_opt[self.satellite_idx]['max']
                 mean = self.freq_cph_opt[self.satellite_idx]['mean']
