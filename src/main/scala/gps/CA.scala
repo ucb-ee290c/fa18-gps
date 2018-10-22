@@ -39,7 +39,7 @@ class CA(params: CAParams) extends Module {
         val punctual = Output(SInt(params.codeWidth.W))
         val late = Output(SInt(params.codeWidth.W))
         val done = Output(Bool()) //Goes high when the full length of the code has finished
-        
+        //tests:
         val testVec = Output(Vec(10, UInt(params.codeWidth.W)))
     })
     //require((io.satellite >= 1.U) && (io.satellite <= 32.U))
@@ -87,11 +87,13 @@ class CA(params: CAParams) extends Module {
     prev_tick := io.fco
     //Want to restart the sequence if the satellite changes or if we complete one full sequence 
     when((curr_sv =/= io.satellite) || (counter === 1023.U)) {
+        counter := 0.U 
         curr_sv := io.satellite
         //prev_tick := 0.S(params.fcoWidth.W)
         g1 := VecInit(Seq.fill(10)(1.U(params.codeWidth.W)))
         g2 := VecInit(Seq.fill(10)(1.U(params.codeWidth.W)))
     }.elsewhen(prev_tick < 0.S && io.fco >= 0.S) {
+      counter := counter + 1.U
       //Feedback to the first element in the shift register by adding mod 2 
       //Feedback is 2, 3, 6, 8, 9, 10, off by 1 for the same reason 
       //Push the rest of the elements down the list.
@@ -105,8 +107,8 @@ class CA(params: CAParams) extends Module {
     val shifts = Module(new CACodeShiftReg(params))
     //Feedback for g1 is always from position 10 (off by 1)
     //Feedback for g2 is an xor of 2 positions based on the sattelite
-    val res = (g1(9.U) + (g2(feedbackPos(0.U)) + g2(feedbackPos(1.U)))) % 2.U
-    counter := counter + 1.U
+    //Have to subtract 1 because satellite feedback positions are 1 indexed
+    val res = (g1(9.U) + (g2(feedbackPos(0.U) - 1.U) + g2(feedbackPos(1.U) - 1.U))) % 2.U
     io.early := Mux(res === 1.U, 1.S(params.codeWidth.W), -1.S(params.codeWidth.W)) 
     io.done := counter === 1023.U
     shifts.io.fco2x := io.fco2x
