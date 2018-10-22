@@ -5,7 +5,7 @@ import chisel3.experimental.FixedPoint
 import chisel3.util._
 import dsptools.numbers._
 
-is(class CAParams (
+case class CAParams (
   val fcoWidth: Int,
   val codeWidth: Int
 )
@@ -75,7 +75,6 @@ class CA(params: CAParams) extends Module {
      is(30.U){ feedbackPos := Seq(2.U,7.U) }
      is(31.U){ feedbackPos := Seq(3.U,8.U) }
      is(32.U){ feedbackPos := Seq(4.U,9.U) }
-     */
     }
     val prev_tick = RegInit(0.S(params.fcoWidth.W))
     val curr_sv = RegInit(0.U(6.W)) //32 sattelites, can hardcode this width
