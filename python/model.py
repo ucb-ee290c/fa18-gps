@@ -110,8 +110,8 @@ def main():
         # costas_out = costas.update(I_int[1], I_int[1], 0)
         
         # I_int and Q_int are lists of size 3
-        I_int = intdumpI.update(I_sample, dump)
-        Q_int = intdumpQ.update(Q_sample, dump)
+        I_int, reset = intdumpI.update(I_sample, dump)
+        Q_int, reset = intdumpQ.update(Q_sample, dump)
 
         # packet.update(x, I_int, Q_int)
 

@@ -63,5 +63,5 @@ class DLL(Block):
                 Q_sample[0], Q_sample[2])
 
         lf_out = self.loop_filter(dis_out)
-        return carrier_bias + code_bias + lf_out, lf_out
+        return carrier_bias + code_bias + self.kp*dis_out, lf_out
 
