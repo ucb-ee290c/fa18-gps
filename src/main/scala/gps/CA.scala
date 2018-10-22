@@ -39,8 +39,6 @@ class CA(params: CAParams) extends Module {
         val punctual = Output(SInt(params.codeWidth.W))
         val late = Output(SInt(params.codeWidth.W))
         val done = Output(Bool()) //Goes high when the full length of the code has finished
-        //tests:
-        val testVec = Output(Vec(10, UInt(params.codeWidth.W)))
     })
     //require((io.satellite >= 1.U) && (io.satellite <= 32.U))
     //Can hardcode these widths because the max they can be is 10, so we need 4 bits
@@ -115,5 +113,4 @@ class CA(params: CAParams) extends Module {
     shifts.io.codeIn := io.early
     io.punctual := shifts.io.punctual
     io.late := shifts.io.late
-    io.testVec := g2
 }
