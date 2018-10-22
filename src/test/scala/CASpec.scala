@@ -17,7 +17,7 @@ class CASpec extends FlatSpec with Matchers {
   for(i <- 0 until prnCodeRaw.length) {
     prnCodes(i) = prnCodeRaw(i).map(_.toInt)
   }
-  val ncoInput = new Array[Int](1023)
+  val ncoInput = new Array[Int](1023*2)
   for(i <- 0 until ncoInput.length) {
     if (i % 2 == 0) { ncoInput(i) = -1 }
     else { ncoInput(i) = 1 }
