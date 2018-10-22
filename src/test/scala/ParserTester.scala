@@ -33,7 +33,7 @@ class ParserTester(c: Parser) extends DspTester(c) {
 object ParserTester {
   def apply(): Boolean = {
       val preamble = "b10001011".U(8.W)
-      val params = PacketizerParams(10, 30, 8, preamble)
+      val params = PacketizerParams(10, 30, 8, preamble, 6)
       chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), () => new Parser(params)) {
       c => new ParserTester(c)
       }

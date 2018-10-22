@@ -10,7 +10,8 @@ case class PacketizerParams (
   val subframeLength: Int,
   val wordLength: Int,
   val preambleLength: Int,
-  val preamble: UInt
+  val preamble: UInt,
+  val parityLength: Int
 )
 
 class Packetizer (
@@ -44,8 +45,8 @@ class Parser (
   val dStar = RegInit(0.U(2.W))
   val state = RegInit(0.U(2.W))
   val subframe = RegInit(Vec(Seq.fill(10)(0.U(params.wordLength.W))))
-  val current_bit = RegInit(0.U(log2Ceil(params.wordLength).W))
-  val current_word = RegInit(0.U(log2Ceil(params.subframeLength).W))
+  val currentBit = RegInit(0.U(log2Ceil(params.wordLength).W))
+  val currentWord = RegInit(0.U(log2Ceil(params.subframeLength).W))
   val completeSubframe = RegInit(Vec(Seq.fill(10)(0.U(params.wordLength.W))))
   val sIdle :: sRecording :: sDone :: Nil = Enum(3)
 
@@ -56,23 +57,23 @@ class Parser (
       when (params.preamble === fifoNext) {
         state := sRecording
         subframe(0) := Cat(0.U((params.wordLength - params.preambleLength).W), fifoNext)
-        current_word := 0.U
-        current_bit := (params.preambleLength).U
+        currentWord := 0.U
+        currentBit := (params.preambleLength).U
       }
     }
     is (sRecording) {
-      subframe(current_word) := (subframe(current_word) << 1) + io.iIn
-      when (current_bit === (params.wordLength - 1).U) {
-        when (current_word === (params.subframeLength - 1).U) {
+      subframe(currentWord) := (subframe(currentWord) << 1) + io.iIn
+      when (currentBit === (params.wordLength - 1).U) {
+        when (currentWord === (params.subframeLength - 1).U) {
           state := sDone
           dStar := (completeSubframe(params.subframeLength - 1))(1, 0)
           completeSubframe := subframe
         } .otherwise {
-          current_bit := 0.U
-          current_word := current_word + 1.U
+          currentBit := 0.U
+          currentWord := currentWord + 1.U
         }
       } .otherwise {
-        current_bit := current_bit + 1
+        currentBit := currentBit + 1
       }
     }
     is (sDone) {
@@ -99,10 +100,30 @@ class ParityChecker (
     val dStarIn = Input(UInt(2.W))
   })
 
-  val subframe = Reg(Vec(UInt(params.wordLength.W)))
-  val dStar = Reg
+  val subframe = Reg(Vec(params.subframeLength, UInt(params.wordLength.W)))
+  val dStar = Reg(UInt(2.W))
+  val parityBits = Wire(Vec(params.subframeLength, UInt(params.parityLength.W)))
+  val wordValid = Wire(Vec(params.subframeLength), Bool())
+  val done = Reg(Bool())
+
+  done := io.subframeValid
 
   when (io.subframeValid) {
     subframe := io.dataIn
+    dStar := io.dStarIn
+  }
+
+  for (w <- 0 until 10) {
+    parityBits(w)(0) := 0.U // TODO
+    parityBits(w)(1) := 0.U // TODO
+    parityBits(w)(2) := 0.U // TODO
+    parityBits(w)(3) := 0.U // TODO
+    parityBits(w)(4) := 0.U // TODO
+    parityBits(w)(5) := 0.U // TODO
+    wordValid(w) := (parityBits(w) === subframe(w)(params.wordLength - 1, params.wordLength - params.parityLength))
+  }
+
+  when (done) {
+    // send everything to regmap
   }
 }
