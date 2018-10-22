@@ -10,23 +10,19 @@ import scala.io._
  */
 class CAEarlyTester(c: CA, prnCodes: Array[Array[Int]], ncoInput: Array[Int]) extends DspTester(c) {
   //val outputs = new Array[Int](1023)
-  val maxCyclesToWait = 1024
   poke(c.io.fco2x, 0)
-  for(j <- 0 until 1) {
+  for(j <- 0 until 32) {
     poke(c.io.satellite, j + 1)
-    for(i <- 0 until ncoInput.length - 1000) {
+    for(i <- 0 until ncoInput.length) {
       poke(c.io.fco, ncoInput(i))
-      peek(c.io.fco)
+      if (i == 0) {step(1)}
       step(1)
-      expect(c.io.early, 2*prnCodes(j)(i) - 1) 
+      //NCO test is -1, 1, -1, 1 so it takes 2 cycles to actually update. Hence the i % 2
+      //We're updating 2x as fast as prnCodes changes so i/2
+      if (i % 2 == 0) { expect(c.io.early, 2*prnCodes(j)(i/2) - 1) }
       //outputs(i) = c.io.early
     }
   }
-  /*
-  for(i <- 0 until 20) {
-    printf("%d", outputs(i))
-  }
-  */
 }
 /**
  * Convenience function for running tests
