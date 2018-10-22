@@ -8,20 +8,34 @@ import scala.io._
  *
  * Run each trial in @trials
  */
-class CAEarlyTester(c: CA, trials: Seq[Int]) extends DspTester(c) {
-  val prnCodeRaw = io.Source.fromFile("PRNCode.csv").getLines.toList.map(_.split(","))
-  val prnCode = prnCodeRaw(0).map(_.toInt) 
-  for(i <- 0 until 10) {
-    printf("%d", prnCode(i))
+class CAEarlyTester(c: CA, prnCodes: Array[Array[Int]], ncoInput: Array[Int]) extends DspTester(c) {
+  //val outputs = new Array[Int](1023)
+  val maxCyclesToWait = 1024
+  poke(c.io.fco2x, 0)
+  for(j <- 0 until 1) {
+    poke(c.io.satellite, j + 1)
+    for(i <- 0 until ncoInput.length - 1000) {
+      poke(c.io.fco, ncoInput(i))
+      peek(c.io.fco)
+      peek(c.io.testVec)
+      step(1)
+      expect(c.io.early, 2*prnCodes(j)(i) - 1) 
+      //outputs(i) = c.io.early
+    }
   }
+  /*
+  for(i <- 0 until 20) {
+    printf("%d", outputs(i))
+  }
+  */
 }
 /**
  * Convenience function for running tests
  */
 object CAEarlyTester {
-  def apply(params: CAParams, trials: Seq[Int]): Boolean = {
+  def apply(params: CAParams, prnCodes: Array[Array[Int]], ncoInput: Array[Int]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), () => new CA(params)) {
-      c => new CAEarlyTester(c, trials)
+      c => new CAEarlyTester(c, prnCodes, ncoInput)
     }
   }
 }
