@@ -71,4 +71,67 @@ object CANoOutputTester {
     }
   }
 }
+/*
+Tests punctual functionality. This test is "correct" in that I manually printed the values out and 
+checked by hand. A fully automated one is in progress.
 
+For reference, the first 20 outputs:
+early: 111111-1-1-1-1-1-1-1-11111-1-1
+punc:  1111111-1-1-1-1-1-1-1-11111-1
+late:  111111111-1-1-1-1-1-1-1-1111
+*/
+class CAPunctualTester(c: CA, prnCodes: Array[Array[Int]], ncoInput: Array[Int], ncoInput2x: Array[Int]) extends DspTester(c) {
+  var early_outputs = List[Int]()
+  var punc_outputs = List[Int]()
+  var late_outputs = List[Int]()
+  for(j <- 0 until 1) {
+    poke(c.io.satellite, j + 1)
+    for(i <- 0 until ncoInput2x.length) {
+      poke(c.io.fco, ncoInput(i))
+      poke(c.io.fco2x, ncoInput2x(i))
+      step(1)
+      early_outputs = early_outputs :+ peek(c.io.early)
+      punc_outputs = punc_outputs :+ peek(c.io.punctual)
+      late_outputs = late_outputs :+ peek(c.io.late)
+    }
+    for(i <- 0 until 20) {
+      printf("%d", early_outputs(i))
+    }
+    printf("\n")
+    for(i <- 0 until 20) {
+      printf("%d", punc_outputs(i))
+    }
+    printf("\n")
+    for(i <- 0 until 20) {
+      printf("%d", late_outputs(i))
+    }
+    printf("\n")
+  }
+}
+
+object CAPunctualTester {
+  def apply(params: CAParams, prnCodes: Array[Array[Int]], ncoInput: Array[Int], ncoInput2x: Array[Int]): Boolean = {
+    chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), () => new CA(params)) {
+      c => new CAPunctualTester(c, prnCodes, ncoInput, ncoInput2x)
+    }
+  }
+}
+/*
+Tests that switching the satellite mid-test works properly. I can't think of a good way to test this
+without introducing more outputs. For now I will trust that it works.
+*/
+class CASwitchSatelliteTester(c: CA, prnCodes: Array[Array[Int]], ncoInput: Array[Int]) extends DspTester(c) {
+  poke(c.io.satellite, 1)
+  for(i <- 0 until 30) {
+    poke(c.io.fco, ncoInput(i))
+    step(1)
+  }
+}
+
+object CASwitchSatelliteTester {
+  def apply(params: CAParams, prnCodes: Array[Array[Int]], ncoInput: Array[Int]): Boolean = {
+    chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), () => new CA(params)) {
+      c => new CASwitchSatelliteTester(c, prnCodes, ncoInput)
+    }
+  }
+}
