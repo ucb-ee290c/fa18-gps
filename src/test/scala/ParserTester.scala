@@ -7,7 +7,6 @@ import chisel3._
 class ParserTester(c: Parser) extends DspTester(c) {
   val preamble = List(true, false, false, false, true, false, true, true)
   for (b <- 0 until 8) {
-    expect(c.io.stateOut, 0)
     expect(c.io.subframeValid, 0)
     poke(c.io.iIn, preamble(b))
     poke(c.io.validIn, true)
@@ -17,7 +16,6 @@ class ParserTester(c: Parser) extends DspTester(c) {
   }
   poke(c.io.iIn, false)
   for (b <- 0 until 292) {
-    expect(c.io.stateOut, 1)
     expect(c.io.subframeValid, 0)
     poke(c.io.validIn, true)
     step(1)
@@ -27,14 +25,12 @@ class ParserTester(c: Parser) extends DspTester(c) {
     }
   }
 
-  expect(c.io.stateOut, 2)
   expect(c.io.subframeValid, 1)
   expect(c.io.dataOut(0), (139 << 22))
   for (w <- 1 until 10) {
     expect(c.io.dataOut(w), 0)
   }
   step(1)
-  expect(c.io.stateOut, 0)
   expect(c.io.subframeValid, 0)
 }
 

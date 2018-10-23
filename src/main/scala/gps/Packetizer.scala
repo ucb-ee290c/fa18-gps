@@ -38,7 +38,6 @@ class Parser (
     val subframeValid = Output(Bool())
     val dataOut = Output(Vec(params.subframeLength, UInt(params.wordLength.W)))
     val dStarOut = Output(UInt(2.W))
-    val stateOut = Output(UInt(2.W))
   })
 
   val fifo = RegInit(0.U(params.preambleLength.W))
@@ -55,7 +54,6 @@ class Parser (
   io.dStarOut := dStar
   io.subframeValid := (state === 2.U)
   io.dataOut := completeSubframe
-  io.stateOut := state
 
   when (io.validIn) {
     fifo := fifoNext
@@ -121,12 +119,12 @@ class ParityChecker (
   }
 
   for (w <- 0 until 10) {
-    parityBits(w)(0) := 0.U // TODO
-    parityBits(w)(1) := 0.U // TODO
-    parityBits(w)(2) := 0.U // TODO
-    parityBits(w)(3) := 0.U // TODO
-    parityBits(w)(4) := 0.U // TODO
-    parityBits(w)(5) := 0.U // TODO
+    parityBits(w)(0) := dStar(0) ^ subframe(w)(0) ^ subframe(w)(1) ^ subframe(w)(2) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(9) ^ subframe(w)(10) ^ subframe(w)(11) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(16) ^ subframe(w)(17) ^ subframe(w)(19) ^ subframe(w)(22)
+    parityBits(w)(1) := dStar(1) ^ subframe(w)(1) ^ subframe(w)(2) ^ subframe(w)(3) ^ subframe(w)(5) ^ subframe(w)(6) ^ subframe(w)(10) ^ subframe(w)(11) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(17) ^ subframe(w)(18) ^ subframe(w)(20) ^ subframe(w)(23)
+    parityBits(w)(2) := dStar(0) ^ subframe(w)(0) ^ subframe(w)(2) ^ subframe(w)(3) ^ subframe(w)(4) ^ subframe(w)(6) ^ subframe(w)(7) ^ subframe(w)(11) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(15) ^ subframe(w)(18) ^ subframe(w)(19) ^ subframe(w)(21)
+    parityBits(w)(3) := dStar(1) ^ subframe(w)(1) ^ subframe(w)(3) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(7) ^ subframe(w)(8) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(15) ^ subframe(w)(16) ^ subframe(w)(19) ^ subframe(w)(20) ^ subframe(w)(22)
+    parityBits(w)(4) := dStar(1) ^ subframe(w)(0) ^ subframe(w)(2) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(6) ^ subframe(w)(8) ^ subframe(w)(9) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(15) ^ subframe(w)(16) ^ subframe(w)(17) ^ subframe(w)(20) ^ subframe(w)(21) ^ subframe(w)(23)
+    parityBits(w)(5) := dStar(0) ^ subframe(w)(0) ^ subframe(w)(2) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(7) ^ subframe(w)(8) ^ subframe(w)(9) ^ subframe(w)(10) ^ subframe(w)(12) ^ subframe(w)(14) ^ subframe(w)(18) ^ subframe(w)(21) ^ subframe(w)(22) ^ subframe(w)(23)
     wordValid(w) := (parityBits(w) === subframe(w)(params.wordLength - 1, params.wordLength - params.parityLength))
   }
 
