@@ -4,24 +4,37 @@ import matplotlib.pyplot as plt
 
 from .block import Block
 
-#TODO: Finish Costas Loop class
+
 class Costas(Block):
-    
+    """
+    Costas loop.
+    """
     def __init__(self, int_time, lf_coeff, pd_mode, cd_mode, fd_mode):
         """
-        Costas block
+        Costas loop.
 
         Parameters
         ----------
-        int_time: int 
-        lf_coeff: list
-        pd_mode: int
-        cd_mode: int
-        fd_mode: int
-
-        Returns
-        -------
-        Costas object
+        int_time: Union[float, Int]
+            Integragte and dump time Interval
+        lf_coeff: List(Union[float, Int])
+            loop filter coefficients.
+        pd_mode: Int
+            Phase discriminator mode.
+                Mode 1: atan2(Qps, Ips)
+                Mode 2: Qps * avg(Ips^2+Qps^2)
+        cd_mode: Int
+            Costas discriminator mode.
+                Mode 1: Qps * Ips
+                Mode 2: Qps * sign(Ips)
+                Mode 3: Qps / Ips
+                Mode 4: atan(Qps / Ips)
+        fd_mode: Int
+            frequency discriminator mode.
+                Mode 1: Qps * Ips
+                Mode 2: Qps * sign(Ips)
+                Mode 3: Qps / Ips
+                Mode 4: atan(Qps / Ips)
         """
         self._avg_mag = 0
         self._count = 0
@@ -36,6 +49,9 @@ class Costas(Block):
         self._pd_mode = pd_mode
         self._cd_mode = cd_mode
         self._fd_mode = fd_mode
+
+        self._costas_err = None
+        self._freq_err = None
     
     def phase_detector(self, Ips, Qps, mode):
         """
@@ -43,11 +59,11 @@ class Costas(Block):
 
         Parameters
         ----------
-        Ips: Union[float, int]
+        Ips: Union[float, Int]
             I data, at present time.
-        Qps: Union[float, int]
+        Qps: Union[float, Int]
             Q data, at present time.
-        mode: Union[float, int]
+        mode: Int
             Mode 1: atan2(Qps, Ips)
             Mode 2: Qps * avg(Ips^2+Qps^2)
 
@@ -73,11 +89,11 @@ class Costas(Block):
 
         Parameters
         ----------
-        Ips: Union[float, int]
+        Ips: Union[float, Int]
             I data, at present time.
-        Qps: Union[float, int]
+        Qps: Union[float, Int]
             Q data, at present time.
-        mode: Union[float, int]
+        mode: Int
             Mode 1: Qps * Ips
             Mode 2: Qps * sign(Ips)
             Mode 3: Qps / Ips
@@ -110,15 +126,15 @@ class Costas(Block):
 
         Parameters
         ----------
-        Ips: Union[float, int]
+        Ips: Union[float, Int]
             I data, at present time.
-        Qps: Union[float, int]
+        Qps: Union[float, Int]
             Q data, at present time.
-        Ips_d: Union[float, int]
+        Ips_d: Union[float, Int]
             I data, at present time, delayed.
-        Qps_d: Union[float, int]
+        Qps_d: Union[float, Int]
             Q data, at present time, delayed.
-        mode: Union[float, int]
+        mode: Union[float, Int]
             Mode 1: cross/(t2-t1)
             Mode 2: cross*sign(dot)/(t2-t1)
             Mode 3: atan2(dot, cross)/(t2-t1)
@@ -172,13 +188,13 @@ class Costas(Block):
         """
         Parameters
         ----------
-       Ips: Union[float, int]
+       Ips: Union[float, Int]
             I data, at present time.
-        Qps: Union[float, int]
+        Qps: Union[float, Int]
             Q data, at present time.
-        Ips_d: Union[float, int]
+        Ips_d: Union[float, Int]
             I data, at present time, delayed.
-        Qps_d: Union[float, int]
+        Qps_d: Union[float, Int]
             Q data, at present time, delayed.
         freq_os: Union[float, Int]
             frequency offset from acquisition.
@@ -190,13 +206,13 @@ class Costas(Block):
         """
 
         # get phase error
-        costas_err = self.costas_detector(Ips, Qps, mode=self._cd_mode)
+        self._costas_err = self.costas_detector(Ips, Qps, mode=self._cd_mode)
 
         # get frequency error
-        freq_err = self.frequency_detector(Ips, Qps, mode=self._fd_mode)
+        self._freq_err = self.frequency_detector(Ips, Qps, mode=self._fd_mode)
 
         # get loop filter output
-        lf_out = self.loop_filter(costas_err, freq_err, self._lf_coeff) + freq_bias
+        lf_out = self.loop_filter(self._costas_err, self._freq_err, self._lf_coeff) + freq_bias
 
         self._Ips_d = Ips
         self._Qps_d = Qps

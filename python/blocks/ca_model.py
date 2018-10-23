@@ -40,58 +40,95 @@ class CA(Block):
       32: [4,9],
     }
     
-    def __init__(self):
-        self.prev_tick = 0
-        self.curr_index = 0
-        self.curr_sv = None
-        self.curr_prn_list = None
-        self.shift_reg = ShiftRegister()
-        self.done = 0
-    def update(self, tick, tick_2x, sv_num):
-        assert sv_num >= 1 and sv_num <= 32, "Invalid sattelite choice"
-        if self.curr_sv is None or self.curr_sv != sv_num:
-           self.curr_prn_list = self.PRN(sv_num)
-           self.curr_sv = sv_num
-           self.curr_index = 0
-           self.prev_tick = 0
-        early = self.check_tick(tick)
-        self.shift_reg.insert(early)
-        punctual, late = self.shift_reg.update(tick_2x)
-        #Convert from [0, 1] to [-1, 1]
-        early = 2*early - 1
-        punctual = 2*punctual - 1
-        late = 2*late - 1
-        return early, punctual, late, self.done
+    def __init__(self, sv_num, sym_code=True):
 
-    def check_tick(self, tick):
-        if self.prev_tick < 0 and tick >= 0:
-            self.curr_index += 1
-            if self.curr_index >= len(self.curr_prn_list):
-                self.curr_index = 0
-                self.done = 1
-            else:
-                self.done = 0
-        self.prev_tick = tick
-        return self.curr_prn_list[self.curr_index]
-    
-    def shift(self, register, feedback, output):
-        """GPS Shift Register
-        
-        :param list feedback: which positions to use as feedback (1 indexed)
-        :param list output: which positions are output (1 indexed)
-        :returns output of shift register:
-        
+        # check input satellite
+        assert sv_num >= 1 and sv_num <= 32, "Invalid satelite number/ID."
+        self.sv_num = sv_num
+        self.prn_list = None
+        self.prn_index = 0
+        self.sym_code = sym_code
+
+        # initialize codes
+        self.code = 0
+        self.prev_code = 0
+        self.early = 0
+        self.punct = 0
+        self.late = 0
+
+        # initial shifter registers
+        self.SHIFT_REGISTER_LENGTH = 10
+        self.CA_CODE_LENTH = 2**self.SHIFT_REGISTER_LENGTH - 1
+
+        # genearate prn_list
+        self.prn_gen(self.sv_num)
+
+    def update(self, offset=0):
         """
-        
-        # calculate output
-        out = [register[i-1] for i in output]
-        if len(out) > 1:
-            out = sum(out) % 2
+        C/A code update. The order of the code is very important.
+        Parameters
+        ----------
+        sine: Union[float, Int]
+            sinusoid wave.
+        sine2x: Union[float, Int]
+            2x frequency sinusoid wave.
+        Returns
+        -------
+            early, punct and late code.
+        """
+        # when sine ticks
+        self.code = self.prn_list[(self.prn_index-offset)%1023]
+
+        if self.sym_code:
+            self.code = self.code * 2 - 1
+
+        # update punct
+        self.punct = self.early
+
+        # prepare for next tick
+        self.prn_index += 1
+        if self.prn_index == 1023:
+            self.prn_index = 0
+        self.prev_code = self.code
+
+        return self.early, self.punct, self.late
+
+    def update2x(self):
+
+        # when sine2x ticks
+        self.early = self.code
+        self.late = self.punct
+
+        return self.early, self.punct, self.late
+
+    def lsfr(self, register, fb_idx_list, out_idx_list):
+        """
+        GPS LSRF calculation.
+
+        Parameters
+        ----------
+        register: list[Int]
+            register list.
+        fb_idx_list: list[Int]
+            feedback index list.
+        out_idx_list: Int
+            output index
+
+        Returns
+        -------
+        lsfr_out: Int
+            C/A code output
+        """
+        # lsfr list
+        lsfr_list = [register[i-1] for i in out_idx_list]
+
+        if len(lsfr_list) > 1:
+            lsfr_out = sum(lsfr_list) % 2
         else:
-            out = out[0]
+            lsfr_out = lsfr_list[0]
             
         # modulo 2 add feedback
-        fb = sum([register[i-1] for i in feedback]) % 2
+        fb = sum([register[i-1] for i in fb_idx_list]) % 2
         
         # shift to the right
         for i in reversed(range(len(register[1:]))):
@@ -99,47 +136,30 @@ class CA(Block):
             
         # put feedback in position 1
         register[0] = fb
-        
-        return out
 
+        return lsfr_out
 
-    def PRN(self, sv):
-        """Build the CA code (PRN) for a given satellite ID
-        
-        :param int sv: satellite code (1-32)
-        :returns list: ca code for chosen satellite
-        
+    def prn_gen(self, sv):
+        """
+        Build the CA code (PRN) for a given satellite ID
         """
         
-        # init registers
-        G1 = [1 for i in range(10)]
-        G2 = [1 for i in range(10)]
+        # init registers to all 1
+        G1 = [1 for i in range(self.SHIFT_REGISTER_LENGTH)]
+        G2 = [1 for i in range(self.SHIFT_REGISTER_LENGTH)]
 
-        ca = [] # stuff output in here
-        
+        prn = [] # stuff output in here
         # create sequence
-        for i in range(1023):
-            g1 = self.shift(G1, [3,10], [10])
-            g2 = self.shift(G2, [2,3,6,8,9,10], CA.SV[sv]) # <- sat chosen here from table
+        for i in range(self.CA_CODE_LENTH):
+            g1 = self.lsfr(G1, [3, 10], [10])
+            # output chosen from SV table
+            g2 = self.lsfr(G2, [2, 3, 6, 8, 9, 10], CA.SV[sv])
             
             # modulo 2 add and append to the code
-            ca.append((g1 + g2) % 2)
+            prn.append((g1 + g2) % 2)
 
         # return C/A code!
-        return ca
+        self.prn_list = prn
 
-class ShiftRegister(Block):
-    def __init__(self):
-        self.input = None
-        self.curr_index = 0
-        self.prev_tick = -1
-        self.my_list = [1, 1] #always length 2
-    def update(self, tick):
-        temp_return = self.my_list[:]
-        if self.prev_tick < 0 and tick >= 0:
-            self.my_list[1] = self.my_list[0]
-            self.my_list[0] = self.input
-        self.prev_tick = tick
-        return temp_return[0], temp_return[1]
-    def insert(self, val):
-        self.input = val
+
+
