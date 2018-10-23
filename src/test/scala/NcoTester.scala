@@ -1,21 +1,23 @@
 package gps
 
 import dsptools.DspTester 
+import breeze.numerics.{sin, cos, pow}
 
-class NcoTester(c: NCO) extends DspTester(c) {
+class NcoTester[T <: chisel3.Data](c: NCO[T], input: Seq[Int], output: Seq[Double]) extends DspTester(c) {
 
-    val maxCyclesWait = 50
-    poke(c.io.code, true)
-    poke(c.io.stepSize, 1)
-
-    expect(c.io.cosine, 1)
+    for (i <- 0 until input.length) {
+        poke(c.io.stepSize, input(i))
+        step(1)
+        peek(c.io.regOut)
+        expect(c.io.cos, output(i))
+    }
 
 }
 
 object NcoTester {
-    def apply(): Boolean = { 
-        chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), () => new NCO(10)) {
-        c => new NcoTester(c)
+    def apply(params: NcoParams[dsptools.numbers.DspReal], input: Seq[Int], output: Seq[Double]): Boolean = { 
+        chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv"), () => new NCO(params)) {
+        c => new NcoTester(c, input, output)
         }   
     }
 }
