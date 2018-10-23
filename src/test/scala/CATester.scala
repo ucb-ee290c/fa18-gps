@@ -79,6 +79,11 @@ For reference, the first 20 outputs:
 early: 111111-1-1-1-1-1-1-1-11111-1-1
 punc:  1111111-1-1-1-1-1-1-1-11111-1
 late:  111111111-1-1-1-1-1-1-1-1111
+
+which translates to:
+early:     1 1 1 -1 -1 -1 -1 1 1 X
+punc:  X   1 1 1 -1 -1 -1 -1 1 1
+late:  X X 1 1 1 -1 -1 -1 -1 1 1
 */
 class CAPunctualTester(c: CA, prnCodes: Array[Array[Int]], ncoInput: Array[Int], ncoInput2x: Array[Int]) extends DspTester(c) {
   var early_outputs = List[Int]()
