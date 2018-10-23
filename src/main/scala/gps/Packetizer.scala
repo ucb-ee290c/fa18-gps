@@ -34,6 +34,7 @@ class Parser (
 ) extends Module {
   val io = IO(new Bundle{
     val iIn = Input(UInt(1.W))
+    val validIn = Input(Bool())
     val subframeValid = Output(Bool())
     val dataOut = Output(Vec(params.subframeLength, UInt(params.wordLength.W)))
     val dStarOut = Output(UInt(2.W))
@@ -51,29 +52,41 @@ class Parser (
   val sIdle :: sRecording :: sDone :: Nil = Enum(3)
 
   fifoNext := (fifo << 1) + io.iIn.asUInt()
+  io.dStarOut := dStar
+  io.subframeValid := (state === 2.U)
+  io.dataOut := completeSubframe
+  io.stateOut := state
+
+  when (io.validIn) {
+    fifo := fifoNext
+  }
 
   switch (state) {
     is(sIdle) {
-      when (params.preamble === fifoNext) {
-        state := sRecording
-        subframe(0) := Cat(0.U((params.wordLength - params.preambleLength).W), fifoNext)
-        currentWord := 0.U
-        currentBit := (params.preambleLength).U
+      when (io.validIn) {
+        when (params.preamble === fifoNext) {
+          state := sRecording
+          subframe(0) := Cat(0.U((params.wordLength - params.preambleLength).W), fifoNext)
+          currentWord := 0.U
+          currentBit := (params.preambleLength).U
+        }
       }
     }
     is (sRecording) {
-      subframe(currentWord) := (subframe(currentWord) << 1) + io.iIn
-      when (currentBit === (params.wordLength - 1).U) {
-        when (currentWord === (params.subframeLength - 1).U) {
-          state := sDone
-          dStar := (completeSubframe(params.subframeLength - 1))(1, 0)
-          completeSubframe := subframe
+      when (io.validIn) {
+        subframe(currentWord) := (subframe(currentWord) << 1) + io.iIn
+        when (currentBit === (params.wordLength - 1).U) {
+          when (currentWord === (params.subframeLength - 1).U) {
+            state := sDone
+            dStar := (completeSubframe(params.subframeLength - 1))(1, 0)
+            completeSubframe := subframe
+          } .otherwise {
+            currentBit := 0.U
+            currentWord := currentWord + 1.U
+          }
         } .otherwise {
-          currentBit := 0.U
-          currentWord := currentWord + 1.U
+          currentBit := currentBit + 1
         }
-      } .otherwise {
-        currentBit := currentBit + 1
       }
     }
     is (sDone) {
@@ -83,12 +96,6 @@ class Parser (
       state := sIdle
     }
   }
-
-  fifo := fifoNext
-  io.dStarOut := dStar
-  io.subframeValid := (state === 2.U)
-  io.dataOut := completeSubframe
-  io.stateOut := state
 }
 
 class ParityChecker (
@@ -103,7 +110,7 @@ class ParityChecker (
   val subframe = Reg(Vec(params.subframeLength, UInt(params.wordLength.W)))
   val dStar = Reg(UInt(2.W))
   val parityBits = Wire(Vec(params.subframeLength, UInt(params.parityLength.W)))
-  val wordValid = Wire(Vec(params.subframeLength), Bool())
+  val wordValid = Wire(Vec(params.subframeLength, Bool()))
   val done = Reg(Bool())
 
   done := io.subframeValid

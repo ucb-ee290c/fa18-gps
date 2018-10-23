@@ -10,13 +10,21 @@ class ParserTester(c: Parser) extends DspTester(c) {
     expect(c.io.stateOut, 0)
     expect(c.io.subframeValid, 0)
     poke(c.io.iIn, preamble(b))
+    poke(c.io.validIn, true)
     step(1)
+    poke(c.io.validIn, false)
+    step(19)
   }
   poke(c.io.iIn, false)
   for (b <- 0 until 292) {
     expect(c.io.stateOut, 1)
     expect(c.io.subframeValid, 0)
+    poke(c.io.validIn, true)
     step(1)
+    poke(c.io.validIn, false)
+    if (b < 291) {
+      step(19)
+    }
   }
 
   expect(c.io.stateOut, 2)
