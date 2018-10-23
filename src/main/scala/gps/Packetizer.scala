@@ -15,14 +15,17 @@ case class PacketizerParams (
 )
 
 class Packetizer (
-  Params: PacketizerParams
+  params: PacketizerParams
 ) extends Module {
   val io = IO(new Bundle{
     val I_in = Input(Bool())
+    val validOut = Output(Bool())
+    val validBits = Output(Vec(params.subframeLength, Bool()))
+    val subframe = Output(Vec(params.subframeLength, UInt(params.wordLength.W)))
   })
 
-  val parser = Module(new Parser(Params))
-  val parityChecker = Module(new ParityChecker(Params))
+  val parser = Module(new Parser(params))
+  val parityChecker = Module(new ParityChecker(params))
 
   parityChecker.io.subframeValid := parser.io.subframeValid
   parityChecker.io.dataIn := parser.io.dataOut
@@ -103,15 +106,17 @@ class ParityChecker (
     val subframeValid = Input(Bool())
     val dataIn = Input(Vec(params.subframeLength, UInt(params.wordLength.W)))
     val dStarIn = Input(UInt(2.W))
+    val validBits = Output(Vec(params.subframeLength, Bool()))
+    val validOut = Output(Bool())
   })
 
   val subframe = Reg(Vec(params.subframeLength, UInt(params.wordLength.W)))
   val dStar = Reg(UInt(2.W))
   val parityBits = Wire(Vec(params.subframeLength, UInt(params.parityLength.W)))
-  val wordValid = Wire(Vec(params.subframeLength, Bool()))
   val done = Reg(Bool())
 
   done := io.subframeValid
+  io.validOut := done
 
   when (io.subframeValid) {
     subframe := io.dataIn
@@ -125,10 +130,6 @@ class ParityChecker (
     parityBits(w)(3) := dStar(1) ^ subframe(w)(1) ^ subframe(w)(3) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(7) ^ subframe(w)(8) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(15) ^ subframe(w)(16) ^ subframe(w)(19) ^ subframe(w)(20) ^ subframe(w)(22)
     parityBits(w)(4) := dStar(1) ^ subframe(w)(0) ^ subframe(w)(2) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(6) ^ subframe(w)(8) ^ subframe(w)(9) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(15) ^ subframe(w)(16) ^ subframe(w)(17) ^ subframe(w)(20) ^ subframe(w)(21) ^ subframe(w)(23)
     parityBits(w)(5) := dStar(0) ^ subframe(w)(0) ^ subframe(w)(2) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(7) ^ subframe(w)(8) ^ subframe(w)(9) ^ subframe(w)(10) ^ subframe(w)(12) ^ subframe(w)(14) ^ subframe(w)(18) ^ subframe(w)(21) ^ subframe(w)(22) ^ subframe(w)(23)
-    wordValid(w) := (parityBits(w) === subframe(w)(params.wordLength - 1, params.wordLength - params.parityLength))
-  }
-
-  when (done) {
-    // send everything to regmap
+    io.validBits(w) := (parityBits(w) === subframe(w)(params.wordLength - 1, params.wordLength - params.parityLength))
   }
 }
