@@ -40,7 +40,8 @@ class CA(params: CAParams) extends Module {
         val late = Output(SInt(params.codeWidth.W))
         val done = Output(Bool()) //Goes high when the full length of the code has finished
     })
-    //require((io.satellite >= 1.U) && (io.satellite <= 32.U))
+    require(params.fcoWidth > 0)
+    require(params.codeWidth > 0)
     //Can hardcode these widths because the max they can be is 10, so we need 4 bits
     val feedbackPos = RegInit(VecInit(0.U(4.W), 0.U(4.W)))
     switch(io.satellite) {
