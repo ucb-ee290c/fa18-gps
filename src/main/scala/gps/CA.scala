@@ -39,6 +39,7 @@ class CA(params: CAParams) extends Module {
         val punctual = Output(SInt(params.codeWidth.W))
         val late = Output(SInt(params.codeWidth.W))
         val done = Output(Bool()) //Goes high when the full length of the code has finished
+        val currIndex = Output(UInt(log2Ceil(1024).W))
     })
     require(params.fcoWidth > 0)
     require(params.codeWidth > 0)
@@ -113,5 +114,6 @@ class CA(params: CAParams) extends Module {
     shifts.io.fco2x := io.fco2x
     shifts.io.codeIn := io.early
     io.punctual := shifts.io.punctual
+    io.currIndex := counter
     io.late := shifts.io.late
 }
