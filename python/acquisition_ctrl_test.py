@@ -12,11 +12,11 @@ from functools import partial
 
 def test(k_max, sparse):
 
-    fcarrier = 4128460
+    fcarrier = 4130400
     fsample = 16367600
-    dopOffset = 3000
-    dopStep = 100
-    nSample = 200000
+    dopOffset = 10000
+    dopStep = 500
+    nSample = 16368
     freq_idx_max = 2 * int(round(dopOffset / dopStep))
 
     acq_ctrl_model = AcquisitionControl(n_satellite=1,
@@ -65,7 +65,8 @@ def test(k_max, sparse):
     freq_idx_max = acq_ctrl_model.freq_cph_opt[0]['freq_idx_opt']
     cph_idx_max = acq_ctrl_model.freq_cph_opt[0]['cph_opt']
     print('acquisition result:', acq_ctrl_model.freq_cph_opt)
-    print('optimal freq and code phase:', freq_idx_max, cph_idx_max, 'satellite_found =', satellite_found)
+    print('optimal freq and code phase:', fcarrier - dopOffset + freq_idx_max * dopStep, cph_idx_max,
+          'satellite_found =', satellite_found)
     cmax = c.max()
     cmean = c.mean()
     ratio = cmax / cmean
