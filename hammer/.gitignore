@@ -1,0 +1,22 @@
+# Text editors / IDEs
+*.swp
+.idea
+
+# Hammer outputs
+*.log
+*rundir/
+/*.json
+
+# Sphinx/doc junk
+doc/_build/
+
+# Python junk
+__pycache__
+*.pyc
+.mypy_cache
+src/test/.coverage
+src/test/htmlcov
+
+# Misc / unknown?
+/DVEfiles
+/opendatabase.log
