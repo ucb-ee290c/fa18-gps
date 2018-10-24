@@ -11,11 +11,6 @@ class MulSpec extends FlatSpec with Matchers {
   val params = new SampledMulParams(3) {
   }
 
-  val realParams = new MulParams[DspReal] {
-    val protoIn = DspReal()
-    val protoOut = DspReal()
-  }
-
   it should "multiply two SInt inputs" in {
     MulTester(params) should be (true)
   }

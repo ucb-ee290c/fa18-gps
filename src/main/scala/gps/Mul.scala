@@ -9,10 +9,10 @@ trait MulParams[T <: Data] {
 }
 
 case class SampledMulParams(
-  adcWidth: Int
+  inWidth: Int
 ) extends MulParams[SInt] {
-  val protoIn = SInt(adcWidth.W)
-  val protoOut = SInt((2*adcWidth).W)
+  val protoIn = SInt(inWidth.W)
+  val protoOut = SInt((2*inWidth).W)
 }
 
 class MulIO[T <: Data](params: MulParams[T]) extends Bundle {

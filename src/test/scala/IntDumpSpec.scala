@@ -8,7 +8,7 @@ import dsptools.numbers.DspReal
 class IntDumpSpec extends FlatSpec with Matchers {
   behavior of "IntDump"
 
-  val params = new SampledIntDumpParams(adcWidth = 3, codeLength = 1023) {}
+  val params = new SampledIntDumpParams(inWidth = 3, codeLength = 1023) {}
 
   it should "integrate SInt inputs" in {
     IntDumpTester(params) should be (true)

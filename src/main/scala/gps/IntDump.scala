@@ -10,9 +10,9 @@ trait IntDumpParams[T <: Data] {
   val protoInteg: T
 }
 
-case class SampledIntDumpParams(adcWidth: Int, codeLength: Int) extends IntDumpParams[SInt] {
-  val protoIn = SInt(adcWidth.W)
-  val protoInteg = SInt(log2Ceil(codeLength * (Math.pow(2,adcWidth-1)-1).toInt).W)
+case class SampledIntDumpParams(inWidth: Int, codeLength: Int) extends IntDumpParams[SInt] {
+  val protoIn = SInt(inWidth.W)
+  val protoInteg = SInt(log2Ceil(codeLength * (Math.pow(2,inWidth-1)-1).toInt).W)
 }
 
 class IntDumpIO[T <: Data](params: IntDumpParams[T]) extends Bundle {
