@@ -14,7 +14,8 @@ case class ACtrlParams (
   val wLoop: Int,
   val wFreq: Int,
   val wCodePhase: Int,
-  val wADC: Int
+  val wADC: Int,
+  val wSate: Int,
 )
 
 
@@ -45,6 +46,16 @@ object ACtrlAOutputBundle {
   def apply(params: ACtrlParams): ACtrlAOutputBundle = new ACtrlAOutputBundle(params)
 }
 
+// input interface to the tracking loop
+class ACtrlTInputBundle(params: ACtrlParams) extends Bundle {
+  val idx_sate: UInt(params.wSate.W)
+
+
+  override def cloneType: this.type = ACtrlTInputBundle(params).asInstanceOf[this.type]
+}
+object ACtrlTInputBundle {
+  def apply(params: ACtrlParams): ACtrlTInputBundle = new ACtrlTInputBundle(params)
+}
 
 // output interface to the tracking loop
 class ACtrlTOutputBundle(params: ACtrlParams) extends Bundle {
@@ -64,6 +75,7 @@ object ACtrlTOutputBundle {
 class ACtrlIO(params: ACtrlParams) extends Bundle {
   val Ain = Flipped(Decoupled(ACtrlAInputBundle(params)))
   val Aout = Decoupled(ACtrlAOutputBundle(params))
+  val Tin = Flipped(Decoupled(ACtrlTInputBundle(params)))
   val Tout = Decoupled(ACtrlTOutputBundle(params))
 
 
@@ -72,6 +84,7 @@ class ACtrlIO(params: ACtrlParams) extends Bundle {
 
 
 class ACtrl(params: ACtrlParams) extends Module {
+
   val io = IO(ACtrlIO(params))
 
   val reg_cnt = RegInit(UInt(params.wCodePhase.W), 0.U)
@@ -97,6 +110,25 @@ class ACtrl(params: ACtrlParams) extends Module {
   reg_idxLoop := idxLoopNext
   reg_idxFreq := idxFreqNext
 
+  reg state = RegInit(UInt(1.W), 0.U)
+  val idle = Wire(UInt(1.W), 0.U)
+  val acq = Wire(UInt(1.W), 1.U)
+  state := Mux(state === idle, Mux(io.Tin.valid, acq, idle), Mux(io.Tout.fire(), idle, acq))
+
+
+
+  // TODO: is io.Ain.ready always true?
+  io.Ain.ready := (state === acq)
+  io.Aout.valid := (state === acq) && switchCP
+  io.Tin.ready := state === idle
+  io.Tout.valid := (state === acq) && iswitchSate
+
+
+
+  // val nbit_sum =
+  // val nbit_max =
+
+  // input and output signals
 
 
 
