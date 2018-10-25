@@ -82,7 +82,10 @@ class Parser (
           when (currentWord === (params.subframeLength - 1).U) {
             state := sDone
             dStar := (completeSubframe(params.subframeLength - 1))(1, 0)
-            completeSubframe := subframe
+            for (w <- 0 until params.subframeLength - 1) {
+              completeSubframe(w) := subframe(w)
+            }
+            completeSubframe(params.subframeLength - 1) := (subframe(params.subframeLength - 1) << 1) + io.iIn
           } .otherwise {
             currentBit := 0.U
             currentWord := currentWord + 1.U
