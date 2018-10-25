@@ -1,4 +1,4 @@
-package fft
+package gps
 
 import freechips.rocketchip.diplomacy.{LazyModule, LazyModuleImp}
 import breeze.math.{Complex}
