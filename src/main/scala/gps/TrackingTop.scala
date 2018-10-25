@@ -27,7 +27,7 @@ class TrackingTop (val params: TrackingTopParams) extends Module {
 //  CAGen.io.satellite := io.svNumber
 //  CAGen.io.fco := fromNCO
 //  CAGen.io.fco2x := from NCO2
-  
+
   //instantiate DLL, Costas Loop, NCO's, packetizer etc. //TODO: Instantiate remaining blocks
 
   //could make into a vec if wanted it to be more variable length and connections more concise
@@ -45,23 +45,23 @@ class TrackingTop (val params: TrackingTopParams) extends Module {
 
   val multIP = Module(new Mul[SInt](SampledMulParams(2*params.adcWidth)))
   multIP.io.in1 := multI.io.out
-  multIP.io.in2 := CAGen.io.punctual
+//  multIP.io.in2 := CAGen.io.punctual
 
   val multIL = Module(new Mul[SInt](SampledMulParams(2*params.adcWidth)))
   multIL.io.in1 := multI.io.out
-  multIL.io.in2 := CAGen.io.late
+//  multIL.io.in2 := CAGen.io.late
 
   val multQE = Module(new Mul[SInt](SampledMulParams(2*params.adcWidth)))
   multQE.io.in1 := multQ.io.out
-  multQE.io.in2 := CAGen.io.early
+//  multQE.io.in2 := CAGen.io.early
 
   val multQP = Module(new Mul[SInt](SampledMulParams(2*params.adcWidth)))
   multQP.io.in1 := multQ.io.out
-  multQP.io.in2 := CAGen.io.punctual
+//  multQP.io.in2 := CAGen.io.punctual
 
   val multQL = Module(new Mul[SInt](SampledMulParams(2*params.adcWidth)))
   multQL.io.in1 := multQ.io.out
-  multQL.io.in2 := CAGen.io.late
+//  multQL.io.in2 := CAGen.io.late
 
 
   //again, could make into a vec? might make naming less clear
