@@ -2,7 +2,7 @@ base_dir=$(abspath ..)
 sim_dir=$(abspath .)
 
 MODEL ?= TestHarness
-PROJECT ?= cordic
+PROJECT ?= fft
 CFG_PROJECT ?= freechips.rocketchip.system
 CONFIG ?= DefaultConfig
 
@@ -26,7 +26,6 @@ sim_vsrcs = \
 	$(build_dir)/AsyncResetReg.v \
 	$(build_dir)/plusarg_reader.v \
 	$(build_dir)/SimDTM.v \
-	$(build_dir)/BBFAdd.v 
 
 sim_csrcs = \
 	$(sim_dir)/src/emulator.cc \

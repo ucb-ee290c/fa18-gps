@@ -43,16 +43,29 @@ abstract class WriteQueue
     out.valid := (queue0.io.deq.valid && queue1.io.deq.valid)
     out_bits(0) := queue0.io.deq.bits
     out_bits(1) := queue1.io.deq.bits
+    out.bits.data := out_bits.asUInt()
     // don't use last
     out.bits.last := false.B
-    queue0.io.deq.ready := out.ready
-    queue1.io.deq.ready := out.ready
+    // Queue ready to deq when out is ready and the other queue is not valid (i.e., transaction not occurring on other queue).
+    queue0.io.deq.ready := (out.ready && !(queue1.io.deq.valid))
+    queue1.io.deq.ready := (out.ready && !(queue0.io.deq.valid))
+
+    // We need to make the enq a UInt to satisfy regmap, and Decoupled to break out ready, valid, bits.
+    val enq0 = Wire(Decoupled(UInt(24.W)))
+    queue0.io.enq.valid := enq0.valid
+    queue0.io.enq.bits := enq0.bits.asTypeOf(DspComplex(FixedPoint(12.W, 7.BP), FixedPoint(12.W, 7.BP)))
+    enq0.ready := queue0.io.enq.ready
+
+    val enq1 = Wire(Decoupled(UInt(24.W)))
+    queue1.io.enq.valid := enq1.valid
+    queue1.io.enq.bits := enq1.bits.asTypeOf(DspComplex(FixedPoint(12.W, 7.BP), FixedPoint(12.W, 7.BP)))
+    enq1.ready := queue1.io.enq.ready
 
     regmap(
       // each write adds an entry to the queue
-      0x0 -> Seq(RegField.w(width, queue0.io.enq.asUInt())),
+      0x0 -> Seq(RegField.w(width, enq0)),
       // read the number of entries in the queue
-      (width+7)/8 -> Seq(RegField.r(width, queue1.io.enq.asUInt())),
+      (width+7)/8 -> Seq(RegField.r(width, enq1)),
     )
   }
 }

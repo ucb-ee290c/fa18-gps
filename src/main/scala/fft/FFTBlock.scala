@@ -15,7 +15,7 @@ import freechips.rocketchip.tilelink._
 
 class FFTBlock[T <: Data : Real](val config: FFTConfig[T])(implicit p: Parameters) extends TLDspBlock with TLHasCSR {
   val streamNode = AXI4StreamIdentityNode()
-  def csrAddress = AddressSet(0x2000, 0x0fff)
+  def csrAddress = AddressSet(0x2200, 0xff)
   def beatBytes = 8
   def devname = "tlfft"
   def devcompat = Seq("ucb-art", "fft")
