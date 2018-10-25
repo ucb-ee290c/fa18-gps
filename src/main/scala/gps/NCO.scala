@@ -23,9 +23,9 @@ trait NcoParams[T <: Data] {
 case class FixedNcoParams(
     width: Int,
     sinOut: Boolean
-) extends NcoParams[FixedPoint] {
+) extends NcoParams[SInt] {
     // binary point is (Width-3) to represent Pi/2 exactly
-    val proto = FixedPoint(width.W, 0.BP)
+    val proto = SInt(width.W)
 }
 
 /**
@@ -70,14 +70,12 @@ class NCO[T <: Data : Real](val params: NcoParams[T]) extends Module {
     io.regOut := cosNCO.io.regOut
     io.sin := ConvertableTo[T].fromDouble(0.0)
 
-/*    if (params.sinOut) {
+    if (params.sinOut) {
         val sineLUT = VecInit(NCOConstants.sine(params.width).map(ConvertableTo[T].fromDouble(_)))
-        io.sin := sineLUT(cosNCO.regOut)
+        io.sin := sineLUT(cosNCO.io.regOut)
     }
 
-    io.sin := ConvertableTo[T].fromDouble(0.0)
-    io.cos := ConvertableTo[T].fromDouble(0.0)
-*/
+
 }
 
 class NCOBase[T <: Data : Real](val params: NcoParams[T]) extends Module {
