@@ -232,6 +232,7 @@ class FFTSpec extends FlatSpec with Matchers {
         lanes = test(1),
         pipelineDepth = test(4),
         quadrature = false,
+        inverse = false,
       )
       implicit val p: Parameters = null
       println(s"Testing ${test(0)}-point FFT with ${test(1)} lanes, ${test(2)} total bits, ${test(3)} fractional bits, and ${test(4)} pipeline depth")

@@ -44,6 +44,7 @@ case class FFTConfig[T <: Data](
   pipelineDepth: Int = 0,
   lanes: Int = 8,
   quadrature: Boolean = true,
+  inverse: Boolean =false,
 ) {
   require(n >= 4, "For an n-point FFT, n must be 4 or more")
   require(isPow2(n), "For an n-point FFT, n must be a power of 2")
@@ -98,7 +99,8 @@ case class FFTConfig[T <: Data](
   println(s"Total direct pipeline depth: $direct_pipe")
 
   // twiddling
-  val twiddle = (0 until n/2).map(x => Array(cos(2*Pi/n*x),-sin(2*Pi/n*x)))
+  // val twiddle = (0 until n/2).map(x => Array(cos(2*Pi/n*x),-sin(2*Pi/n*x)))
+  val twiddle = (0 until n/2).map(x => if (inverse == true) Array(cos(2*Pi/n*x),-sin(2*Pi/n*x)) else Array(cos(2*Pi/n*x),sin(2*Pi/n*x)))
 
   // indicies to the twiddle factors
   var indices = Array.fill(log2Ceil(n))(0)
