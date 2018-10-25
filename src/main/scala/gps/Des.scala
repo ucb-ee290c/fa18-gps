@@ -81,7 +81,7 @@ class Des[T <: Data](val params: DesParams[T]) extends Module {
   require(params.wADC > 0)
 
   val io = IO(new Bundle{
-    val in = Input(params.proto)
+    val in = Input(UInt(params.wADC.W))
     val out = Output(params.proto)
     val ready = Input(Bool())
     val valid = Output(Bool())
