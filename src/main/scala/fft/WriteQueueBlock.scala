@@ -65,7 +65,7 @@ abstract class WriteQueue
       // each write adds an entry to the queue
       0x0 -> Seq(RegField.w(width, enq0)),
       // read the number of entries in the queue
-      (width+7)/8 -> Seq(RegField.r(width, enq1)),
+      (width+7)/8 -> Seq(RegField.w(width, enq1)),
     )
   }
 }

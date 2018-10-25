@@ -46,11 +46,22 @@ abstract class ReadQueue
     // don't use last. don't think we need it for slave
     in.ready := (queue0.io.enq.ready && queue1.io.enq.ready)
 
+    val deq0 = Wire(Decoupled(UInt(24.W)))
+    deq0.valid := queue0.io.deq.valid
+    deq0.bits := queue0.io.deq.bits.asUInt()
+    queue0.io.deq.ready := deq0.ready
+
+    val deq1 = Wire(Decoupled(UInt(24.W)))
+    deq1.valid := queue1.io.deq.valid
+    deq1.bits := queue1.io.deq.bits.asUInt()
+    queue1.io.deq.ready := deq1.ready
+
+
     regmap(
-      // each read removes an entry from the queue
-      0x0 -> Seq(RegField.r(width, queue0.io.deq.asUInt())),
+      // each write adds an entry to the queue
+      0x0 -> Seq(RegField.r(width, deq0)),
       // read the number of entries in the queue
-      (width+7)/8 -> Seq(RegField.r(width, queue1.io.deq.asUInt())),
+      (width+7)/8 -> Seq(RegField.r(width, deq1)),
     )
   }
 }
