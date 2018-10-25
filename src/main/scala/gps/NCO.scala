@@ -63,7 +63,6 @@ class NCO[T <: Data : Real](val params: NcoParams[T]) extends Module {
     
     val cosNCO = Module(new NCOBase(params))  
     
-
     cosNCO.io.stepSize := io.stepSize
     io.cos := cosNCO.io.cos
 
