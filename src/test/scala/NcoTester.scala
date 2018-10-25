@@ -11,6 +11,8 @@ class NcoTester[T <: chisel3.Data](c: NCO[T], input: Seq[Int], outputCos: Seq[Do
         expect(c.io.cos, outputCos(i))
         if (sinOut) {
             expect(c.io.sin, outputSin(i))
+        } else {
+            expect(c.io.sin, 0)
         }
         step(1)
     }
