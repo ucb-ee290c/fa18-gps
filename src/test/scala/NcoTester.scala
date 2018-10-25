@@ -7,9 +7,9 @@ class NcoTester[T <: chisel3.Data](c: NCO[T], input: Seq[Int], output: Seq[Doubl
 
     for (i <- 0 until input.length) {
         poke(c.io.stepSize, input(i))
-        step(1)
         peek(c.io.regOut)
         expect(c.io.cos, output(i))
+        step(1)
     }
 
 }

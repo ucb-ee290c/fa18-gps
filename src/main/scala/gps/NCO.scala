@@ -25,7 +25,7 @@ case class FixedNcoParams(
     sinOut: Boolean
 ) extends NcoParams[FixedPoint] {
     // binary point is (Width-3) to represent Pi/2 exactly
-    val proto = FixedPoint(width.W, (width-3).BP)
+    val proto = FixedPoint(width.W, 0.BP)
 }
 
 /**
