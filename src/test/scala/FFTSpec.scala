@@ -157,7 +157,7 @@ object spectrumTester {
       val tone = getTone(fftSize, b.toDouble/fftSize)
       val testResult = testSignal(tester, tone)
       val expectedResult = fourierTr(DenseVector(tone.toArray)).toArray
-      val expectedResultInv = iFourierTr(DenseVector(tone.toArray)).toArray
+      val expectedResultInv = iFourierTr(DenseVector(tone.toArray)).toArray.map(_*config.n)
       if (verbose) {
         println("Tone = ")
         println(tone.toArray.deep.mkString("\n"))
@@ -168,8 +168,13 @@ object spectrumTester {
         println("Expected Inv output = ")
         println(expectedResultInv.toArray.deep.mkString("\n"))
       }
-      compareOutputComplex(testResult, expectedResult, 1e-2)
-      teardownTester(tester)
+      if (config.inverse==true) {
+        compareOutputComplex(testResult, expectedResultInv, 1e-2)
+        teardownTester(tester)
+      } else {
+        compareOutputComplex(testResult, expectedResult, 1e-2)
+        teardownTester(tester)
+      }
     }
 
     // random testing
@@ -178,7 +183,7 @@ object spectrumTester {
       val tone = (0 until fftSize).map(x => Complex(Random.nextDouble(), Random.nextDouble()))
       val testResult = testSignal(tester, tone)
       val expectedResult = fourierTr(DenseVector(tone.toArray)).toArray
-      val expectedResultInv = iFourierTr(DenseVector(tone.toArray)).toArray
+      val expectedResultInv = iFourierTr(DenseVector(tone.toArray)).toArray.map(_*config.n)
 
       if (verbose) {
         println("Tone = ")
@@ -190,8 +195,13 @@ object spectrumTester {
         println("Expected Inv output = ")
         println(expectedResultInv.toArray.deep.mkString("\n"))
       }
-      compareOutputComplex(testResult, expectedResult, 5e-2)
-      teardownTester(tester)
+      if (config.inverse==true) {
+        compareOutputComplex(testResult, expectedResultInv, 1e-2)
+        teardownTester(tester)
+      } else {
+        compareOutputComplex(testResult, expectedResult, 1e-2)
+        teardownTester(tester)
+      }
     }
   }
 
@@ -217,7 +227,7 @@ class FFTSpec extends FlatSpec with Matchers {
 
     val tests = Seq(
       // (FFT points, lanes, total width, fractional bits, pipeline depth)
-      Seq(8,   8,  35, 19, 0),
+      Seq(16,   16,  35, 19, 0, 1),
 //      Seq(128, 16, 27, 16, 17),
 //      Seq(32, 4, 27, 16, 0)
     )
@@ -237,7 +247,7 @@ class FFTSpec extends FlatSpec with Matchers {
         lanes = test(1),
         pipelineDepth = test(4),
         quadrature = false,
-        inverse = true,
+        inverse = if (test(5) != 0) true else false,
       )
       implicit val p: Parameters = null
       println(s"Testing ${test(0)}-point FFT with ${test(1)} lanes, ${test(2)} total bits, ${test(3)} fractional bits, and ${test(4)} pipeline depth")
