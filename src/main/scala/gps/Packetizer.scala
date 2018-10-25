@@ -21,7 +21,7 @@ class Packetizer (
     val I_in = Input(Bool())
     val validOut = Output(Bool())
     val validBits = Output(Vec(params.subframeLength, Bool()))
-    val subframe = Output(Vec(params.subframeLength, UInt(params.wordLength.W)))
+    val subframe = Output(Vec(params.subframeLength, Vec(params.wordLength, Bool())))
   })
 
   val parser = Module(new Parser(params))
@@ -109,16 +109,18 @@ class ParityChecker (
 ) extends Module {
   val io = IO(new Bundle{
     val subframeValid = Input(Bool())
-    val dataIn = Input(Vec(params.subframeLength, UInt(params.wordLength.W)))
+    val dataIn = Input(Vec(params.subframeLength, Vec(params.wordLength, Bool())))
     val dStarIn = Input(UInt(2.W))
     val validBits = Output(Vec(params.subframeLength, Bool()))
     val validOut = Output(Bool())
+    val parityOut = Output(Vec(params.subframeLength, Vec(params.parityLength, Bool())))
   })
-
-  val subframe = Reg(Vec(params.subframeLength, UInt(params.wordLength.W)))
+  val subframe = Reg(Vec(params.subframeLength, Vec(params.wordLength, Bool())))
   val dStar = Reg(UInt(2.W))
   val parityBits = Wire(Vec(params.subframeLength, Vec(params.parityLength, Bool())))
   val done = Reg(Bool())
+  val temp = Wire(UInt(6.W))
+  val temp2 = Wire(UInt(30.W))
 
   done := io.subframeValid
   io.validOut := done
@@ -129,12 +131,26 @@ class ParityChecker (
   }
 
   for (w <- 0 until params.subframeLength) {
-    parityBits(w)(0) := dStar(0) ^ subframe(w)(0) ^ subframe(w)(1) ^ subframe(w)(2) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(9) ^ subframe(w)(10) ^ subframe(w)(11) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(16) ^ subframe(w)(17) ^ subframe(w)(19) ^ subframe(w)(22)
-    parityBits(w)(1) := dStar(1) ^ subframe(w)(1) ^ subframe(w)(2) ^ subframe(w)(3) ^ subframe(w)(5) ^ subframe(w)(6) ^ subframe(w)(10) ^ subframe(w)(11) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(17) ^ subframe(w)(18) ^ subframe(w)(20) ^ subframe(w)(23)
-    parityBits(w)(2) := dStar(0) ^ subframe(w)(0) ^ subframe(w)(2) ^ subframe(w)(3) ^ subframe(w)(4) ^ subframe(w)(6) ^ subframe(w)(7) ^ subframe(w)(11) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(15) ^ subframe(w)(18) ^ subframe(w)(19) ^ subframe(w)(21)
-    parityBits(w)(3) := dStar(1) ^ subframe(w)(1) ^ subframe(w)(3) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(7) ^ subframe(w)(8) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(15) ^ subframe(w)(16) ^ subframe(w)(19) ^ subframe(w)(20) ^ subframe(w)(22)
-    parityBits(w)(4) := dStar(1) ^ subframe(w)(0) ^ subframe(w)(2) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(6) ^ subframe(w)(8) ^ subframe(w)(9) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(15) ^ subframe(w)(16) ^ subframe(w)(17) ^ subframe(w)(20) ^ subframe(w)(21) ^ subframe(w)(23)
-    parityBits(w)(5) := dStar(0) ^ subframe(w)(0) ^ subframe(w)(2) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(7) ^ subframe(w)(8) ^ subframe(w)(9) ^ subframe(w)(10) ^ subframe(w)(12) ^ subframe(w)(14) ^ subframe(w)(18) ^ subframe(w)(21) ^ subframe(w)(22) ^ subframe(w)(23)
-    io.validBits(w) := (parityBits(w).asUInt === subframe(w)(params.wordLength - 1, params.wordLength - params.parityLength))
+    if (w == 0) {
+      parityBits(w)(0) := dStar(0) ^ subframe(w)(0) ^ subframe(w)(1) ^ subframe(w)(2) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(9) ^ subframe(w)(10) ^ subframe(w)(11) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(16) ^ subframe(w)(17) ^ subframe(w)(19) ^ subframe(w)(22)
+      parityBits(w)(1) := dStar(1) ^ subframe(w)(1) ^ subframe(w)(2) ^ subframe(w)(3) ^ subframe(w)(5) ^ subframe(w)(6) ^ subframe(w)(10) ^ subframe(w)(11) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(17) ^ subframe(w)(18) ^ subframe(w)(20) ^ subframe(w)(23)
+      parityBits(w)(2) := dStar(0) ^ subframe(w)(0) ^ subframe(w)(2) ^ subframe(w)(3) ^ subframe(w)(4) ^ subframe(w)(6) ^ subframe(w)(7) ^ subframe(w)(11) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(15) ^ subframe(w)(18) ^ subframe(w)(19) ^ subframe(w)(21)
+      parityBits(w)(3) := dStar(1) ^ subframe(w)(1) ^ subframe(w)(3) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(7) ^ subframe(w)(8) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(15) ^ subframe(w)(16) ^ subframe(w)(19) ^ subframe(w)(20) ^ subframe(w)(22)
+      parityBits(w)(4) := dStar(1) ^ subframe(w)(0) ^ subframe(w)(2) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(6) ^ subframe(w)(8) ^ subframe(w)(9) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(15) ^ subframe(w)(16) ^ subframe(w)(17) ^ subframe(w)(20) ^ subframe(w)(21) ^ subframe(w)(23)
+      parityBits(w)(5) := dStar(0) ^ subframe(w)(2) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(7) ^ subframe(w)(8) ^ subframe(w)(9) ^ subframe(w)(10) ^ subframe(w)(12) ^ subframe(w)(14) ^ subframe(w)(18) ^ subframe(w)(21) ^ subframe(w)(22) ^ subframe(w)(23)
+    } else {
+      parityBits(w)(0) := subframe(w-1)(params.wordLength - 2) ^ subframe(w)(0) ^ subframe(w)(1) ^ subframe(w)(2) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(9) ^ subframe(w)(10) ^ subframe(w)(11) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(16) ^ subframe(w)(17) ^ subframe(w)(19) ^ subframe(w)(22)
+      parityBits(w)(1) := subframe(w-1)(params.wordLength - 1) ^ subframe(w)(1) ^ subframe(w)(2) ^ subframe(w)(3) ^ subframe(w)(5) ^ subframe(w)(6) ^ subframe(w)(10) ^ subframe(w)(11) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(17) ^ subframe(w)(18) ^ subframe(w)(20) ^ subframe(w)(23)
+      parityBits(w)(2) := subframe(w-1)(params.wordLength - 2) ^ subframe(w)(0) ^ subframe(w)(2) ^ subframe(w)(3) ^ subframe(w)(4) ^ subframe(w)(6) ^ subframe(w)(7) ^ subframe(w)(11) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(15) ^ subframe(w)(18) ^ subframe(w)(19) ^ subframe(w)(21)
+      parityBits(w)(3) := subframe(w-1)(params.wordLength - 1) ^ subframe(w)(1) ^ subframe(w)(3) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(7) ^ subframe(w)(8) ^ subframe(w)(12) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(15) ^ subframe(w)(16) ^ subframe(w)(19) ^ subframe(w)(20) ^ subframe(w)(22)
+      parityBits(w)(4) := subframe(w-1)(params.wordLength - 1) ^ subframe(w)(0) ^ subframe(w)(2) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(6) ^ subframe(w)(8) ^ subframe(w)(9) ^ subframe(w)(13) ^ subframe(w)(14) ^ subframe(w)(15) ^ subframe(w)(16) ^ subframe(w)(17) ^ subframe(w)(20) ^ subframe(w)(21) ^ subframe(w)(23)
+      parityBits(w)(5) := subframe(w-1)(params.wordLength - 2) ^ subframe(w)(2) ^ subframe(w)(4) ^ subframe(w)(5) ^ subframe(w)(7) ^ subframe(w)(8) ^ subframe(w)(9) ^ subframe(w)(10) ^ subframe(w)(12) ^ subframe(w)(14) ^ subframe(w)(18) ^ subframe(w)(21) ^ subframe(w)(22) ^ subframe(w)(23)
+    }
+    io.validBits(w) := (parityBits(w).asUInt === ((subframe(w).asUInt >> (params.wordLength - params.parityLength)) & ((1 << params.parityLength) - 1).U))
+    io.parityOut(w) := parityBits(w)
   }
+  temp := parityBits(0).asUInt
+  temp2 := ((subframe(0).asUInt >> 24) & 63.U)
+  printf(p"one: $temp")
+  printf(p"two: $temp2")
 }

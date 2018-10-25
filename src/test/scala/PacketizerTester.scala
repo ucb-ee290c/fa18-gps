@@ -51,6 +51,7 @@ class ParserTester(c: Parser) extends DspTester(c) {
   for (w <- 0 until 10) {
     expect(c.io.dataOut(w), subframeAsInts(w))
   }
+  expect(c.io.dStarOut, 0)
   step(1)
   expect(c.io.subframeValid, 0)
   expect(c.io.stateOut, 0)
@@ -67,8 +68,45 @@ object ParserTester {
 }
 
 class ParityCheckerTester(c: ParityChecker) extends DspTester(c) {
-  poke(c.io.dataIn(0), Integer.parseInt("100010110000000000000000000000", 2))
+  val subframe = List(List(1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0),
+                      List(1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0),
+                      List(1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0),
+                      List(0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1),
+                      List(0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0),
+                      List(1, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0),
+                      List(0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0),
+                      List(1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1),
+                      List(0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1),
+                      List(1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1))
+  val subframeAsInts = List(Integer.parseInt("100010110000010111000110011000", 2),
+                            Integer.parseInt("100110100010110010110011010100", 2),
+                            Integer.parseInt("110000110101110000010001101110", 2),
+                            Integer.parseInt("001110101100001100111011011011", 2),
+                            Integer.parseInt("011011110001101101110101110100", 2),
+                            Integer.parseInt("100001001101001011101010100000", 2),
+                            Integer.parseInt("011001010000010011000111100010", 2),
+                            Integer.parseInt("101101001011010101011011010011", 2),
+                            Integer.parseInt("010100100000110110101110000111", 2),
+                            Integer.parseInt("111001110010011001100011110111", 2))
+
+  for (w <- 0 until 10) {
+    for (b <- 0 until 30) {
+      poke(c.io.dataIn(w)(b), subframe(w)(b))
+    }
+  }
+  poke(c.io.dStarIn, 0)
+  poke(c.io.subframeValid, 1)
+  step(2)
+  poke(c.io.subframeValid, 0)
+  expect(c.io.validOut, 1)
+  for (w <- 0 until 10) {
+    expect(c.io.validBits(w), 1)
+    for (b <- 0 until 6) {
+      expect(c.io.parityOut(w)(b), subframe(w)(24 + b))
+    }
+  }
   step(1)
+  expect(c.io.validOut, 0)
 }
 
 object ParityCheckerTester {
