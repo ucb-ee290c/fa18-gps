@@ -7,7 +7,7 @@ import dsptools.DspTester
  */
 case class XYZ(
   // input x, y and z
-  in: Int,
+//  in: Int,
   // mode
   offset: Int,
   // optional outputs
@@ -30,15 +30,19 @@ class DesTester[T <: chisel3.Data](c: Des[T], trials: Seq[XYZ], tolLSBs: Int = 1
 
     // wait until input is accepted
     var cycles = 0
-    while (!peek(c.io.in.ready) && cycles < 100) {
+
+    print("trial")
+    while (cycles < 30) {
+      poke(c.io.ready, true)
       cycles += 1
-      poke(c.io.in, (cycles)%17)
-      peek(c.io.out)
+      poke(c.io.in, (cycles%6)-3)
+      peek(c.io.valid)
+      if (cycles%5 == 0) {peek(c.io.out)}
 
       step(1)
     }
     // wait until output is valid
-    cycles = 0
+//    cycles = 0
 
 
   }
@@ -48,7 +52,7 @@ class DesTester[T <: chisel3.Data](c: Des[T], trials: Seq[XYZ], tolLSBs: Int = 1
  * Convenience function for running tests
  */
 object DesTester {
-  def apply(params: DesParams, trials: Seq[XYZ]): Boolean = {
+  def apply(params: SIntDesParams, trials: Seq[XYZ]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv"), () => new Des(params)) {
       c => new DesTester(c, trials)
     }

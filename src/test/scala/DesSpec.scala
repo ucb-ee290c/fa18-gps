@@ -7,14 +7,14 @@ class DesSpec extends FlatSpec with Matchers {
   behavior of "Des"
 
   val params = SIntDesParams(
-    wADC = 3,
-    nSample = 16,
+    wADC = 4,
+    nSample = 5,
   )
   it should "des" in {
-    val baseTrial = XYZ(offset=0, ready=true)
-    val offset = Seq(0, 1, 2, 3, 4)
+    val baseTrial = XYZ(offset=0)
+    val offset = Seq(2)
     val trials = offset.map { offset => baseTrial.copy(offset = offset) }
-//    FixedCordicTester(params, trials) should be (true)
+    DesTester(params, trials) should be (true)
   }
 
 
