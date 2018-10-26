@@ -18,7 +18,8 @@ class Packetizer (
   params: PacketizerParams
 ) extends Module {
   val io = IO(new Bundle{
-    val I_in = Input(Bool())
+    val iIn = Input(Bool())
+    val validIn = Input(Bool())
     val validOut = Output(Bool())
     val validBits = Output(Vec(params.subframeLength, Bool()))
     val subframe = Output(Vec(params.subframeLength, Vec(params.wordLength, Bool())))
@@ -27,9 +28,18 @@ class Packetizer (
   val parser = Module(new Parser(params))
   val parityChecker = Module(new ParityChecker(params))
 
+  parser.io.iIn := io.iIn
+  parser.io.validIn := io.validIn
+
   parityChecker.io.subframeValid := parser.io.subframeValid
-  parityChecker.io.dataIn := parser.io.dataOut
+  for (w <- 0 until params.subframeLength) {
+    parityChecker.io.dataIn(w) := Reverse(parser.io.dataOut(w)).toBools
+  }
   parityChecker.io.dStarIn := parser.io.dStarOut
+
+  io.validOut := parityChecker.io.validOut
+  io.validBits := parityChecker.io.validBits
+  io.subframe := parityChecker.io.dataIn
 }
 
 class Parser (
@@ -119,8 +129,6 @@ class ParityChecker (
   val dStar = Reg(UInt(2.W))
   val parityBits = Wire(Vec(params.subframeLength, Vec(params.parityLength, Bool())))
   val done = Reg(Bool())
-  val temp = Wire(UInt(6.W))
-  val temp2 = Wire(UInt(30.W))
 
   done := io.subframeValid
   io.validOut := done
@@ -149,8 +157,4 @@ class ParityChecker (
     io.validBits(w) := (parityBits(w).asUInt === ((subframe(w).asUInt >> (params.wordLength - params.parityLength)) & ((1 << params.parityLength) - 1).U))
     io.parityOut(w) := parityBits(w)
   }
-  temp := parityBits(0).asUInt
-  temp2 := ((subframe(0).asUInt >> 24) & 63.U)
-  printf(p"one: $temp")
-  printf(p"two: $temp2")
 }
