@@ -4,6 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from acquisition_model_test import FFTSearch, SFFTSearch, readRawData
 from blocks.acq_ctrl_model import *
 from blocks.block import Block
+from blocks.nco_model import NCO
 import math
 from functools import partial
 
@@ -45,6 +46,12 @@ def test(k_max, sparse):
         freq_curr = freq_init + dopStep * acq_ctrl_model.freq_idx
 
         subsamprate = int(math.sqrt(math.log2(nSample)))
+
+        nco_model = NCO(count_width=3, code=False)
+        nco_output = []
+        for j in range(0, nSample):
+
+            nco_output.append()
 
         if (sparse):
             fftfunc = partial(SFFTSearch, fs=fsample, nSamples=nSample, sv=21, p=subsamprate)
