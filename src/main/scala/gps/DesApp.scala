@@ -6,15 +6,15 @@ import chisel3._
   * Make an unapply function for the argument parser.
   * It allows us to match on parameters that are integers
   */
-//object Int {
-//  def unapply(v: String): Option[Int] = {
-//    try {
-//      Some(v.toInt)
-//    } catch {
-//      case _: NumberFormatException => None
-//    }
-//  }
-//}
+object Int {
+  def unapply(v: String): Option[Int] = {
+    try {
+      Some(v.toInt)
+    } catch {
+      case _: NumberFormatException => None
+    }
+  }
+}
 
 
 /**

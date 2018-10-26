@@ -14,7 +14,7 @@ class DesSpec extends FlatSpec with Matchers {
     nSample = 5,
   )
   it should "des" in {
-    val baseTrial = XYZ(offset=0)
+    val baseTrial = DES(offset=0)
     val offset = Seq(2)
     val trials = offset.map { offset => baseTrial.copy(offset = offset) }
     DesTester(params, trials) should be (true)
@@ -28,7 +28,7 @@ class DesSpec extends FlatSpec with Matchers {
 /**
  * Case class holding information needed to run an individual test
  */
-case class XYZ(
+case class DES(
   // input x, y and z
 //  in: Int,
   // mode
@@ -44,7 +44,7 @@ case class XYZ(
  *
  * Run each trial in @trials
  */
-class DesTester[T <: chisel3.Data](c: Des[T], trials: Seq[XYZ], tolLSBs: Int = 1) extends DspTester(c) {
+class DesTester[T <: chisel3.Data](c: Des[T], trials: Seq[DES], tolLSBs: Int = 1) extends DspTester(c) {
 
 
   for (trial <- trials) {
@@ -75,7 +75,7 @@ class DesTester[T <: chisel3.Data](c: Des[T], trials: Seq[XYZ], tolLSBs: Int = 1
  * Convenience function for running tests
  */
 object DesTester {
-  def apply(params: SIntDesParams, trials: Seq[XYZ]): Boolean = {
+  def apply(params: SIntDesParams, trials: Seq[DES]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv"), () => new Des(params)) {
       c => new DesTester(c, trials)
     }
