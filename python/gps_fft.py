@@ -7,9 +7,9 @@
 """
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 
-
-// data = i+j*q
+# // data = i+j*q
 
 def FFT(data, caCode):
     inFFT = np.fft.fft(data)
@@ -18,7 +18,7 @@ def FFT(data, caCode):
 
     return C
 
-// check acquisition model test for the definition of p
+# // check acquisition model test for the definition of p
 def SFFT(data, caCode, p=4):
 
     sublen = math.ceil(len(data)/p)
