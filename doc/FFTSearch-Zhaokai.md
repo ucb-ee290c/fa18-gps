@@ -2,6 +2,7 @@
 The dataset used for FFT searching test is this
 [Samples of GNSS Signal Records](http://gfix.dk/matlab-gnss-sdr-book/gnss-signal-records/)
 ## Searching result
+Use the dataset and simple acquisition model to test FFT search, can get the following results:
 - [RESULT]#3 :FOUND LOC: freq:4127400, phase:1615
 - [RESULT]#11 :FOUND LOC: freq:4133400, phase:2952
 - [RESULT]#14 :FOUNDLOC: freq:4132900, phase:14537
@@ -9,16 +10,18 @@ The dataset used for FFT searching test is this
 - [RESULT]#19 :FOUND LOC: freq:4129400, phase:6183
 - [RESULT]#22 :FOUND LOC: freq:4128400, phase:15040
 
-The table below is the SV infomation provided by the data source.
+The table below is the SV infomation provided by the data source. From here we can see the phase is a little bit shift, which need tracking loop to locked the exact phase. Also, the frequency shift because of the finite doppler shift search resolution and range, and will also be covered by tracking loop.
+
 ![signal](pictures/signal.png)
 ## Effect of different K
-Larger K will improve the signal to noise ratio of weak satellite signal and will reduce the possibility of false acquisition. 
-The result of using different K when FFT searching is list in the figure below.
+- Larger K will improve the signal to noise ratio of weak satellite signal and will reduce the possibility of false acquisition. 
+- The result of using different K when FFT searching is list in the figure below. For K=1, there is still obvious noise floor in plot 1, but it is gradually averaged out when K increase. In this case, even K=1 can get good SNR(sufficient to get correct phase). But the number of iterations should be parameterize in higher-level control logic generator.
 
 ![fft](pictures/fft-keffect.png)
 
 ## Sparse FFT
-For different k, the effect of Sparse FFT is tested in Python model(only Actually FFT time is accumulated, since SFFT need some extra pre-proccess of the data and it can only be done in a serial way in python).The table below shows the time for different k.
+- The sparse FFT aliases the input data, which is equivalent to subsample FFT spectrum. Since for GPS application, the FFT result only have one peak ideally, the correct code phase can be obtained using the subsampled FFT result.
+- For different k, the effect of Sparse FFT is tested in Python model(only Actually FFT time is accumulated, since SFFT need some extra pre-proccess of the data and it can only be done in a serial way in python).The table below shows the time for different k.
 
 | k  | FFT time(s) | Sparse FFT time(s) |
 |----|--------------|---------------------|
@@ -30,8 +33,10 @@ For different k, the effect of Sparse FFT is tested in Python model(only Actuall
 ![sfft](pictures/sfft-effect.png)
 
 # Chisel Generator
-The fft generator is from
+The fft generator use existing code from
 [fft-genearator](https://github.com/ucb-art/fft)
+with some modifications in order to support IFFT and hook up to rocket chip.
+
 ## Modifications
 ### IFFT 
 - Add inverse FFT configuration option.
@@ -42,7 +47,7 @@ The fft generator is from
 - Only direct form of FFT/IFFT can pass test.
 
 ## Rocket-chip hook up
-- To test FFT/IFFT by rocket chip. Add four readQueue/WriteQueue connect to FFT blocks and hook up to rocket chip.(From James)
+- Based on the lab2 template, hook up FFT/IFFT to rocket-chip. Add four readQueues/WriteQueues connect to FFT blocks and hook up to rocket chip to order to test FFT with C program.(From James)
 
 Read Queue
 ```scala
@@ -89,8 +94,9 @@ Write Queue
 - The FFT blocks also have memory connection and need to connect to pbus.
 
 ## TODOs:
-- Figure out why the pipelined biplex FFT can't pass test.
-- Write C-program tester for FFT/IFFT.
-- Maybe use a ROM to pass in test for FFT to support large number of points tests.
+- Look into the generators to pass tests for pipeline biplex version.
+- Write C-program tester for FFT/IFFT. 
+- Maybe use a ROM to pass in test for FFT to support large number of points tests or use more queues to test
+- Implement Sparse FFT generator or add configuration option to FFT/IFFT generator
 
 
