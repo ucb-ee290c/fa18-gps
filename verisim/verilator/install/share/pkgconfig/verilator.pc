@@ -1,0 +1,13 @@
+prefix=/Users/zhaokail/Documents/courses/EE290C-Bora/project.nosync/fa18-ap/verisim/verilator/install
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+datarootdir=${prefix}/share
+includedir=${datarootdir}/verilator/include
+
+Name: verilator
+Description: fast free Verilog simulator
+URL: http://www.veripool.org/verilator
+Version: 3.920 2018-02-01
+Requires:
+Libs:
+Cflags: -I${includedir} -I${includedir}/vltstd
