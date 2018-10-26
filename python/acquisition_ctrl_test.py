@@ -1,9 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from acquisition_model_test import FFTSearch, SFFTSearch, readRawData
+from acquisition_model_test import FFTSearch, SFFTSearch, readRawData, caGen
 from blocks.acq_ctrl_model import *
 from blocks.block import Block
+from blocks.nco_model import NCO
+from gps_fft import FFT, SFFT
 import math
 from functools import partial
 
@@ -12,12 +14,14 @@ from functools import partial
 
 def test(k_max, sparse):
 
-    fcarrier = 4128460
+    fchip = 1023000
+    fcarrier = 4130400
     fsample = 16367600
-    dopOffset = 3000
-    dopStep = 100
-    nSample = 200000
+    dopOffset = 10000
+    dopStep = 500
+    nSample = 16368
     freq_idx_max = 2 * int(round(dopOffset / dopStep))
+    p = 4
 
     acq_ctrl_model = AcquisitionControl(n_satellite=1,
                                         freq_idx_max=freq_idx_max,
@@ -46,13 +50,35 @@ def test(k_max, sparse):
 
         subsamprate = int(math.sqrt(math.log2(nSample)))
 
-        if (sparse):
-            fftfunc = partial(SFFTSearch, fs=fsample, nSamples=nSample, sv=21, p=subsamprate)
-        else:
-            fftfunc = partial(FFTSearch, fs=fsample, nSamples=nSample, sv=21)
+        caCode = caGen(21, fchip, fsample, nSample)
+        t = np.linspace(0, (nSample - 1) * freq_curr / fsample, nSample)
+        sin = np.sin(2 * np.pi * t)
+        cos = np.cos(2 * np.pi * t)
 
-        FFT_result, _time = fftfunc(data=_data, fc=freq_curr)
-         # = SFFTSearch(_data, fsample, freq_curr, nSample, sv=21)
+        nco_model = NCO(count_width=3, code=False)
+        cos = []
+        sin = []
+        nco_count_max = nco_model.count_max
+        nco_step_size = freq_curr/fsample*nco_count_max
+        for j in range(0, nSample):
+            cos_e, sin_e = nco_model.update(step_size=nco_step_size)
+            cos.append(cos_e)
+            sin.append(sin_e)
+
+
+        dataArray = np.asarray(_data)
+        i = np.multiply(dataArray, cos)
+        q = np.multiply(dataArray, sin)
+
+        _data_iq = i + 1j * q
+
+
+        if (sparse):
+            FFT_result = np.repeat(SFFT(_data_iq, caCode, p=p), p)
+        else:
+            FFT_result = FFT(_data_iq, caCode)
+
+
 
         acq_ctrl_model.update(FFT_result)
 
@@ -65,7 +91,8 @@ def test(k_max, sparse):
     freq_idx_max = acq_ctrl_model.freq_cph_opt[0]['freq_idx_opt']
     cph_idx_max = acq_ctrl_model.freq_cph_opt[0]['cph_opt']
     print('acquisition result:', acq_ctrl_model.freq_cph_opt)
-    print('optimal freq and code phase:', freq_idx_max, cph_idx_max, 'satellite_found =', satellite_found)
+    print('optimal freq and code phase:', fcarrier - dopOffset + freq_idx_max * dopStep, nSample-cph_idx_max,
+          'satellite_found =', satellite_found)
     cmax = c.max()
     cmean = c.mean()
     ratio = cmax / cmean

@@ -4,8 +4,25 @@ package gps
 import dsptools.DspTester
 import chisel3._
 import dsptools.numbers.DspReal
+import org.scalatest.{FlatSpec, Matchers}
 
+/*
+ * DspSpec for IntDump
+ */
+class IntDumpSpec extends FlatSpec with Matchers {
+  behavior of "IntDump"
 
+  val params = new SampledIntDumpParams(inWidth = 3, codeLength = 1023) {}
+
+  it should "integrate SInt inputs" in {
+    IntDumpTester(params) should be (true)
+  }
+
+}
+
+/*
+ * DspTester for IntDump
+ */
 class IntDumpTester (c: IntDump[SInt]) extends DspTester(c) {
   val prnDataRaw = io.Source.fromFile("./src/test/scala/PRNCode.csv").getLines.toList.map(_.split(","))
   val prnData = prnDataRaw(0).map(_.toInt)
