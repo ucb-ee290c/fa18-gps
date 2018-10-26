@@ -26,6 +26,7 @@ class FFTThing
         lanes = 4,
         pipelineDepth = 0,
         quadrature = true,
+        inverse = false,
 	)
   val fft = LazyModule(new FFTBlock(fftConfig))
   val readQueue = LazyModule(new TLReadQueue(depth))

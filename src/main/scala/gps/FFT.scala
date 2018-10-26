@@ -112,6 +112,9 @@ class DirectFFT[T<:Data:Real](config: FFTConfig[T], genMid: DspComplex[T], genTw
     // wire up top-level outputs
     // note, truncation happens here!
     io.out.bits := stage_outputs(log2Ceil(config.lanes))
+    //    io.out.bits.zip(stage_outputs(log2Ceil(config.bp)+1)).foreach { case (o, s) =>
+    //      o.real := s.real * Real[T].fromDouble(pow(2, -config.n))
+    //      o.imag := s.imag >> config.n
   }
 
 }

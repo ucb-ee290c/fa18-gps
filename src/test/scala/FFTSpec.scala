@@ -226,8 +226,10 @@ class FFTSpec extends FlatSpec with Matchers {
   it should "Fourier transform" in {
 
     val tests = Seq(
-      // (FFT points, lanes, total width, fractional bits, pipeline depth)
+      // (FFT points, lanes, total width, fractional bits, pipeline depth, inverse)
       Seq(16,   16,  35, 19, 0, 1),
+      Seq(16,   16,  35, 19, 0, 0),
+
 //      Seq(128, 16, 27, 16, 17),
 //      Seq(32, 4, 27, 16, 0)
     )
