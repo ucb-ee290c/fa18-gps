@@ -7,7 +7,7 @@ mpl.rcParams['agg.path.chunksize'] = 10000
 from blocks import *
 
 
-raw_data = np.fromfile('adc_sample_data.bin', dtype=np.int8)
+raw_data = np.fromfile('../../gps_data/ADCOutput10s.bin', dtype=np.int8)
 
 # Data sample rate
 fs = 1652860   # 1.023*16*1e6
@@ -157,6 +157,7 @@ def main():
     plt.hold
     plt.plot(time_list, data_list)
     plt.hold
+    plt.legend(["early", "punct", "late"])
     plt.show(block=False)
 
     plt.figure()
