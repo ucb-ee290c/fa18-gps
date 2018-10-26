@@ -41,7 +41,7 @@ class TrackingTop (val params: TrackingTopParams) extends Module {
 
   val multIE = Module(new Mul[SInt](SampledMulParams(2*params.adcWidth)))
   multIE.io.in1 := multI.io.out
-  multIE.io.in2 := CAGen.io.early
+//  multIE.io.in2 := CAGen.io.early
 
   val multIP = Module(new Mul[SInt](SampledMulParams(2*params.adcWidth)))
   multIP.io.in1 := multI.io.out

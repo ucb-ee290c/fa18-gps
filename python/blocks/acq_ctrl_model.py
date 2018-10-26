@@ -80,7 +80,7 @@ class AcquisitionControl(Block):
                 else:
                     self.satellite_idx = 0
 
-                self.reset_acq_result(self.satellite_idx)
+                # self.reset_acq_result(self.satellite_idx)
 
 
 
