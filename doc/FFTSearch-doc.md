@@ -20,7 +20,7 @@ The result of using different K when FFT searching is list in the figure below.
 ## Sparse FFT
 For different k, the effect of Sparse FFT is tested in Python model(only Actually FFT time is accumulated, since SFFT need some extra pre-proccess of the data and it can only be done in a serial way in python).The table below shows the time for different k.
 
-| k  | FFT time(ms) | Sparse FFT time(ms) |
+| k  | FFT time(s) | Sparse FFT time(s) |
 |----|--------------|---------------------|
 | 2  | 0.296140     | 0.094731            |
 | 5  | 0.733505     | 0.273270            |
