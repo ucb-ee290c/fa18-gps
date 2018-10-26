@@ -36,13 +36,13 @@ The fft generator is from
 ### IFFT 
 - Add inverse FFT configuration option.
 - The original generator's twiddle factors are hard-coded and doesn't support inverse FFT. The twiddle factors in FFTConfig.scala is modified to support IFFT options.
-- The result is not divided by N(# of points) since in GPS only the relative value is important, may modify this later
+- The result is not divided by N(# of points) since in GPS only the relative value is important, may modify this later.
 ### Tester
-- Add tester that support IFFT. The ideal result is times N to compatible with generator
-- Only direct form of FFT/IFFT can pass test 
+- Add tester that support IFFT. The ideal result is times N to compatible with generator.
+- Only direct form of FFT/IFFT can pass test.
 
 ## Rocket-chip hook up
-- Two test the FFT/IFFT hook up to rocket chip. Add four readQueue/WriteQueue connect to FFT blocks (From James)
+- To test FFT/IFFT by rocket chip. Add four readQueue/WriteQueue connect to FFT blocks and hook up to rocket chip.(From James)
 
 Read Queue
 ```scala
@@ -86,11 +86,11 @@ Write Queue
     queue2.io.deq.ready := (out.ready && !(queue0.io.deq.valid || queue1.io.deq.valid || queue3.io.deq.valid))
     queue3.io.deq.ready := (out.ready && !(queue0.io.deq.valid || queue1.io.deq.valid || queue2.io.deq.valid))
 ```
-- The FFT blocks also have memory connection and need to connect to pbus
+- The FFT blocks also have memory connection and need to connect to pbus.
 
 ## TODOs:
-- Figure out why the pipelined Biplex FFT can't pass test
-- Write C program tester for FFT/IFFT
-- Maybe use a ROM to pass in test for FFT to support large number of points
+- Figure out why the pipelined biplex FFT can't pass test.
+- Write C-program tester for FFT/IFFT.
+- Maybe use a ROM to pass in test for FFT to support large number of points tests.
 
 
