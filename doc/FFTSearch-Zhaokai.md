@@ -1,7 +1,8 @@
-# Python Acquisition Model Use FFT Search
+# Tapein 1: Python Model and FFT generator hook up
+## Python Acquisition Model Use FFT Search
 The dataset used for FFT searching test is this
 [Samples of GNSS Signal Records](http://gfix.dk/matlab-gnss-sdr-book/gnss-signal-records/)
-## Searching result
+### Searching result
 Use the dataset and simple acquisition model to test FFT search, can get the following results:
 - [RESULT]#3 :FOUND LOC: freq:4127400, phase:1615
 - [RESULT]#11 :FOUND LOC: freq:4133400, phase:2952
@@ -13,13 +14,13 @@ Use the dataset and simple acquisition model to test FFT search, can get the fol
 The table below is the SV infomation provided by the data source. From here we can see the phase is a little bit shift, which need tracking loop to locked the exact phase. Also, the frequency shift because of the finite doppler shift search resolution and range, and will also be covered by tracking loop.
 
 ![signal](pictures/signal.png)
-## Effect of different K
+### Effect of different K
 - Larger K will improve the signal to noise ratio of weak satellite signal and will reduce the possibility of false acquisition. 
 - The result of using different K when FFT searching is list in the figure below. For K=1, there is still obvious noise floor in plot 1, but it is gradually averaged out when K increase. In this case, even K=1 can get good SNR(sufficient to get correct phase). But the number of iterations should be parameterize in higher-level control logic generator.
 
 ![fft](pictures/fft-keffect.png)
 
-## Sparse FFT
+### Sparse FFT
 - The sparse FFT aliases the input data, which is equivalent to subsample FFT spectrum. Since for GPS application, the FFT result only have one peak ideally, the correct code phase can be obtained using the subsampled FFT result.
 - For different k, the effect of Sparse FFT is tested in Python model(only Actually FFT time is accumulated, since SFFT need some extra pre-proccess of the data and it can only be done in a serial way in python).The table below shows the time for different k.
 
@@ -32,21 +33,21 @@ The table below is the SV infomation provided by the data source. From here we c
 
 ![sfft](pictures/sfft-effect.png)
 
-# Chisel Generator
+## Chisel Generator
 The fft generator use existing code from
 [fft-genearator](https://github.com/ucb-art/fft)
 with some modifications in order to support IFFT and hook up to rocket chip.
 
-## Modifications
-### IFFT 
+### Modifications
+#### IFFT 
 - Add inverse FFT configuration option.
 - The original generator's twiddle factors are hard-coded and doesn't support inverse FFT. The twiddle factors in FFTConfig.scala is modified to support IFFT options.
 - The result is not divided by N(# of points) since in GPS only the relative value is important, may modify this later.
-### Tester
+#### Tester
 - Add tester that support IFFT. The ideal result is times N to compatible with generator.
 - Only direct form of FFT/IFFT can pass test.
 
-## Rocket-chip hook up
+### Rocket-chip hook up
 - Based on the lab2 template, hook up FFT/IFFT to rocket-chip. Add four readQueues/WriteQueues connect to FFT blocks and hook up to rocket chip to order to test FFT with C program.(From James)
 
 Read Queue
@@ -93,10 +94,34 @@ Write Queue
 ```
 - The FFT blocks also have memory connection and need to connect to pbus.
 
+# Tapein 2: FFT Generator
 ## TODOs:
 - Look into the generators to pass tests for pipeline biplex version.
 - Write C-program tester for FFT/IFFT. 
 - Maybe use a ROM to pass in test for FFT to support large number of points tests or use more queues to test
 - Implement Sparse FFT generator or add configuration option to FFT/IFFT generator
+- unsramble the output 
 
+
+## FFT Architecture (Help understand how fft generator works, part of this comes from Stevo's FFT generator documentation)
+### Pipelined FFT(Radix-2 Multipath Delay Commuattor)
+R2MDC is a the most straightforward approach of pipelined FFT. When a new frame arrives, first half of points are multiplexed , delayed by N/2 samples and connected to the upper input of butterfly cell. The second half of points are selected and directly connected to the lower input of BF, and it will arrive simutaneously with the first half data. The output of first stage triggers the second stage. The upper input of second stage connect to the upper output of the first stage for two samples and then switch the lower input of second stage to upper output of first stage. And the lower output of first stage connect to the upper input of the second stage.
+
+### Biplex pipelined FFT
+In the pipelined FFT above, each stage have a swicth at twice the frequency of the previous stage and have half delay for each sample. The total required memory is N/2+N/4+N/4+...+2=3/2N-2. But in this case, the butterflies only works half the time. By using biplex structure, each biplex core takes two inputs and the butterfly works interleavely for adjacent input samples to work at full rate.
+
+###  Cooley–Tukey algorithms
+Coorley-tukey algorithms recursively re-express a DFT of a composite size N = N1*N2. It's because the frequency output X[k]=sigma(x[i]W[k,N]^(-i) = sigma(W[k,N]^(j)*(sigma(x[i]W[k,N]^)-i+j)))). So a single output can be calculated by sum of several subsets. For a input number smaller than FFT point case, the pipelined biplex architecture is used as subset to proccess N1 points, then the direct FFT at second stage can proccess the N2 subsets to get final N result.
+
+### Architecture of FFT generator
+The FFT supports any power of two size of 4 or greater (n >= 4). The input rate may be divided down, resulting in a number of parallel input lanes different from the FFT size. But the input lanes (p) must be a power of 2, greater than or equal to 2, but less than or equal to the FFT size.  
+
+When the number of parallel inputs equals the FFT size, a simple, direct form, streaming FFT is used. The dotted lines mark "stage" boundaries, or places where pipeline registers may be inserted. The input will never be pipelined, but the output might be pipelined based on your desired pipeline depth. Pipeline registers are automatically inserted in reasonable locations.
+
+When the input is serialized, the FFT may have fewer input lanes than the size of the FFT .It is expected that the bits inputs contain time-series data time-multiplexed on the inputs, such that on the first cycle are values x[0], x[1], …, x[p-1], then the next cycle contains x[p], x[p+1], … and this continues until the input is x[n-p], x[n-p+1], …, x[n-1]. 
+
+- These FFTs efficiently reuse hardware and memories to calculate the FFT at a slower rate but higher latency.
+- Extra shift registers of n/2 at the output unscramble the data before they arrive at the direct form FFT. Pipeline registers may be inserted after each butterfly, but never at the input or output.
+- A final direct form FFT sits at the output of the biplex FFTs, finishing the Fourier transform. Pipeline registers favor the direct form FFT slightly, though the critical path through this circuit is still through log2(n) butterflies, so one pipeline register per stage (a pipeline depth of log2(n)) is recommended.
+- The outputs are scrambled spectral bins. Since there is some unscrambling between the biplex and direct form FFT, the output indices are not purely bit reversed. To accommodate this time multiplexing, the FFT architecture changes. Pipelined biplex FFTs are inserted before the direct form FFT.
 
