@@ -6,30 +6,34 @@ import dsptools.DspTester
 import scala.collection.mutable.ListBuffer
 import org.scalatest.{FlatSpec, Matchers}
 
-class LoopFilterTester(c: LoopFilter, input: Seq[SInt], output: Seq[SInt]) extends DspTester(c) {
+class LoopFilterTester[T <: chisel3.Data](c: LoopFilter[T], input: Seq[Double], output: Seq[Double]) extends DspTester(c) {
   for ((in, out) <- input zip output) {
-    poke(c.io.in, in)
-    step(1)
-    expect(c.io.out, out)
+    fixTolLSBs.withValue(4) {
+      poke(c.io.in, in)
+      poke(c.io.valid, 0)
+      step(1)
+      poke(c.io.valid, 1)
+      expect(c.io.out, out)
+      step(1)
+    }
   }
 }
 object LoopFilterTester {
-  def apply(w: Int, dcGain: Double, bandwidth: Double, sampleRate: Double, input:
-  Seq[SInt], output: Seq[SInt]): Boolean = {
+  def apply(params: FixedFilterParams, input: Seq[Double], output: Seq[Double]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), 
-      () => new LoopFilter(w, dcGain, bandwidth, sampleRate)) {
+      () => new LoopFilter(params)) {
       c => new LoopFilterTester(c, input, output)
     }
   }
 }
 
 object calcFilterOutput {
-  def apply(input: Seq[Int], a: Int, b: Int): Seq[Int] = {
-    var xPrev : Int = 0
-    var yPrev : Int = 0
-    var output = new ListBuffer[Int]()
+  def apply(input: Seq[Double], a: Double, b: Double): Seq[Double] = {
+    var xPrev : Double = 0.0
+    var yPrev : Double = 0.0
+    var output = new ListBuffer[Double]()
     for (in <- input) {
-      var out = a * (in + xPrev) - b * yPrev
+      val out = a * (in + xPrev) - b * yPrev
       xPrev = in
       yPrev = out
       output += out
@@ -42,14 +46,16 @@ class LoopFilterSpec extends FlatSpec with Matchers {
   behavior of "LoopFilter"
 
   it should "Filter" in {
-    val w = 10
+    val w = 20
     val dcGain = 12.0
     val bandwidth = 10.0
     val sampleRate = 1000.0
-    val (a, b) = GetLoopFilterCoeffs(dcGain, bandwidth, sampleRate)
-    val impulse = 1 :: List.fill(9)(0) 
-    val input = impulse.map(x => x.S)
-    val output = calcFilterOutput(impulse, a, b).map(x => x.S)
-    LoopFilterTester(w, dcGain, bandwidth, sampleRate, input, output) should be (true)
+    val params = new FixedFilterParams(dcGain, bandwidth, sampleRate)
+    val (a, b) = GetLoopFilterCoeffs(params)
+    println(a)
+    println(b)
+    val impulse = 1.0 :: List.fill(9)(0.0) 
+    val output = calcFilterOutput(impulse, a, b)
+    LoopFilterTester(params, impulse, output) should be (true)
   }
 }
