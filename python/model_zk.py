@@ -18,7 +18,7 @@ sv_list = [1]
 sv_freqs = [4.132100]
 
 sv = sv_list[0]
-sv_freq = sv_freqs[0] + 4e-6
+sv_freq = sv_freqs[0]
 
 # We'll start off with the NCO Width set to 10
 carrier_nco_width = 30
@@ -36,7 +36,7 @@ int_num = round(int_time * fs)
 
 # carrier(IF) NCO initial phase
 # math.pi/2 is because of data is generated with sin() function
-carrier_nco_init_phase = -math.pi/2 + math.pi/16
+carrier_nco_init_phase = -math.pi/2 + math.pi/4
 
 
 def main():
@@ -75,7 +75,8 @@ def main():
     dll = DLL(1, 1, 1, 1)
 
     # Costas loop for now and forcing the right frequency
-    costas = Costas([1, 0.05, 0.000001], costas_mode=1, freq_mode=1, freq_bias=carrier_nco_freq)
+    costas = Costas(lf_coeff=[1000, 5, 0], costas_mode=0, freq_mode=1,
+                    freq_bias=carrier_nco_freq)
 
     # NCO for code
     nco_code = NCO(count_width=code_nco_width, code=True,
@@ -147,10 +148,16 @@ def main():
         time_list.append(x/fs)
         I_int_list.append(I_int[1])
         Q_int_list.append(Q_int[1])
-        data_list.append(clk_dump)
+
+        if I_int[1] >= 0:
+            xx = math.atan2(Q_int[1], I_int[1])
+        else:
+            xx = math.atan2(-Q_int[1], -I_int[1])
+
+        data_list.append(xx)
 
         # costas error and frequency error
-        costas_err_list.append(math.atan2(Q_int[1], I_int[1]))
+        costas_err_list.append(costas.costas_err)
         freq_err_list.append(costas.freq_err)
 
         # d_freq and freq
