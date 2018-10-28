@@ -68,10 +68,10 @@ class Costas(Block):
 
         # different modes
         if mode == 0:       # magic function, need to verify and think more...
-            # if Ips >= 0:
-            return math.atan2(abs(Qps), abs(Ips))
-            # else:
-            #     return -math.atan2(Qps, Ips)
+            if Ips >= 0:
+                return math.atan2(Qps, Ips)
+            else:
+                return math.atan2(-Qps, -Ips)
         elif mode == 1:
             return math.atan2(Qps, Ips)
         elif mode == 2:
@@ -174,7 +174,7 @@ class Costas(Block):
         self.freq_err = self.frequency_detector(Ips, Qps, mode=self._freq_mode)
 
         # get loop filter output
-        self.d_lf_out = self.loop_filter(self.costas_err, self.freq_err, self._lf_coeff)
+        self.d_lf_out = self.loop_filter(-self.costas_err, self.freq_err, self._lf_coeff)
         self.lf_out = self.d_lf_out + self.freq_bias
 
         self._Ips_d = Ips
