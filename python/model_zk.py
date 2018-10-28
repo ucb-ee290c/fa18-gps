@@ -7,7 +7,7 @@ mpl.rcParams['agg.path.chunksize'] = 10000
 from blocks import *
 
 
-raw_data = np.fromfile('../../gps_data/ADCOutput10s.bin', dtype=np.int8)
+raw_data = np.fromfile('../../../ADCOutput10s.bin', dtype=np.int8)
 
 # Data sample rate
 fs = 16528600   # 1.023*16*1e6
@@ -21,7 +21,6 @@ sv = sv_list[0]
 sv_freq = sv_freqs[0] + 4e-6
 
 # We'll start off with the NCO Width set to 10
-# #### - By Zhongkai, personally don't think this is the right way, we are wasting the resolution.
 carrier_nco_width = 30
 carrier_count_max = 2**carrier_nco_width - 1
 carrier_nco_freq = round(sv_freq*1e6 / fs * carrier_count_max)
@@ -43,7 +42,7 @@ carrier_nco_init_phase = -math.pi/2 + math.pi/16
 def main():
 
     # # of cycles to run
-    num_cycles = 12800000    # len(raw_data)
+    num_cycles = 36000000    # len(raw_data)
 
     # read raw data
     adc = ADC(raw_data)
