@@ -30,6 +30,7 @@ class DLL(Block):
         self.prev_x = 0
         self.prev_y = 0
         self.discriminator_num = discriminator_num
+        self.dis_out = 0        # add dis_out
 
     @staticmethod
     def discriminator1(ie, il, qe, ql):
@@ -52,7 +53,7 @@ class DLL(Block):
             y = -1000
         self.prev_x = x
         self.prev_y = y
-        print(y)
+        # print(y)
         return y
 
     def update(self, I_sample, Q_sample, carrier_bias, code_bias):
@@ -66,12 +67,13 @@ class DLL(Block):
             The 3 integrated Q samples, Q_E, Q_P and Q_L in that order
         """
         if self.discriminator_num == 1:
-            dis_out = self.discriminator1(I_sample[0], I_sample[2],
+            self.dis_out = self.discriminator1(I_sample[0], I_sample[2],
                 Q_sample[0], Q_sample[2])
         elif self.discriminator_num == 2:
-            dis_out = self.discriminator2(I_sample[0], I_sample[2],
+            self.dis_out = self.discriminator2(I_sample[0], I_sample[2],
                 Q_sample[0], Q_sample[2])
 
-        lf_out = self.loop_filter(dis_out)
+        lf_out = self.loop_filter(self.dis_out)
+
         return carrier_bias + code_bias + lf_out, lf_out
 
