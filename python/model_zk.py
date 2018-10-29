@@ -18,7 +18,7 @@ sv_list = [1]
 sv_freqs = [4.132100]
 
 sv = sv_list[0]
-sv_freq = sv_freqs[0]
+sv_freq = sv_freqs[0] - 10e-6
 
 # We'll start off with the NCO Width set to 10
 carrier_nco_width = 30
@@ -36,13 +36,13 @@ int_num = round(int_time * fs)
 
 # carrier(IF) NCO initial phase
 # math.pi/2 is because of data is generated with sin() function
-carrier_nco_init_phase = -math.pi/2 + math.pi/4
+carrier_nco_init_phase = -math.pi/2
 
 
 def main():
 
     # # of cycles to run
-    num_cycles = 36000000    # len(raw_data)
+    num_cycles = 3600000    # len(raw_data)
 
     # read raw data
     adc = ADC(raw_data)
@@ -72,10 +72,10 @@ def main():
     intdumpQ = IntDump()
 
     # ki = 1, kp = 1, first discriminator
-    dll = DLL(1, 1, 1, 1)
+    dll = DLL(12, 10, 1000, 1e-5)
 
     # Costas loop for now and forcing the right frequency
-    costas = Costas(lf_coeff=[1000, 5, 0], costas_mode=0, freq_mode=1,
+    costas = Costas(lf_coeff=[1000, 5, 1e-6], costas_mode=0, freq_mode=1,
                     freq_bias=carrier_nco_freq)
 
     # NCO for code
@@ -95,6 +95,7 @@ def main():
     Q_int_list = []
     costas_err_list = []
     freq_err_list = []
+    dll_err_list = []
     data_list = []
     freq_list = []
     d_freq_list = []
@@ -149,16 +150,11 @@ def main():
         I_int_list.append(I_int[1])
         Q_int_list.append(Q_int[1])
 
-        if I_int[1] >= 0:
-            xx = math.atan2(Q_int[1], I_int[1])
-        else:
-            xx = math.atan2(-Q_int[1], -I_int[1])
-
-        data_list.append(xx)
-
         # costas error and frequency error
         costas_err_list.append(costas.costas_err)
         freq_err_list.append(costas.freq_err)
+        # dll error
+        dll_err_list.append(dll.dis_out)
 
         # d_freq and freq
         d_freq_list.append(costas.d_lf_out / carrier_count_max * fs)
@@ -216,6 +212,7 @@ def main():
     print(sum(freq_err_list)/len(freq_err_list))
 
 
-if __name__ == "__main__": 
+if __name__ == "__main__":
+
     main()
 
