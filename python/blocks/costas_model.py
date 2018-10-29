@@ -43,7 +43,8 @@ class Costas(Block):
 
         self._lf = 0
         self._lf_sum = 0
-    
+        self._lf_sum_sum = 0
+
     def costas_detector(self, Ips, Qps, mode):
         """
         Costas discriminator.
@@ -141,12 +142,12 @@ class Costas(Block):
             loop filter output.
         """
 
-        self._lf = lf_coeff[0] * phase_err
-        self._lf_sum += lf_coeff[1] * phase_err + lf_coeff[2] * freq_err
+        self._lf_sum_sum += lf_coeff[2] * phase_err + lf_coeff[4] * freq_err
+        self._lf_sum += lf_coeff[1] * phase_err + lf_coeff[3] * freq_err + self._lf_sum_sum
+        self._lf = lf_coeff[0] * phase_err + self._lf_sum
+        return self._lf
 
-        return self._lf + self._lf_sum
-
-    def update(self, Ips, Qps):
+    def update(self, Ips, Qps, freq_bias):
         """
         Parameters
         ----------

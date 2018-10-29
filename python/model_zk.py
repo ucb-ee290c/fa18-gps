@@ -18,7 +18,7 @@ sv_list = [1]
 sv_freqs = [4.132100]
 
 sv = sv_list[0]
-sv_freq = sv_freqs[0]
+sv_freq = sv_freqs[0] + 10e-6
 
 # We'll start off with the NCO Width set to 10
 # #### - By Zhongkai, personally don't think this is the right way, we are wasting the resolution.
@@ -37,13 +37,13 @@ int_num = round(int_time * fs)
 
 # carrier(IF) NCO initial phase
 # math.pi/2 is because of data is generated with sin() function
-carrier_nco_init_phase = -math.pi/2
+carrier_nco_init_phase = -math.pi/2 + math.pi/4
 
 
 def main():
 
     # # of cycles to run
-    num_cycles = 1280000    # len(raw_data)
+    num_cycles = 480000    # len(raw_data)
 
     # read raw data
     adc = ADC(raw_data)
@@ -66,14 +66,14 @@ def main():
     multQl = MUL()
 
     # ca code generators
-    ca = CA()
+    ca = CA(sv_num=sv, code_bias=0)
 
     # integrate and dump
     intdumpI = IntDump()
     intdumpQ = IntDump()
 
     # ki = 1, kp = 1, first discriminator
-    dll = DLL(12, 10, 1000, 1e-5)
+    dll = DLL(12000, 10, 1000, 1)
 
     # Costas loop for now and forcing the right frequency
     costas = Costas(lf_coeff=[1000, 5, 1e-6], costas_mode=0, freq_mode=1,
@@ -81,13 +81,13 @@ def main():
 
     # NCO for code
     nco_code = NCO(count_width=code_nco_width, code=True,
-                   init_phase=0)
+                   init_phase=math.pi/8)
 
     # packetizer
     packet = Packet()
     
     # Initial DLL and Costas value
-    dll_out = 0
+    dll_out = code_nco_freq
     costas_out = carrier_nco_freq
 
     # list to plot
@@ -114,7 +114,7 @@ def main():
         Q = multQ.update(adc_data, sin_out)
 
         # code NCO update
-        ck_code, ck2x_code = nco_code.update(freq_ctrl=code_nco_freq, phase_ctrl=dll_out)
+        ck_code, ck2x_code = nco_code.update(freq_ctrl=dll_out, phase_ctrl=0)
 
         # CA code update
         e, p, l, clk_dump = ca.update(ck_code, ck2x_code, sv, 0)
@@ -136,17 +136,18 @@ def main():
 
         if clk_dump:
             # dll loop
-            # print(last_integ_I, last_integ_Q)
-            # dll_out = round(dll.update(last_integ_I, last_integ_Q,
-            #     carrier_nco_code, 0))
+            dll_out, dis_out = dll.update(I_int, Q_int, code_nco_freq, 0)
+
             # costas loop
-            costas_out = costas.update(I_int[1], Q_int[1])
+            costas_out = costas.update(I_int[1], Q_int[1], freq_bias=carrier_nco_freq)
             pass
 
         # packet update
         # packet.update(x, I_int, Q_int)
 
         # add to list
+        data_list.append(dll_out / code_count_max * fs)
+
         time_list.append(x/fs)
         I_int_list.append(I_int[1])
         Q_int_list.append(Q_int[1])
@@ -184,7 +185,8 @@ def main():
     plt.show(block=False)
 
     plt.figure()
-    plt.plot(time_list, data_list)
+    plt.plot(time_list, dll_err_list)
+    plt.legend(["DLL error"])
     plt.show(block=False)
 
     plt.figure()
@@ -199,6 +201,11 @@ def main():
     plt.figure()
     plt.plot(time_list, freq_list)
     plt.legend(["Frequency"])
+    plt.show(block=False)
+
+    plt.figure()
+    plt.plot(time_list, data_list)
+    plt.legend(["data"])
     plt.show(block=False)
 
     plt.figure()

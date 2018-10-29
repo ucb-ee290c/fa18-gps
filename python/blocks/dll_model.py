@@ -36,13 +36,21 @@ class DLL(Block):
     def discriminator1(ie, il, qe, ql):
         e = np.sqrt(ie**2 + qe**2)
         l = np.sqrt(il**2 + ql**2)
-        return 1/2*(e-l)/(e+l)
+
+        if e == 0 or l == 0:    # if int_dump is not startup
+            return 0
+        else:
+            return 1/2*(e-l)/(e+l)
 
     @staticmethod
     def discriminator2(ie, il, qe, ql):
         e = ie**2 + qe**2
         l = il**2 + ql**2
-        return 1/2*(e-l)/(e + l)
+
+        if e == 0 or l == 0:    # if int_dump is not startup
+            return 0
+        else:
+            return 1/2*(e-l)/(e + l)
 
     # TODO Figure out good saturation points for this
     def loop_filter(self, x):
@@ -56,7 +64,7 @@ class DLL(Block):
         # print(y)
         return y
 
-    def update(self, I_sample, Q_sample, carrier_bias, code_bias):
+    def update(self, I_sample, Q_sample, freq_bias, carrier_assist):
         """ DLL update
 
         Parameters
@@ -75,5 +83,5 @@ class DLL(Block):
 
         lf_out = self.loop_filter(self.dis_out)
 
-        return carrier_bias + code_bias + lf_out, lf_out
+        return freq_bias + carrier_assist + lf_out, lf_out
 

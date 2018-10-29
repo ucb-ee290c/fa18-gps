@@ -40,7 +40,7 @@ class CA(Block):
       32: [4,9],
     }
     
-    def __init__(self, code_length=1023):
+    def __init__(self, sv_num, code_bias, code_length=1023):
         self.prev_tick = 0
         self.curr_index = 0
         self.curr_sv = None
@@ -48,8 +48,14 @@ class CA(Block):
         self.shift_reg = ShiftRegister()
         self.done = 0
         self.code_length = code_length
+        self.code_bias = code_bias
+        self.sv_num = sv_num
 
-    def update(self, tick, tick_2x, sv_num, offset):
+    def update(self, tick, tick_2x, sv_num, code_bias):
+
+        # updates
+        self.code_bias = code_bias
+        self.sv_num = sv_num
 
         # check satellite id
         assert sv_num >= 1 and sv_num <= 32, "Invalid satellite choice"
@@ -61,7 +67,7 @@ class CA(Block):
            self.curr_index = 0
            self.prev_tick = 0
 
-        early = self.check_tick(tick, offset)
+        early = self.check_tick(tick, code_bias)
         self.shift_reg.insert(early)
         punctual, late = self.shift_reg.update(tick_2x)
 
@@ -71,7 +77,8 @@ class CA(Block):
         late = 2*late - 1
         return early, punctual, late, self.done
 
-    def check_tick(self, tick, offset):
+    def check_tick(self, tick, code_bias):
+
         if self.prev_tick < 0 and tick >= 0:
             self.curr_index += 1
             if self.curr_index >= len(self.curr_prn_list):
@@ -79,7 +86,7 @@ class CA(Block):
                 self.done = 1
 
         self.prev_tick = tick
-        return self.curr_prn_list[(self.curr_index-offset) % self.code_length]
+        return self.curr_prn_list[(self.curr_index-code_bias) % self.code_length]
     
     def shift(self, register, feedback, output):
         """GPS Shift Register
@@ -121,8 +128,8 @@ class CA(Block):
         G1 = [1 for i in range(10)]
         G2 = [1 for i in range(10)]
 
-        ca = [] # stuff output in here
-        
+        ca = []     # stuff output in here
+
         # create sequence
         for i in range(1023):
             g1 = self.shift(G1, [3,10], [10])
@@ -133,6 +140,7 @@ class CA(Block):
 
         # return C/A code!
         return ca
+
 
 class ShiftRegister(Block):
     def __init__(self):
