@@ -6,6 +6,7 @@ mpl.rcParams['agg.path.chunksize'] = 10000
 from blocks import *
 
 # TODO: add LOCK signals to two loops
+# TODO: add enable signal
 
 class Track(Block):
 

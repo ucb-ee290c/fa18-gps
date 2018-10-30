@@ -7,18 +7,18 @@ from blocks import *
 if __name__ == '__main__':
 
     # data file
-    raw_data = np.fromfile('../../gps_data/ADCOutput.bin', dtype=np.int8)
+    raw_data = np.fromfile('../../gps_data/adc_sample_data.bin', dtype=np.int8)
 
     # data sample rate
-    fs = 16528600   # 1.023*16*1e6
-    sv_num = 1
-    sv_freq = 4.132100e6 + 1115
+    fs = 16367600 # 16528600
+    sv_num = 3 # 22 #1
+    sv_freq = 4.127190e6 # 4.128460e6  # 4.132100e6 + 1115
     chip_rate = 1.023e6
 
     # code bias
-    code_bias_sample_rate = 4277
-    code_bias = 1023 - int(code_bias_sample_rate / (fs/chip_rate))
-    print(code_bias)
+    code_bias_sample_rate = 1618
+    code_bias = int(code_bias_sample_rate / (fs/chip_rate))
+    print("Code bias is {}".format(code_bias))
 
     # NCO params
     if_nco_width = 30
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     int_num = round(int_time * fs)
 
     # initial phase
-    if_nco_init_phase = -math.pi/2  # + math.pi/4
+    if_nco_init_phase = -math.pi/2 # + math.pi/4
     code_nco_init_phase = 0
 
     # dll parameters
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     costas_lf_coeff = [1000, 5, 0.5, 1e-6, 1e-7]
 
     # # of cycles to run
-    num_cycles = 960000    # len(raw_data)
+    num_cycles = 16000000    # len(raw_data)
 
     track = Track(
         raw_data=raw_data,
