@@ -1,37 +1,43 @@
 package gps
 
-import breeze.linalg._
-import breeze.math.Complex
+import freechips.rocketchip.diplomacy.{LazyModule, LazyModuleImp}
+import breeze.math.{Complex}
 import breeze.signal.{fourierTr, iFourierTr}
+import breeze.linalg._
 import chisel3._
 import chisel3.experimental._
-import chisel3.iotesters.{TesterOptionsManager, _}
 import chisel3.util._
-import dsptools.DspTester
+import chisel3.iotesters._
 import firrtl_interpreter.InterpreterOptions
+import dsptools.numbers.{DspReal, SIntOrder, SIntRing}
+import dsptools.{DspContext, DspTester, Grow}
 import org.scalatest.{FlatSpec, Matchers}
+import chisel3.iotesters.{PeekPokeTester, TesterOptionsManager}
 
 // comment when using FixedPoint, uncomment for DspReal
 // import dsptools.numbers.implicits._
 
-import dsptools.numbers.DspComplex
-import freechips.rocketchip.config.Parameters
-import org.scalatest.Tag
-
-import scala.math.{abs, pow}
+import dsptools.numbers.{DspComplex, Real}
 import scala.util.Random
+import scala.math.{pow, abs, round}
+import org.scalatest.Tag
+import dspjunctions._
+import dspblocks._
+
+import craft._
+import dsptools._
+import freechips.rocketchip.config.Parameters
 
 object LocalTest extends Tag("edu.berkeley.tags.LocalTest")
 
-class FFTTester[T <: Data](val c: FFT[T]) extends DspTester(c) {
+class FFTTester[T<:Data](val c: FFT[T]) extends DspTester(c) {
   // this is a hack to use FFTTester outside of the normal driver methods
   override def finish = true
-
   def actualFinish = super.finish
 }
 
 object spectrumTester {
-  def testSignal[T <: Data](dut: FFTTester[T], signal: Seq[Complex]): Seq[Complex] = {
+  def testSignal[T<:Data](dut: FFTTester[T], signal: Seq[Complex]): Seq[Complex] = {
 
     // reset
     dut.reset(5)
@@ -43,9 +49,7 @@ object spectrumTester {
 
     // checks
     require(signal.size >= config.n, "Cannot test a signal shorter than the FFT size")
-    if (signal.size > config.n) {
-      println("Warning: test signal longer than the FFT size, will only use first n points")
-    }
+    if (signal.size > config.n) { println("Warning: test signal longer than the FFT size, will only use first n points") }
 
     // synchronize to the next input
     //dut.poke(io.in.sync, 1)
@@ -56,10 +60,8 @@ object spectrumTester {
     dut.poke(io.in.valid, 1)
 
     // get delay
-    val stage_delays = (0 until log2Ceil(config.bp) + 1).map(x => {
-      if (x == log2Ceil(config.bp)) config.bp / 2 else (config.bp / pow(2, x + 1)).toInt
-    })
-    val test_length = config.bp + config.pipelineDepth + stage_delays.reduce(_ + _)
+    val stage_delays = (0 until log2Ceil(config.bp)+1).map(x => { if (x == log2Ceil(config.bp)) config.bp/2 else (config.bp/pow(2,x+1)).toInt })
+    val test_length = config.bp + config.pipelineDepth + stage_delays.reduce(_+_)
 
     // create return val
     val retval = new scala.collection.mutable.Queue[Complex]()
@@ -69,17 +71,11 @@ object spectrumTester {
     // poke input signal
     for (i <- 0 until test_length) {
       // repeat end of signal
-      groupedSignal(min(i, groupedSignal.size - 1)).zip(io.in.bits).foreach { case (sig, port) => dut.poke(port, sig) }
+      groupedSignal(min(i, groupedSignal.size-1)).zip(io.in.bits).foreach { case(sig, port) => dut.poke(port, sig) }
       val valid = dut.peek(io.out.valid)
-      if (!synced && (valid & !last_valid)) {
-        synced = true; println(s"synced on cycle $i")
-      }
-      if (synced || config.bp == 1) {
-        io.out.bits.foreach(x => retval += dut.peek(x))
-      }
-      if (!synced && dut.peek(io.out.sync) && config.bp != 1) {
-        synced = true; println(s"synced on cycle $i")
-      }
+      if (!synced && (valid & !last_valid)) { synced = true; println(s"synced on cycle $i") }
+      if (synced || config.bp == 1) { io.out.bits.foreach(x => retval += dut.peek(x)) }
+      if (!synced && dut.peek(io.out.sync) && config.bp != 1) { synced = true; println(s"synced on cycle $i") }
       last_valid = valid
       dut.step(1)
     }
@@ -87,12 +83,7 @@ object spectrumTester {
     // return unscrambled output
     require(!retval.isEmpty, "Output queue is empty")
     require(retval.size == config.n, s"Output queue has the wrong number of values, got ${retval.size}, expected ${config.n}")
-    if (config.unscrambleOut == false) {
-      unscramble(retval.toSeq, config.lanes)
-    }
-    else {
-      retval.toSeq
-    }
+    unscramble(retval.toSeq, config.lanes)
   }
 
   // bit reverse a value
@@ -100,9 +91,9 @@ object spectrumTester {
     var test = in
     var out = 0
     for (i <- 0 until width) {
-      if (test / pow(2, width - i - 1) >= 1) {
-        out += pow(2, i).toInt
-        test -= pow(2, width - i - 1).toInt
+      if (test / pow(2, width-i-1) >= 1) {
+        out += pow(2,i).toInt
+        test -= pow(2,width-i-1).toInt
       }
     }
     out
@@ -111,13 +102,13 @@ object spectrumTester {
   // unscramble fft output
   def unscramble(in: Seq[Complex], p: Int): Seq[Complex] = {
     val n = in.size
-    val bp = n / p
-    val res = Array.fill(n)(Complex(0.0, 0.0))
+    val bp = n/p
+    val res = Array.fill(n)(Complex(0.0,0.0))
     in.grouped(p).zipWithIndex.foreach { case (set, sindex) =>
       set.zipWithIndex.foreach { case (bin, bindex) =>
         if (bp > 1) {
-          val p1 = if (sindex / (bp / 2) >= 1) 1 else 0
-          val new_index = bit_reverse((sindex % (bp / 2)) * 2 + p1, log2Ceil(bp)) + bit_reverse(bindex, log2Ceil(n))
+          val p1 = if (sindex/(bp/2) >= 1) 1 else 0
+          val new_index = bit_reverse((sindex % (bp/2)) * 2 + p1, log2Ceil(bp)) + bit_reverse(bindex, log2Ceil(n))
           res(new_index) = bin
         } else {
           val new_index = bit_reverse(bindex, log2Ceil(n))
@@ -134,7 +125,7 @@ object spectrumTester {
       testerOptions = TesterOptions(backendName = "firrtl", testerSeed = 7L)
       interpreterOptions = InterpreterOptions(setVerbose = false, writeVCD = verbose, maxExecutionDepth = 2000)
     }
-    chisel3.iotesters.Driver.execute(c, manager)(c => {
+    chisel3.iotesters.Driver.execute(c, manager) (c => {
       val t = new FFTTester(c)
       tester = t
       t
@@ -153,20 +144,20 @@ object spectrumTester {
     (0 until numSamples).map(i => Complex(math.cos(2 * math.Pi * f * i), math.sin(2 * math.Pi * f * i)))
   }
 
-  def apply[T <: Data](c: () => FFT[T], config: FFTConfig[T], verbose: Boolean = true): Unit = {
+  def apply[T<:Data](c: () => FFT[T], config: FFTConfig[T], verbose: Boolean = true): Unit = {
 
     // get some parameters
     val fftSize = config.n
 
     // bin-by-bin testing
     val m = 16 // at most 16 bins
-    (0 until min(fftSize, m)).foreach { bin =>
-      val b = if (fftSize > m) fftSize / m * bin else bin
+    (0 until min(fftSize, m)).foreach{ bin =>
+      val b = if (fftSize > m) fftSize/m*bin else bin
       val tester = setupTester(c, verbose)
-      val tone = getTone(fftSize, b.toDouble / fftSize)
+      val tone = getTone(fftSize, b.toDouble/fftSize)
       val testResult = testSignal(tester, tone)
       val expectedResult = fourierTr(DenseVector(tone.toArray)).toArray
-      val expectedResultInv = iFourierTr(DenseVector(tone.toArray)).toArray.map(_ * config.n)
+      val expectedResultInv = iFourierTr(DenseVector(tone.toArray)).toArray.map(_*config.n)
       if (verbose) {
         println("Tone = ")
         println(tone.toArray.deep.mkString("\n"))
@@ -177,7 +168,7 @@ object spectrumTester {
         println("Expected Inv output = ")
         println(expectedResultInv.toArray.deep.mkString("\n"))
       }
-      if (config.inverse == true) {
+      if (config.inverse==true) {
         compareOutputComplex(testResult, expectedResultInv, 1e-2)
         teardownTester(tester)
       } else {
@@ -187,12 +178,12 @@ object spectrumTester {
     }
 
     // random testing
-    (0 until 4).foreach { x =>
+    (0 until 4).foreach{ x =>
       val tester = setupTester(c, verbose)
       val tone = (0 until fftSize).map(x => Complex(Random.nextDouble(), Random.nextDouble()))
       val testResult = testSignal(tester, tone)
       val expectedResult = fourierTr(DenseVector(tone.toArray)).toArray
-      val expectedResultInv = iFourierTr(DenseVector(tone.toArray)).toArray.map(_ * config.n)
+      val expectedResultInv = iFourierTr(DenseVector(tone.toArray)).toArray.map(_*config.n)
 
       if (verbose) {
         println("Tone = ")
@@ -204,7 +195,7 @@ object spectrumTester {
         println("Expected Inv output = ")
         println(expectedResultInv.toArray.deep.mkString("\n"))
       }
-      if (config.inverse == true) {
+      if (config.inverse==true) {
         compareOutputComplex(testResult, expectedResultInv, 1e-2)
         teardownTester(tester)
       } else {
@@ -216,14 +207,14 @@ object spectrumTester {
 
   // compares chisel and reference outputs, errors if they differ by more than epsilon
   def compareOutputComplex(chisel: Seq[Complex], ref: Seq[Complex], epsilon: Double = 1e-12): Unit = {
-    chisel.zip(ref).zipWithIndex.foreach { case ((c, r), index) =>
+    chisel.zip(ref).zipWithIndex.foreach { case((c, r), index) =>
       if (c.real != r.real) {
-        val err = abs(c.real - r.real) / (abs(r.real) + epsilon)
-        assert(err < epsilon || abs(r.real) < epsilon, s"Error: mismatch in real value on output $index of ${err * 100}%\n\tReference: ${r.real}\n\tChisel:    ${c.real}")
+        val err = abs(c.real-r.real)/(abs(r.real)+epsilon)
+        assert(err < epsilon || abs(r.real) < epsilon, s"Error: mismatch in real value on output $index of ${err*100}%\n\tReference: ${r.real}\n\tChisel:    ${c.real}")
       }
       if (c.imag != r.imag) {
-        val err = abs(c.imag - r.imag) / (abs(r.imag) + epsilon)
-        assert(err < epsilon || abs(r.imag) < epsilon, s"Error: mismatch in imag value on output $index of ${err * 100}%\n\tReference: ${r.imag}\n\tChisel:    ${c.imag}")
+        val err = abs(c.imag-r.imag)/(abs(r.imag)+epsilon)
+        assert(err < epsilon || abs(r.imag) < epsilon, s"Error: mismatch in imag value on output $index of ${err*100}%\n\tReference: ${r.imag}\n\tChisel:    ${c.imag}")
       }
     }
   }
@@ -236,12 +227,11 @@ class FFTSpec extends FlatSpec with Matchers {
 
     val tests = Seq(
       // (FFT points, lanes, total width, fractional bits, pipeline depth, inverse)
-//            Seq(16, 16,  35, 19, 0, 0),
-      Seq(16, 16,  35, 19, 0, 1),
-//            Seq(32, 32,  35, 19, 0, 1),
+//      Seq(16,   16,  35, 19, 0, 1),
+//      Seq(16,   16,  35, 19, 0, 0),
 
-      //      Seq(128, 16, 27, 16, 17),
-//      Seq(16, 2, 27, 16, 10, 0)
+//      Seq(128, 16, 27, 16, 17),
+      Seq(16, 8, 27, 16, 10, 0)
     )
 
     for (test <- tests) {
@@ -259,7 +249,6 @@ class FFTSpec extends FlatSpec with Matchers {
         lanes = test(1),
         pipelineDepth = test(4),
         quadrature = false,
-        unscrambleOut = false,
         inverse = if (test(5) != 0) true else false,
       )
       implicit val p: Parameters = null

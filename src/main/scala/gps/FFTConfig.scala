@@ -45,6 +45,7 @@ case class FFTConfig[T <: Data](
   lanes: Int = 8,
   quadrature: Boolean = true,
   inverse: Boolean = false,
+  unscrambleOut: Boolean = false,
 ) {
   require(n >= 4, "For an n-point FFT, n must be 4 or more")
   require(isPow2(n), "For an n-point FFT, n must be a power of 2")
@@ -86,6 +87,9 @@ case class FFTConfig[T <: Data](
   // bp stands for biplex points, so the biplex FFT is a bp-point FFT
   val lanes_new = if (quadrature) lanes/2 else lanes
   val bp = n/lanes_new
+  println(s"Total input number: $n")
+  println(s"Total lane number: $lanes_new")
+  println(s"Total bp number: $bp")
 
   // pipelining
   val num = (log2Ceil(n)+1).toDouble
