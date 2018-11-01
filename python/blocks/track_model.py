@@ -94,6 +94,9 @@ class Track(Block):
 
         self.I_int = [0, 0, 0]
         self.Q_int = [0, 0, 0]
+        # delayed version
+        self.I_int_d = [0, 0, 0]
+        self.Q_int_d = [0, 0, 0]
 
         self.if_nco_freq = if_nco_freq
         self.code_nco_freq = code_nco_freq
@@ -147,20 +150,24 @@ class Track(Block):
         I_int, _ = self.intdumpI.update(I_sample, int_num)
         Q_int, _ = self.intdumpQ.update(Q_sample, int_num)
 
+        self.I_int = I_int
+        self.Q_int = Q_int
+
         if clk_ca:
             # dll loop
-            dll_out, dll_lf_out = self.dll.update(I_sample=I_int, Q_sample=Q_int,
+            dll_out, dll_lf_out = self.dll.update(I_sample=self.I_int, Q_sample=self.Q_int,
                                                   freq_bias=code_nco_freq,
                                                   carrier_assist=0)
             # costas loop
-            costas_out = self.costas.update(Ips=I_int[1], Qps=Q_int[1], freq_bias=if_nco_freq)
+            costas_out = self.costas.update(Ips=self.I_int[1], Qps=self.Q_int[1], freq_bias=if_nco_freq)
 
             self.dll_out = dll_out
             self.dll_lf_out = dll_lf_out
             self.costas_out = costas_out
 
-        self.I_int = I_int
-        self.Q_int = Q_int
+            self.I_int_d, self.Q_int_d = I_int, Q_int
+
+
 
         # packet update
         # self.packet.update(x, I_int, Q_int)
