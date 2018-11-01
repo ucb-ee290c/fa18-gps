@@ -30,18 +30,27 @@ class DLL(Block):
         self.prev_x = 0
         self.prev_y = 0
         self.discriminator_num = discriminator_num
+        self.dis_out = 0        # add dis_out
 
     @staticmethod
     def discriminator1(ie, il, qe, ql):
         e = np.sqrt(ie**2 + qe**2)
         l = np.sqrt(il**2 + ql**2)
-        return 1/2*(e-l)/(e+l)
+
+        if e == 0 or l == 0:    # if int_dump is not startup
+            return 0
+        else:
+            return 1/2*(e-l)/(e+l)
 
     @staticmethod
     def discriminator2(ie, il, qe, ql):
         e = ie**2 + qe**2
         l = il**2 + ql**2
-        return 1/2*(e-l)/(e + l)
+
+        if e == 0 or l == 0:    # if int_dump is not startup
+            return 0
+        else:
+            return 1/2*(e-l)/(e + l)
 
     # TODO Figure out good saturation points for this
     def loop_filter(self, x):
@@ -52,10 +61,10 @@ class DLL(Block):
             y = -1000
         self.prev_x = x
         self.prev_y = y
-        print(y)
+        # print(y)
         return y
 
-    def update(self, I_sample, Q_sample, carrier_bias, code_bias):
+    def update(self, I_sample, Q_sample, freq_bias, carrier_assist):
         """ DLL update
 
         Parameters
@@ -66,12 +75,13 @@ class DLL(Block):
             The 3 integrated Q samples, Q_E, Q_P and Q_L in that order
         """
         if self.discriminator_num == 1:
-            dis_out = self.discriminator1(I_sample[0], I_sample[2],
+            self.dis_out = self.discriminator1(I_sample[0], I_sample[2],
                 Q_sample[0], Q_sample[2])
         elif self.discriminator_num == 2:
-            dis_out = self.discriminator2(I_sample[0], I_sample[2],
+            self.dis_out = self.discriminator2(I_sample[0], I_sample[2],
                 Q_sample[0], Q_sample[2])
 
-        lf_out = self.loop_filter(dis_out)
-        return carrier_bias + code_bias + lf_out, lf_out
+        lf_out = self.loop_filter(self.dis_out)
+
+        return freq_bias + carrier_assist + lf_out, lf_out
 
