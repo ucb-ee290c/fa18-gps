@@ -1,0 +1,29 @@
+SETTTING 1:
+# costas parameters
+    costas_lf_coeff = [1000, 50, 5, 1e-6, 1e-7]
+
+    # num of cycles to run
+    num_cycles = 3200000    # len(raw_data)
+
+    # time keeper
+    time_keeper = TimeKeeper()
+
+    # track
+    track = Track(
+        raw_data=raw_data,
+        if_nco_width=if_nco_width,
+        if_nco_init_phase=if_nco_init_phase,
+        if_nco_freq=if_nco_freq,
+        code_nco_width=code_nco_width,
+        code_nco_init_phase=code_nco_init_phase,
+        code_nco_freq=code_nco_freq,
+        sv_num=sv_num,
+        code_bias=code_bias,
+        dll_dc_gain=dll_dc_gain,
+        dll_bandwidth=dll_bandwidth,
+        dll_sample_rate=dll_sample_rate,
+        dll_discriminator_num=dll_discriminator_num,
+        int_num=int_num,
+        costas_lf_coeff=costas_lf_coeff,
+        costas_pll_mode=0
+        )

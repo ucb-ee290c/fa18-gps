@@ -121,59 +121,57 @@ class Track(Block):
         # ADC update, read data
         adc_data = self.adc.update()
 
-        # time keeper
-        ca_en = self.time_keeper.update(reset=timekeeper_reset, code_bias=code_bias)
+        if en:
+            # carrier(IF) NCO update
+            cos_if, sin_if = self.nco_carrier.update(freq_ctrl=self.costas_out, phase_ctrl=0)
 
-        # carrier(IF) NCO update
-        cos_if, sin_if = self.nco_carrier.update(freq_ctrl=self.costas_out, phase_ctrl=0)
+            # mixer update
+            I = self.multI.update(adc_data, cos_if)
+            Q = self.multQ.update(adc_data, sin_if)
 
-        # mixer update
-        I = self.multI.update(adc_data, cos_if)
-        Q = self.multQ.update(adc_data, sin_if)
+            # code NCO update
+            ck_code, ck2x_code = self.nco_code.update(freq_ctrl=self.dll_out, phase_ctrl=0)
 
-        # code NCO update
-        ck_code, ck2x_code = self.nco_code.update(freq_ctrl=self.dll_out, phase_ctrl=0)
+            # CA code update
+            e, p, l, clk_ca = self.ca.update(tick=ck_code, tick_2x=ck2x_code,
+                                             sv_num=sv_num)
+            # code/data XOR update
+            I_e = self.multIe.update(I, e)
+            I_p = self.multIp.update(I, p)
+            I_l = self.multIl.update(I, l)
+            Q_e = self.multQe.update(Q, e)
+            Q_p = self.multQp.update(Q, p)
+            Q_l = self.multQl.update(Q, l)
 
-        # CA code update
-        e, p, l, clk_ca = self.ca.update(tick=ck_code, tick_2x=ck2x_code,
-                                         sv_num=sv_num)
+            I_sample = [I_e, I_p, I_l]
+            Q_sample = [Q_e, Q_p, Q_l]
 
-        # code/data XOR update
-        I_e = self.multIe.update(I, e)
-        I_p = self.multIp.update(I, p)
-        I_l = self.multIl.update(I, l)
-        Q_e = self.multQe.update(Q, e)
-        Q_p = self.multQp.update(Q, p)
-        Q_l = self.multQl.update(Q, l)
+            # I_int and Q_int are lists of size 3
+            I_int, _ = self.intdumpI.update(I_sample, int_num)
+            Q_int, _ = self.intdumpQ.update(Q_sample, int_num)
 
-        I_sample = [I_e, I_p, I_l]
-        Q_sample = [Q_e, Q_p, Q_l]
+            self.I_int = I_int
+            self.Q_int = Q_int
 
-        # I_int and Q_int are lists of size 3
-        I_int, _ = self.intdumpI.update(I_sample, int_num)
-        Q_int, _ = self.intdumpQ.update(Q_sample, int_num)
+            if clk_ca:
 
-        self.I_int = I_int
-        self.Q_int = Q_int
+                # dll loop
+                dll_out, dll_lf_out = self.dll.update(I_sample=self.I_int, Q_sample=self.Q_int,
+                                                      freq_bias=code_nco_freq,
+                                                      carrier_assist=0)
+                # costas loop
+                costas_out = self.costas.update(Ips=self.I_int[1], Qps=self.Q_int[1], freq_bias=if_nco_freq)
 
-        if clk_ca:
-            # dll loop
-            dll_out, dll_lf_out = self.dll.update(I_sample=self.I_int, Q_sample=self.Q_int,
-                                                  freq_bias=code_nco_freq,
-                                                  carrier_assist=0)
-            # costas loop
-            costas_out = self.costas.update(Ips=self.I_int[1], Qps=self.Q_int[1], freq_bias=if_nco_freq)
+                self.dll_out = dll_out
+                self.dll_lf_out = dll_lf_out
+                self.costas_out = costas_out
 
-            self.dll_out = dll_out
-            self.dll_lf_out = dll_lf_out
-            self.costas_out = costas_out
-
-            self.I_int_d, self.Q_int_d = I_int, Q_int
+                self.I_int_d, self.Q_int_d = I_int, Q_int
 
 
 
-        # packet update
-        # self.packet.update(x, I_int, Q_int)
+            # packet update
+            # self.packet.update(x, I_int, Q_int)
 
 
 

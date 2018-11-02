@@ -17,7 +17,7 @@ class TimeKeeper(Block):
         else:
             if self.en == 0:
                 self.counter += 1
-                if self.counter >= code_bias:
+                if self.counter > code_bias:
                     self.en = 1
                     self.counter = 0
 

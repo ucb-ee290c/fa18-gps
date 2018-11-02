@@ -75,7 +75,7 @@ class CA(Block):
         late = 2*late - 1
         return early, punctual, late, self.done
 
-    def check_tick(self, tick, code_bias):
+    def check_tick(self, tick):
 
         if self.prev_tick < 0 and tick >= 0:
             self.curr_index += 1
