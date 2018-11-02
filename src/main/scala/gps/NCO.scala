@@ -14,7 +14,7 @@ import dsptools.numbers._
 trait NcoParams[T <: Data] {
   val proto: T
   val width: Int
-  val sinOut: Boolean
+  val sinOut: Boolean   // True to have sin output
 }
 
 /**

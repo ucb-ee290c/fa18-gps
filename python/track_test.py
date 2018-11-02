@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
     # code bias
     code_bias_sample_rate = 7695
-    code_bias = int(code_bias_sample_rate / (fs/chip_rate))
+    code_bias = code_bias_sample_rate   # int(code_bias_sample_rate / (fs/chip_rate))
     print("Code bias is {}".format(code_bias))
 
     # NCO params
@@ -46,9 +46,12 @@ if __name__ == '__main__':
     # costas parameters
     costas_lf_coeff = [1000, 50, 5, 1e-6, 1e-7]
 
-    # # of cycles to run
+    # num of cycles to run
     num_cycles = 3200000    # len(raw_data)
 
+
+
+    # track
     track = Track(
         raw_data=raw_data,
         if_nco_width=if_nco_width,

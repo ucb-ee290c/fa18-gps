@@ -40,7 +40,7 @@ class CA(Block):
       32: [4,9],
     }
     
-    def __init__(self, sv_num, code_bias, code_length=1023):
+    def __init__(self, sv_num, code_length=1023):
         self.prev_tick = 0
         self.curr_index = 0
         self.curr_sv = None
@@ -48,13 +48,11 @@ class CA(Block):
         self.shift_reg = ShiftRegister()
         self.done = 0
         self.code_length = code_length
-        self.code_bias = code_bias
         self.sv_num = sv_num
 
-    def update(self, tick, tick_2x, sv_num, code_bias):
+    def update(self, tick, tick_2x, sv_num):
 
         # updates
-        self.code_bias = code_bias
         self.sv_num = sv_num
 
         # check satellite id
@@ -67,7 +65,7 @@ class CA(Block):
            self.curr_index = 0
            self.prev_tick = 0
 
-        early = self.check_tick(tick, code_bias)
+        early = self.check_tick(tick)
         self.shift_reg.insert(early)
         punctual, late = self.shift_reg.update(tick_2x)
 
@@ -86,7 +84,7 @@ class CA(Block):
                 self.done = 1
 
         self.prev_tick = tick
-        return self.curr_prn_list[(self.curr_index-code_bias) % self.code_length]
+        return self.curr_prn_list[self.curr_index % self.code_length]
     
     def shift(self, register, feedback, output):
         """GPS Shift Register

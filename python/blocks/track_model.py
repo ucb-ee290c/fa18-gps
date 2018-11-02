@@ -69,7 +69,7 @@ class Track(Block):
         self.multQl = MUL()
 
         # ca code generators
-        self.ca = CA(sv_num=sv_num, code_bias=code_bias)
+        self.ca = CA(sv_num=sv_num)
 
         # integrate and dump
         self.intdumpI = IntDump()
@@ -109,7 +109,7 @@ class Track(Block):
         self.dll_lf_out = 0
         self.costas_out = if_nco_freq
 
-    def update(self, if_nco_freq, code_nco_freq, sv_num, code_bias, int_num):
+    def update(self, if_nco_freq, code_nco_freq, sv_num, code_bias, int_num, en):
 
         # update some parameters
         self.sv_num = sv_num
@@ -120,6 +120,9 @@ class Track(Block):
 
         # ADC update, read data
         adc_data = self.adc.update()
+
+        # time keeper
+        ca_en = self.time_keeper.update(reset=timekeeper_reset, code_bias=code_bias)
 
         # carrier(IF) NCO update
         cos_if, sin_if = self.nco_carrier.update(freq_ctrl=self.costas_out, phase_ctrl=0)
@@ -133,7 +136,7 @@ class Track(Block):
 
         # CA code update
         e, p, l, clk_ca = self.ca.update(tick=ck_code, tick_2x=ck2x_code,
-                                         sv_num=sv_num, code_bias=code_bias)
+                                         sv_num=sv_num)
 
         # code/data XOR update
         I_e = self.multIe.update(I, e)
