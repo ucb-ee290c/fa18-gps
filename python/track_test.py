@@ -7,7 +7,7 @@ from blocks import *
 if __name__ == '__main__':
 
     # data file
-    raw_data = np.fromfile('../../gps_data/adc_sample_data.bin', dtype=np.int8)
+    raw_data = np.fromfile('adc_sample_data.bin', dtype=np.int8)
 
     # data sample rate
     fs = 16367600 # 16528600
@@ -78,7 +78,7 @@ if __name__ == '__main__':
     d_freq_list = []
     code_freq_list = []
 
-    for cycle in range(num_cycles):
+    for cycle in range(num_cycles//5):
 
         track.update(
             if_nco_freq=if_nco_freq,
@@ -131,7 +131,6 @@ if __name__ == '__main__':
     plt.subplot(4, 1, 4)
     plt.plot(time_list, freq_list)
     plt.legend(["IF Frequency"])
-    plt.show(block=False)
 
     plt.figure()
     plt.title("DLL Loop Locking")
@@ -145,5 +144,4 @@ if __name__ == '__main__':
     plt.subplot(3, 1, 3)
     plt.plot(time_list, code_freq_list)
     plt.legend(["Code NCO frequency"])
-    plt.show(block=False)
-
+    plt.show()

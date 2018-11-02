@@ -7,7 +7,7 @@ mpl.rcParams['agg.path.chunksize'] = 10000
 from blocks import *
 
 
-raw_data = np.fromfile('../../../ADCOutput10s.bin', dtype=np.int8)
+raw_data = np.fromfile('adc_sample_data.bin', dtype=np.int8)
 
 # Data sample rate
 fs = 16528600   # 1.023*16*1e6
