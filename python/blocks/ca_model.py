@@ -49,6 +49,7 @@ class CA(Block):
         self.done = 0
     def update(self, tick, tick_2x, sv_num):
         assert sv_num >= 1 and sv_num <= 32, "Invalid sattelite choice"
+        self.done = 0
         if self.curr_sv is None or self.curr_sv != sv_num:
            self.curr_prn_list = self.PRN(sv_num)
            self.curr_sv = sv_num
@@ -69,8 +70,6 @@ class CA(Block):
             if self.curr_index >= len(self.curr_prn_list):
                 self.curr_index = 0
                 self.done = 1
-            else:
-                self.done = 0
         self.prev_tick = tick
         return self.curr_prn_list[self.curr_index]
     
@@ -133,13 +132,13 @@ class ShiftRegister(Block):
         self.input = None
         self.curr_index = 0
         self.prev_tick = -1
-        self.my_list = [1, 1] #always length 2
+        self.my_list = [1, 1, 1] #always length 2
     def update(self, tick):
-        temp_return = self.my_list[:]
         if self.prev_tick < 0 and tick >= 0:
+            self.my_list[2] = self.my_list[1]
             self.my_list[1] = self.my_list[0]
             self.my_list[0] = self.input
         self.prev_tick = tick
-        return temp_return[0], temp_return[1]
+        return self.my_list[1], self.my_list[2]
     def insert(self, val):
         self.input = val

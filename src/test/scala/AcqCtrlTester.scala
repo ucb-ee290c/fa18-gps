@@ -107,9 +107,9 @@ class ACtrlTester[T1 <: chisel3.Data,T2 <: chisel3.Data,T3 <: chisel3.Data](c: A
         else if (key == 3) corr = 004.0;
         else if (key == 4) corr = 005.0;
         else if (key == 5) corr = 006.0;
-        else if (key == 6) corr = 0007.0;
-        else if (key == 7) corr = 0008.0;
-        else corr = 0009.0
+        else if (key == 6) corr = 007.0;
+        else if (key == 7) corr = 008.0;
+        else corr = 009.0
 
         poke(c.io.Ain.Correlation, corr)
         poke(c.io.Ain.valid, 1)
@@ -140,12 +140,12 @@ class ACtrlTester[T1 <: chisel3.Data,T2 <: chisel3.Data,T3 <: chisel3.Data](c: A
 //      peek(c.io.Aout.cpNext)
       peek(c.io.Tout.freqOpt)
       peek(c.io.Tout.CPOpt)
-      peek(c.io.Tout.iFreqOptItm)
+//      peek(c.io.Tout.iFreqOptItm)
 //      peek(c.io.Tout.iFreqOptOut)
-      peek(c.io.Tout.CPOptItm)
-      peek(c.io.Tout.max)
-      peek(c.io.Tout.vec)
-      peek(c.io.Tout.state)
+//      peek(c.io.Tout.CPOptItm)
+//      peek(c.io.Tout.max)
+//      peek(c.io.Tout.vec)
+//      peek(c.io.Tout.state)
 //      peek(c.io.Tout.CPOptOut)
 //      peek(c.io.Tout.sateFound)
 

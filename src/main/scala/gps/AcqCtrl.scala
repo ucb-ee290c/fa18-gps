@@ -1,7 +1,6 @@
 package gps
 
 import chisel3._
-//import chisel3.experimental.FixedPoint
 //import chisel3.util.Decoupled
 import chisel3.util._
 import scala.math._
@@ -299,7 +298,7 @@ class ACtrl[T1 <: Data, T2 <: Data, T3 <: Data:ConvertableTo:Ring:Real](params: 
     }
 
   }
-  .otherwise {
+  .elsewhen(reg_state === acqing) {
 
     // state machine
     when (Ain_fire) {
@@ -341,10 +340,6 @@ class ACtrl[T1 <: Data, T2 <: Data, T3 <: Data:ConvertableTo:Ring:Real](params: 
 
 
 }
-
-
-
-
 
 
 
