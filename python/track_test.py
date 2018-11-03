@@ -12,7 +12,7 @@ if __name__ == '__main__':
     # data sample rate
     fs = 16528600
     sv_num = 1  # 22 #1
-    sv_freq = 4.132100e6 - 3862
+    sv_freq = 4.132100e6 - 3862 - 100
     chip_rate = 1.023e6
 
     # code bias
@@ -44,10 +44,10 @@ if __name__ == '__main__':
     dll_discriminator_num = 1
 
     # costas parameters
-    costas_lf_coeff = [1000, 50, 5, 1e-6, 1e-7]
+    costas_lf_coeff = [100, 50, 0, 1e-5, 0]
 
     # num of cycles to run
-    num_cycles = 320000    # len(raw_data)
+    num_cycles = 6400000    # len(raw_data)
 
     # time keeper
     time_keeper = TimeKeeper()
@@ -83,6 +83,8 @@ if __name__ == '__main__':
     d_freq_list = []
     code_freq_list = []
     en_list = []
+    I_quant_list = []
+    Q_quant_list = []
 
     for cycle in range(num_cycles):
 
@@ -103,6 +105,9 @@ if __name__ == '__main__':
         time_list.append(cycle / fs)
         I_int_list.append(track.I_int[1])
         Q_int_list.append(track.Q_int[1])
+
+        I_quant_list.append(track.Ips_quant)
+        Q_quant_list.append(track.Qps_quant)
 
         # costas error and frequency error
         costas_err_list.append(track.costas.costas_err)
@@ -165,3 +170,16 @@ if __name__ == '__main__':
     plt.title("EN signal")
     plt.plot(time_list, en_list)
     plt.show(block=False)
+
+    plt.figure()
+    plt.title("Quantized Data")
+    plt.subplot(2, 1, 1)
+    plt.plot(time_list, I_int_list)
+    plt.plot(time_list, Q_int_list)
+    plt.legend(["I_int", "Q_int"])
+    plt.subplot(2, 1, 2)
+    plt.plot(time_list, I_quant_list)
+    plt.plot(time_list, Q_quant_list)
+    plt.legend(["I_quant", "Q_quant"])
+    plt.show(block=False)
+

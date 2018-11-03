@@ -8,3 +8,4 @@ from .nco_model import *
 from .packet_model import *
 from .track_model import *
 from .time_keeper_model import *
+from .quantizer_model import Quantizer

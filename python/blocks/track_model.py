@@ -4,6 +4,7 @@ import matplotlib as mpl
 mpl.rcParams['agg.path.chunksize'] = 10000
 
 from blocks import *
+from blocks.quantizer_model import Quantizer
 
 # TODO: add LOCK signals to two loops
 # TODO: add enable signal
@@ -75,6 +76,10 @@ class Track(Block):
         self.intdumpI = IntDump()
         self.intdumpQ = IntDump()
 
+        # quantizer
+        self.quantI = Quantizer(15000, 8)
+        self.quantQ = Quantizer(15000, 8)
+
         # dll loop
         # ki = 1, kp = 1, first discriminator
         self.dll = DLL(dc_gain=dll_dc_gain, bandwidth=dll_bandwidth,
@@ -97,6 +102,9 @@ class Track(Block):
         # delayed version
         self.I_int_d = [0, 0, 0]
         self.Q_int_d = [0, 0, 0]
+        # quantized version
+        self.Ips_quant = 0
+        self.Qps_quant = 0
 
         self.if_nco_freq = if_nco_freq
         self.code_nco_freq = code_nco_freq
@@ -160,7 +168,11 @@ class Track(Block):
                                                       freq_bias=code_nco_freq,
                                                       carrier_assist=0)
                 # costas loop
-                costas_out = self.costas.update(Ips=self.I_int[1], Qps=self.Q_int[1], freq_bias=if_nco_freq)
+                Ips_quant = self.quantI.update(I_int[1])
+                Qps_quant = self.quantQ.update(Q_int[1])
+
+                costas_out = self.costas.update(Ips=self.Ips_quant, Qps=self.Qps_quant, freq_bias=if_nco_freq)
+                # costas_out = self.costas.update(Ips=self.I_int[1], Qps=self.Q_int[1], freq_bias=if_nco_freq)
 
                 self.dll_out = dll_out
                 self.dll_lf_out = dll_lf_out
@@ -168,6 +180,8 @@ class Track(Block):
 
                 self.I_int_d, self.Q_int_d = I_int, Q_int
 
+                self.Ips_quant = Ips_quant
+                self.Qps_quant = Qps_quant
 
 
             # packet update
