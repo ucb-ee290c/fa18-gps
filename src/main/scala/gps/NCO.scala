@@ -23,8 +23,8 @@ trait NcoParams[T <: Data] {
  */
 case class SIntNcoParams(
   resolutionWidth: Int,
-  sinOut: Boolean,
-  truncateWidth: Int
+  truncateWidth: Int,
+  sinOut: Boolean
 ) extends NcoParams[SInt] {
   // binary point is (Width-3) to represent Pi/2 exactly
   val proto = SInt(truncateWidth.W)
