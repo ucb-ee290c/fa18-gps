@@ -10,33 +10,36 @@ import breeze.numerics.constants._
  * DspSpec for NCO
  */
 class NcoSpec extends FlatSpec with Matchers {
-  behavior of "FixedNCO"
+  behavior of "SIntNCO"
 
-  val params = FixedNcoParams( 
-    width = 3,
+  val params = SIntNcoParams( 
+    truncateWidth = 3,
+    resolutionWidth = 5,
     sinOut = true
   )
 
-  val paramsNoSin = FixedNcoParams( 
-    width = 3,
+  val paramsNoSin = SIntNcoParams( 
+    truncateWidth = 3,
+    resolutionWidth = 5,
     sinOut = false
   )
 
   it should "produce SInt random cosines and sines" in {
     val input = Seq(1, 2, 3, 4, 5, 6, 7, 7, 1, 2, 3, 4, 5, 4, 5, 6, 7, 0, 2)
-    val outputCos = (input.scanLeft(0)(_ + _)).map(x => cos(2.0*Pi*x/pow(2, params.width)))
-    val outputSin = (input.scanLeft(0)(_ + _)).map(x => sin(2.0*Pi*x/pow(2, params.width)))
-    FixedNcoTester(params, input, outputCos, outputSin) should be (true)
+    val outputCos = (input.scanLeft(0)(_ + _)).map(x => cos(2.0*Pi*x/pow(2, params.truncateWidth)))
+    val outputSin = (input.scanLeft(0)(_ + _)).map(x => sin(2.0*Pi*x/pow(2, params.truncateWidth)))
+    SIntNcoTester(params, input, outputCos, outputSin) should be (true)
   }
 
-    val inputPer = Seq.fill(20){1}
-    val outputPerCos = (inputPer.scanLeft(0)(_ + _)).map(x => cos(2.0*Pi*x/pow(2, params.width)))
-    val outputPerSin = (inputPer.scanLeft(0)(_ + _)).map(x => sin(2.0*Pi*x/pow(2, params.width)))
-  it should "produce SInt periodic cosines and sines" in {
-    FixedNcoTester(params, inputPer, outputPerCos, outputPerSin) should be (true)
-  }
+    val inputPer = Seq.fill(320){1}
+    val outputPer = Seq.fill(320){1.0}
+    val outputPerCos = (inputPer.scanLeft(0)(_ + _)).map(x => cos(2.0*Pi*x/pow(2, params.truncateWidth)))
+    val outputPerSin = (inputPer.scanLeft(0)(_ + _)).map(x => sin(2.0*Pi*x/pow(2, params.truncateWidth)))
+/*  it should "produce SInt periodic cosines and sines" in {
+    SIntNcoTester(params, inputPer, outputPerCos, outputPerSin) should be (true)
+  }*/
   it should "produce SInt periodic cosines only" in {
-    FixedNcoTester(paramsNoSin, inputPer, outputPerCos, outputPerSin) should be (true)
+    SIntNcoTester(paramsNoSin, inputPer, outputPer, outputPerSin) should be (true)
   }
 
 
@@ -44,16 +47,17 @@ class NcoSpec extends FlatSpec with Matchers {
 
   val realParams = new NcoParams[DspReal]{ 
     val proto = DspReal()
-    val width = 3
+    val truncateWidth = 3
+    val resolutionWidth = 32
     val sinOut = true
   }
 
-  it should "produce DspReal random cosines and sines" in {
+/*  it should "produce DspReal random cosines and sines" in {
     val realInput = Seq(1, 2, 3, 4, 5, 6, 7, 7, 1, 2, 3, 4, 5, 4, 5, 6, 7, 0, 2)
-    val realOutputCos = (realInput.scanLeft(0)(_ + _)).map(x => cos(2.0*Pi*x/pow(2, params.width)))
-    val realOutputSin = (realInput.scanLeft(0)(_ + _)).map(x => sin(2.0*Pi*x/pow(2, params.width)))
+    val realOutputCos = (realInput.scanLeft(0)(_ + _)).map(x => cos(2.0*Pi*x/pow(2, params.truncateWidth)))
+    val realOutputSin = (realInput.scanLeft(0)(_ + _)).map(x => sin(2.0*Pi*x/pow(2, params.truncateWidth)))
     RealNcoTester(realParams, realInput, realOutputCos, realOutputSin) should be (true)
-  }
+  }*/
 
 }
 
@@ -64,7 +68,7 @@ class NcoTester[T <: chisel3.Data](c: NCO[T], input: Seq[Int], outputCos: Seq[Do
 
     for (i <- 0 until input.length) {
         poke(c.io.stepSize, input(i))
-        peek(c.io.regOut)
+        peek(c.io.truncateRegOut)
         expect(c.io.cos, outputCos(i))
         if (sinOut) {
             expect(c.io.sin, outputSin(i))
@@ -83,8 +87,8 @@ object RealNcoTester {
         }   
     }
 }
-object FixedNcoTester {
-    def apply(params: FixedNcoParams, input: Seq[Int], outputCos: Seq[Double], outputSin: Seq[Double]): Boolean = { 
+object SIntNcoTester {
+    def apply(params: SIntNcoParams, input: Seq[Int], outputCos: Seq[Double], outputSin: Seq[Double]): Boolean = { 
         chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), () => new NCO(params)) {
         c => new NcoTester(c, input, outputCos, outputSin, params.sinOut)
         }   
