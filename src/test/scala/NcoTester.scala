@@ -6,6 +6,28 @@ import org.scalatest.{FlatSpec, Matchers}
 import breeze.numerics.{cos, sin, pow}
 import breeze.numerics.constants._
 
+/**
+ * Object to compute the correct NCO output from a sequence of inputs
+ */
+object GetNcoCos {
+  def apply(input: Seq[Int], resolutionWidth: Int, truncateWidth: Int):
+  Seq[Double] = {
+    (input.scanLeft(0)(_ + _))
+      .slice(1, input.length+1)
+      .map(x => cos(2.0*Pi*(x >> (resolutionWidth - 
+        truncateWidth))/pow(2, truncateWidth)))
+  }
+}
+object GetNcoSin {
+  def apply(input: Seq[Int], resolutionWidth: Int, truncateWidth: Int):
+  Seq[Double] = {
+    (input.scanLeft(0)(_ + _))
+      .slice(1, input.length+1)
+      .map(x => sin(2.0*Pi*(x >> (resolutionWidth - 
+        truncateWidth))/pow(2, truncateWidth)))
+  }
+}
+
 /* 
  * DspSpec for NCO
  */
@@ -25,32 +47,35 @@ class NcoSpec extends FlatSpec with Matchers {
   )
 
   it should "produce SInt random cosines and sines" in {
-    val input = Seq(1, 2, 3, 4, 5, 6, 7, 7, 1, 2, 3, 4, 5, 4, 5, 6, 7, 0, 2)
-    val outputCos = (input.scanLeft(0)(_ + _)).map(x => cos(2.0*Pi*x/pow(2, params.truncateWidth)))
-    val outputSin = (input.scanLeft(0)(_ + _)).map(x => sin(2.0*Pi*x/pow(2, params.truncateWidth)))
+    val input = Seq(1, 1, 1, 1, 1, 1, 1, 1, 1)
+    print(NCOConstants.cosine(params.truncateWidth))
+    val outputCos = GetNcoCos(input, params.resolutionWidth,
+      params.truncateWidth)
+    val outputSin = GetNcoSin(input, params.resolutionWidth, 
+      params.truncateWidth)
+    println(outputCos)
     SIntNcoTester(params, input, outputCos, outputSin) should be (true)
   }
 
-    val inputPer = Seq.fill(320){1}
-    val outputPer = Seq.fill(320){1.0}
-    val outputPerCos = (inputPer.scanLeft(0)(_ + _)).map(x => cos(2.0*Pi*x/pow(2, params.truncateWidth)))
-    val outputPerSin = (inputPer.scanLeft(0)(_ + _)).map(x => sin(2.0*Pi*x/pow(2, params.truncateWidth)))
-/*  it should "produce SInt periodic cosines and sines" in {
-    SIntNcoTester(params, inputPer, outputPerCos, outputPerSin) should be (true)
-  }*/
+  val inputPer = Seq.fill(320){1}
+  val outputPer = Seq.fill(320){1.0}
+  val outputPerCos = GetNcoCos(inputPer, params.resolutionWidth, 
+    params.truncateWidth)
+  val outputPerSin = GetNcoSin(inputPer, params.resolutionWidth, 
+    params.truncateWidth)
   it should "produce SInt periodic cosines only" in {
-    SIntNcoTester(paramsNoSin, inputPer, outputPer, outputPerSin) should be (true)
+    SIntNcoTester(paramsNoSin, inputPer, outputPerCos, outputPerSin) should be (true)
   }
 
 
-  behavior of "DspRealNCO"
-
-  val realParams = new NcoParams[DspReal]{ 
-    val proto = DspReal()
-    val truncateWidth = 3
-    val resolutionWidth = 32
-    val sinOut = true
-  }
+//  behavior of "DspRealNCO"
+//
+//  val realParams = new NcoParams[DspReal]{ 
+//    val proto = DspReal()
+//    val truncateWidth = 3
+//    val resolutionWidth = 32
+//    val sinOut = true
+//  }
 
 /*  it should "produce DspReal random cosines and sines" in {
     val realInput = Seq(1, 2, 3, 4, 5, 6, 7, 7, 1, 2, 3, 4, 5, 4, 5, 6, 7, 0, 2)
@@ -67,7 +92,13 @@ class NcoSpec extends FlatSpec with Matchers {
 class NcoTester[T <: chisel3.Data](c: NCO[T], input: Seq[Int], outputCos: Seq[Double], outputSin: Seq[Double], sinOut: Boolean) extends DspTester(c) {
 
     for (i <- 0 until input.length) {
+        print(i)
+        println()
+        print(outputCos(i))
+        println()
         poke(c.io.stepSize, input(i))
+        peek(c.io.truncateRegOut)
+        step(1)
         peek(c.io.truncateRegOut)
         expect(c.io.cos, outputCos(i))
         if (sinOut) {
@@ -75,7 +106,6 @@ class NcoTester[T <: chisel3.Data](c: NCO[T], input: Seq[Int], outputCos: Seq[Do
         } else {
             expect(c.io.sin, 0)
         }
-        step(1)
     }
 
 }
