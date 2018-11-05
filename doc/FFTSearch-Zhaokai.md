@@ -125,3 +125,17 @@ When the input is serialized, the FFT may have fewer input lanes than the size o
 - A final direct form FFT sits at the output of the biplex FFTs, finishing the Fourier transform. Pipeline registers favor the direct form FFT slightly, though the critical path through this circuit is still through log2(n) butterflies, so one pipeline register per stage (a pipeline depth of log2(n)) is recommended.
 - The outputs are scrambled spectral bins. Since there is some unscrambling between the biplex and direct form FFT, the output indices are not purely bit reversed. To accommodate this time multiplexing, the FFT architecture changes. Pipelined biplex FFTs are inserted before the direct form FFT.
 
+## FFT Generator Modifications
+### Unscramble output option
+The FFT output result in a bit-order that hard to understand. Basically because it has two stage, so the result comes out from the first stage is not completely bit-reversed order. Then those result go thru the direct form FFT. Basically, the final result is composed of several sub-groups, the order of groups are in bit-reverse order while inside each group the order also needs to be adjusted. In tapein 2, a configurable option is added for direct form only now.
+
+So the result for direct form FFT is ready to use now.
+### IFFT suport for biplex version
+The original FFT generator can pass both direct FFT and biplex+direct FFT. But the IFFT cannot pass by simply changing the twiddle factor. 
+
+Now both FFT and IFFT for both version is supported. IFFT generator can be configured thru set inverse to true. But the IFFT also expects input with correct bit order, either a different IFFT or a unscrambler for biplex+direct form FFT is needed in the future.
+
+## Multiplication
+### Function
+- Input: it takes two input from the output of FFT, the interface is provided by ValidwithSync.
+- Output: it provide output to other blocks which should handle the interaction with IFFT.
