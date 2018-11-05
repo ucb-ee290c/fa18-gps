@@ -11,14 +11,15 @@ trait ACtrlParams [T1 <: Data, T2 <: Data, T3 <: Data] {
   val nLoop: Int
   val nFreq: Int
   val nSample: Int
+  val nLane: Int
   val wCorrelation: Int
   val wLoop: Int
   val wIdxFreq: Int
   val wFreq: Int
   val wCodePhase: Int
+  val wLane: Int
   val wADC: Int
   val wSate: Int
-  val lane: Int
   val freqMin: Int
   val freqStep: Int
 //  val wMax: Int
@@ -40,14 +41,15 @@ case class IntACtrlParams (
                          val nLoop: Int,
                          val nFreq: Int,
                          val nSample: Int,
+                         val nLane: Int,
                          val wCorrelation: Int,
                          val wLoop: Int,
                          val wIdxFreq: Int,
                          val wFreq: Int,
                          val wCodePhase: Int,
+                         val wLane: Int,
                          val wADC: Int,
                          val wSate: Int,
-                         val lane: Int,
                          val freqMin: Int,
                          val freqStep: Int,
 
@@ -56,6 +58,7 @@ case class IntACtrlParams (
 
   val wMax: Int = wCodePhase + wLoop + wADC
   val wSum: Int = wMax + wCodePhase + wIdxFreq
+  val wCyc: Int = wCodePhase - wLane + 1
 
 
   val pIdxFreq = UInt(wIdxFreq.W)
@@ -85,7 +88,7 @@ class ACtrlAInputBundle[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[
 //  val Correlation: T3 = params.pCorrelation
   val ADC: T2 = Input(params.pADC)
   val CodePhase: T1 = Input(params.pCodePhase)
-  val Correlation: T3 = Input(params.pCorrelation)
+  val Correlation = Input(Vec(params.nLane, params.pCorrelation))
   val ready = Output(Bool())
   val valid = Input(Bool())
 
@@ -150,8 +153,6 @@ class DummyBundle[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2
 
   val sum: T3 = Output(params.pSum.cloneType)
   val max: T3 = Output(params.pMax.cloneType)
-//  val cArr0: T3 = Output(params.pCorrelation.cloneType)
-//  val cArr1: T3 = Output(params.pCorrelation.cloneType)
 
   override def cloneType: this.type = DummyBundle(params).asInstanceOf[this.type]
 }
@@ -213,17 +214,18 @@ class ACtrl[T1 <: Data, T2 <: Data, T3 <: Data:ConvertableTo:Ring:Real](params: 
 
   val acq_finished = (reg_tag_CP && reg_iCPNow === 0.U && reg_iLoopNow === 0.U && reg_iFreqNow === 0.U)
 
-  val iCPNext = Mux(reg_iCPNow === iCPMax.U, 0.U, Mux(acq_finished, reg_iCPNow, reg_iCPNow+1.U))
-  val iLoopNext = Mux(reg_iCPNow === iCPMax.U,
+  val iCPNext = Mux(reg_iCPNow + params.nLane.U - 1.U === iCPMax.U,
+                    0.U, Mux(acq_finished, reg_iCPNow, reg_iCPNow+params.nLane.U))
+  val iLoopNext = Mux(reg_iCPNow + params.nLane.U - 1.U === iCPMax.U,
                       Mux(reg_iLoopNow === iLoopMax.U, 0.U, reg_iLoopNow+1.U), reg_iLoopNow)
-  val iFreqNext = Mux((reg_iCPNow === iCPMax.U && reg_iLoopNow === iLoopMax.U),
+  val iFreqNext = Mux((reg_iCPNow + params.nLane.U - 1.U === iCPMax.U && reg_iLoopNow === iLoopMax.U),
                       Mux(reg_iFreqNow === iFreqMax.U, 0.U, reg_iFreqNow+1.U), reg_iFreqNow)
 
 
   reg_state := Mux(reg_state === idle, Mux(Tin_fire, acqing, idle),
                    Mux(reg_state === acqing, Mux(acq_finished, acqed, acqing), Mux(Tout_fire, idle, acqed)))
 
-  reg_tag_CP := Mux(reg_state === idle, false.B, Mux(reg_iCPNow === 1.U, true.B, reg_tag_CP))
+  reg_tag_CP := Mux(reg_state === idle, false.B, Mux(reg_iCPNow > 0.U, true.B, reg_tag_CP))
   reg_tag_Loop := Mux(reg_state === idle, false.B, Mux(reg_iLoopNow === 1.U, true.B, reg_tag_Loop))
   reg_tag_Freq := Mux(reg_state === idle, false.B, Mux(reg_iFreqNow === 1.U, true.B, reg_tag_Freq))
   reg_acq_finished := acq_finished
@@ -306,17 +308,28 @@ class ACtrl[T1 <: Data, T2 <: Data, T3 <: Data:ConvertableTo:Ring:Real](params: 
       reg_iLoopNow := iLoopNext
       reg_iFreqNow := iFreqNext
 
-      reg_sum := reg_sum + io.Ain.Correlation
+      for (j <- 0 until params.nLane) {
+        reg_sum := reg_sum + io.Ain.Correlation(j)
+      }
+
+
       for (i <- 0 until params.nSample) {
-        when (i.U === reg_iCPNow) {
-          when (reg_iLoopNow === 0.U && reg_tag_Loop) {
-            reg_correlationArray(i) := io.Ain.Correlation
+        when(i.U === reg_iCPNow) {
+
+          when(reg_iLoopNow === 0.U && reg_tag_Loop) {
+            for (j <- 0 until params.nLane) {
+              reg_correlationArray(i+j) := io.Ain.Correlation(j)
+            }
           }
           .otherwise {
-            reg_correlationArray(i) := reg_correlationArray(i) + io.Ain.Correlation
+            for (j <- 0 until params.nLane) {
+              reg_correlationArray(i+j) := reg_correlationArray(i+j) + io.Ain.Correlation(j)
+            }
           }
+
         }
       }
+
 
 
     }
