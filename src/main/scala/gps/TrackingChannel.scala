@@ -41,6 +41,7 @@ class TrackingChannelIO[T <: Data](params: TrackingChannelParams[T]) extends Bun
   val ql = Output(SInt(32.W))
   val dllIn = Input(UInt(32.W))
   val costasIn = Input(UInt(32.W))
+  val caIndex = Output(UInt(32.W))
 
   override def cloneType: this.type =
     TrackingChannelIO(params).asInstanceOf[this.type]
@@ -65,13 +66,15 @@ class TrackingChannel[T <: Data : Ring : Real](val params: TrackingChannelParams
 
   val caGen = Module(new CA(params.caParams))
   caGen.io.satellite := io.svNumber
+  io.caIndex := caGen.io.currIndex 
   
   val caNco = Module(new NCO[T](params.caNcoParams))
   val caNco2x = Module(new NCO[T](params.ca2xNcoParams))
   caNco.io.stepSize := io.dllIn
   caNco2x.io.stepSize := io.dllIn
-  caGen.io.fco := caNco.io.cos
-  caGen.io.fco2x := caNco2x.io.cos
+  // For the CA-NCO just connecting the truncated one bit out
+  caGen.io.fco := caNco.io.truncateRegOut.asSInt
+  caGen.io.fco2x := caNco2x.io.truncateRegOut.asSInt
 
   val multIE = Module(new Mul[T](params.mulParams))
   multIE.io.in1 := multI.io.out
