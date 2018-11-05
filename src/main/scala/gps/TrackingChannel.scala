@@ -3,7 +3,7 @@ package gps
 import chisel3._
 import dsptools.numbers._
 
-trait TrackingTopParams[T <: Data] {
+trait TrackingChannelParams[T <: Data] {
   val adcWidth: Int
   val carrierNcoParams: NcoParams[T]
   val caNcoParams: NcoParams[T]
@@ -12,7 +12,7 @@ trait TrackingTopParams[T <: Data] {
   val mulParams: MulParams[T]
   val intParams: IntDumpParams[T]
 }
-case class ExampleTrackingTopParams() extends TrackingTopParams[SInt] {
+case class ExampleTrackingChannelParams() extends TrackingChannelParams[SInt] {
   // Assume ADC in is a 2bit signed number
   val adcWidth = 2
   // Carrier NCO is 32 bits wide counter, 2 bit out and has a sin output
@@ -29,7 +29,7 @@ case class ExampleTrackingTopParams() extends TrackingTopParams[SInt] {
   val intParams = SampledIntDumpParams(2, Math.pow(2, 20).toInt)
 }
 
-class TrackingTopIO[T <: Data](params: TrackingTopParams[T]) extends Bundle {
+class TrackingChannelIO[T <: Data](params: TrackingChannelParams[T]) extends Bundle {
   val adcSample = Input(SInt(params.adcWidth.W))
   val svNumber = Input(UInt(6.W)) //fixed width due to number of satellites
   val dump = Input(Bool())
@@ -42,13 +42,13 @@ class TrackingTopIO[T <: Data](params: TrackingTopParams[T]) extends Bundle {
   val dllIn = Input(UInt())
   val costasIn = Input(UInt())
 }
-object TrackingTopIO {
-  def apply[T <: Data](params: TrackingTopParams[T]): TrackingTopIO[T] =
-    new TrackingTopIO(params)
+object TrackingChannelIO {
+  def apply[T <: Data](params: TrackingChannelParams[T]): TrackingChannelIO[T] =
+    new TrackingChannelIO(params)
 }
 
-class TrackingTop[T <: Data : Ring : Real](val params: TrackingTopParams[T]) extends Module {
-  val io = IO(TrackingTopIO(params))
+class TrackingChannel[T <: Data : Ring : Real](val params: TrackingChannelParams[T]) extends Module {
+  val io = IO(TrackingChannelIO(params))
 
   val carrierNco = Module(new NCO[T](params.carrierNcoParams))
   carrierNco.io.stepSize := io.costasIn
