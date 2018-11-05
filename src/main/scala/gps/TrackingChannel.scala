@@ -33,14 +33,17 @@ class TrackingChannelIO[T <: Data](params: TrackingChannelParams[T]) extends Bun
   val adcSample = Input(SInt(params.adcWidth.W))
   val svNumber = Input(UInt(6.W)) //fixed width due to number of satellites
   val dump = Input(Bool())
-  val ie = Output(SInt())
-  val ip = Output(SInt())
-  val il = Output(SInt())
-  val qe = Output(SInt())
-  val qp = Output(SInt())
-  val ql = Output(SInt())
-  val dllIn = Input(UInt())
-  val costasIn = Input(UInt())
+  val ie = Output(SInt(32.W))
+  val ip = Output(SInt(32.W))
+  val il = Output(SInt(32.W))
+  val qe = Output(SInt(32.W))
+  val qp = Output(SInt(32.W))
+  val ql = Output(SInt(32.W))
+  val dllIn = Input(UInt(32.W))
+  val costasIn = Input(UInt(32.W))
+
+  override def cloneType: this.type =
+    TrackingChannelIO(params).asInstanceOf[this.type]
 }
 object TrackingChannelIO {
   def apply[T <: Data](params: TrackingChannelParams[T]): TrackingChannelIO[T] =
@@ -66,7 +69,7 @@ class TrackingChannel[T <: Data : Ring : Real](val params: TrackingChannelParams
   val caNco = Module(new NCO[T](params.caNcoParams))
   val caNco2x = Module(new NCO[T](params.ca2xNcoParams))
   caNco.io.stepSize := io.dllIn
-  caNco.io.stepSize := io.dllIn
+  caNco2x.io.stepSize := io.dllIn
   caGen.io.fco := caNco.io.cos
   caGen.io.fco2x := caNco2x.io.cos
 
@@ -76,6 +79,7 @@ class TrackingChannel[T <: Data : Ring : Real](val params: TrackingChannelParams
   val intDumpIE = Module(new IntDump[T](params.intParams))
   intDumpIE.io.in := multIE.io.out
   intDumpIE.io.dump := io.dump
+  io.ie := intDumpIE.io.integ
 
   val multIP = Module(new Mul[T](params.mulParams))
   multIP.io.in1 := multI.io.out
@@ -83,6 +87,7 @@ class TrackingChannel[T <: Data : Ring : Real](val params: TrackingChannelParams
   val intDumpIP = Module(new IntDump[T](params.intParams))
   intDumpIP.io.in := multIP.io.out
   intDumpIP.io.dump := io.dump
+  io.ip := intDumpIP.io.integ
 
   val multIL = Module(new Mul[T](params.mulParams))
   multIL.io.in1 := multI.io.out
@@ -90,25 +95,29 @@ class TrackingChannel[T <: Data : Ring : Real](val params: TrackingChannelParams
   val intDumpIL = Module(new IntDump[T](params.intParams))
   intDumpIL.io.in := multIL.io.out
   intDumpIL.io.dump := io.dump
+  io.il := intDumpIL.io.integ
 
   val multQE = Module(new Mul[T](params.mulParams))
   multQE.io.in1 := multQ.io.out
   multQE.io.in2 := caGen.io.early
   val intDumpQE = Module(new IntDump[T](params.intParams))
   intDumpQE.io.in := multQE.io.out
-  intDumpQE.io.in := io.dump
+  intDumpQE.io.dump := io.dump
+  io.qe := intDumpQE.io.integ
 
   val multQP = Module(new Mul[T](params.mulParams))
   multQP.io.in1 := multQ.io.out
   multQP.io.in2 := caGen.io.punctual
   val intDumpQP = Module(new IntDump[T](params.intParams))
   intDumpQP.io.in := multQP.io.out
-  intDumpQP.io.in := io.dump
+  intDumpQP.io.dump := io.dump
+  io.qp := intDumpQP.io.integ
 
   val multQL = Module(new Mul[T](params.mulParams))
   multQL.io.in1 := multQ.io.out
   multQL.io.in2 := caGen.io.late
   val intDumpQL = Module(new IntDump[T](params.intParams))
   intDumpQL.io.in := multQL.io.out
-  intDumpQP.io.in := io.dump
+  intDumpQL.io.dump := io.dump
+  io.ql := intDumpQL.io.integ
 }
