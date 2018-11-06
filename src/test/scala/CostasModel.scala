@@ -7,16 +7,17 @@ class CostasModel (coeffs: Seq[Double], costasMode: Int, freqMode: Int, freqBias
   var fm: Int = freqMode
   var fb: Int = freqBias
 
-  var avgMag: = 0
+  var avgMag: Double = 0
   var count: Int = 0
-  var Ips_d: = 0
-  var Qps_d: = 0
+  var Ips_d: Double = 0
+  var Qps_d: Double = 0
   var err: Double = 0
-  var dLfOut: = 0
-  var LfOut = 0
-  var lf = 0
-  var lfSum = 0
-  var lfSumSum = 0
+  var freqError: Double = 0
+  var dLfOut: Double = 0
+  var lfOut: Double = 0
+  var lf: Double = 0
+  var lfSum: Double = 0
+  var lfSumSum: Double = 0
 
   def costasDetector(I_ps: Double, Q_ps: Double, mode: Int) : Double = {
     if (mode == 0) {
@@ -28,7 +29,7 @@ class CostasModel (coeffs: Seq[Double], costasMode: Int, freqMode: Int, freqBias
     } else if (mode == 1) {
       math.atan2(Q_ps, I_ps)
     } else if (mode == 2) {
-      Q_ps * sign(I_ps)
+      Q_ps * signum(I_ps)
     } else if (mode == 3) {
       Q_ps / I_ps
     } else {
@@ -43,7 +44,7 @@ class CostasModel (coeffs: Seq[Double], costasMode: Int, freqMode: Int, freqBias
     if (mode == 1) {
       cross
     } else if (mode == 2) {
-      cross * sign(dot)
+      cross * signum(dot)
     } else {
       atan2(dot, cross)
     }
@@ -59,8 +60,8 @@ class CostasModel (coeffs: Seq[Double], costasMode: Int, freqMode: Int, freqBias
 
   def update(I_int: Double, Q_int: Double, freqBias: Int) : Double = {
     err = costasDetector(I_int, Q_int, cm)
-    freqErr = freDetector(I_int, Q_int, fm)
-    dLfOut = loopFilter(-1*err, freqErr, lfCoeef)
+    freqError = freqDetector(I_int, Q_int, fm)
+    dLfOut = loopFilter(-1*err, freqError, lfCoeff)
     Ips_d = I_int
     Qps_d = Q_int
 

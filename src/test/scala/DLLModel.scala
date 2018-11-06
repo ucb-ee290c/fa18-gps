@@ -11,11 +11,11 @@ class DLLModel(dcGain:Double, bandwidth:Double, sampleRate:Double, discriminator
   var t: Double = 1/sampleRate
   var a: Double = 1 + 2*tau/t
   var b: Double = 1 - 2*tau/t
-  var prevX = 0
-  var prevY = 0
-  var disOut = 0
+  var prevX: Double = 0
+  var prevY: Double = 0
+  var disOut: Double = 0
 
-  def discriminator1(ie: Double, il: Double, qe: Double, ql: Doube) : Double = {
+  def discriminator1(ie: Double, il: Double, qe: Double, ql: Double) : Double = {
     var e = sqrt(pow(ie, 2) + pow(qe, 2))
     var l = sqrt(pow(il, 2) + pow(ql, 2))
     
