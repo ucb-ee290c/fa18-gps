@@ -23,12 +23,12 @@ case class XYZ(
               )
 
 class FFTMulSpec extends FlatSpec with Matchers {
-  behavior of "FFT Buffer"
+  behavior of "FFT Mul"
 
   val laneCount = 16
   val params = FixedFFTMulParams(
     width = 14,
-    bp = 12,
+    bp = 10,
     laneCount = laneCount,
     pipeStageCount = 1,
   )
@@ -50,7 +50,7 @@ class FFTMulSpec extends FlatSpec with Matchers {
 
 class FFTMulTester[T <: chisel3.Data](c: FFTMul[T], trials: Seq[XYZ], lane: Int) extends DspTester(c) {
 
-  def compareOutputComplex(chisel: Seq[Double], ref: Seq[Double], epsilon: Double = 1e-12): Unit = {
+  def compareOutputComplex(chisel: Seq[Double], ref: Seq[Double], epsilon: Double = 1e-4): Unit = {
     chisel.zip(ref).zipWithIndex.foreach { case ((c, r), index) =>
       if (c != r) {
         val err = abs(c - r) / (abs(r) + epsilon)

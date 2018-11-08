@@ -139,15 +139,15 @@ val stage_outputs = List.fill(log2Ceil(config.lanes)+1)(List.fill(config.lanes)(
   for (i <- 0 until log2Ceil(config.lanes)) {
     for (j <- 0 until config.lanes/2) {
 
-      val skip = pow(2,log2Ceil(config.n/2)-(i+log2Ceil(config.bp))).toInt
-      val start = ((j % skip) + floor(j/skip) * skip*2).toInt
-
+      var skip = pow(2,log2Ceil(config.n/2)-(i+log2Ceil(config.bp))).toInt
+      skip = if (config.unscrambleIn == false) skip else bit_reverse(skip, log2Ceil(config.n))
+      val j_rev = if (config.unscrambleIn == false) j else bit_reverse(j, log2Ceil(config.lanes/2))
+      var start = ((j_rev % skip) + floor(j_rev/skip) * skip*2).toInt
+      println("skip",i,skip, start)
       // hook it up
       val outputs           = List(stage_outputs(i+1)(start), stage_outputs(i+1)(start+skip))
-      val butterfly_outputs = Butterfly[T](Seq(stage_outputs(i)(start), stage_outputs(i)(start+skip)), twiddle_rom(config.tdindices(j)(i))(sync))
-      outputs.zip(butterfly_outputs).foreach { x =>
-        x._1 := ShiftRegisterMem(x._2, config.pipe(i+log2Ceil(config.bp)), name = this.name + s"_${i}_${j}_pipeline_sram")
-      }
+      val butterfly_outputs = Butterfly[T](Seq(stage_outputs(i)(start), stage_outputs(i)(start + skip)), twiddle_rom(config.tdindices(j)(i))(sync))
+      outputs.zip(butterfly_outputs).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i+log2Ceil(config.bp)), name = this.name + s"_${i}_${j}_pipeline_sram")}
 
     }
   }
@@ -273,7 +273,10 @@ val stage_outputs = List.fill(log2Ceil(config.bp)+2)(List.fill(config.lanes)(Wir
 
       // hook it up
       // last stage just has one extra permutation, no butterfly
-      val mux_out = BarrelShifter(VecInit(stage_outputs(i)(start), ShiftRegisterMem(stage_outputs(i)(start+skip), stage_delays(i), name = this.name + s"_${i}_${j}_mux0_sram")), ShiftRegisterMem(sync(i)(log2Ceil(config.bp)-1 - { if (i == log2Ceil(config.bp)) 0 else i }), {if (i == 0) 0 else config.pipe.dropRight(log2Ceil(config.n)-i).reduceRight(_+_)}, name = this.name + s"_${i}_${j}_mux1_sram"))
+      val mux_out = BarrelShifter(VecInit(stage_outputs(i)(start),
+        ShiftRegisterMem(stage_outputs(i)(start+skip), stage_delays(i), name = this.name + s"_${i}_${j}_mux0_sram")),
+        ShiftRegisterMem(sync(i)(log2Ceil(config.bp)-1 - { if (i == log2Ceil(config.bp)) 0 else i }),
+          {if (i == 0) 0 else config.pipe.dropRight(log2Ceil(config.n)-i).reduceRight(_+_)}, name = this.name + s"_${i}_${j}_mux1_sram"))
       if (i == log2Ceil(config.bp)) {
         Seq(stage_outputs(i+1)(start), stage_outputs(i+1)(start+skip)).zip(Seq(ShiftRegisterMem(mux_out(0), stage_delays(i), name = this.name + s"_${i}_${j}_last_sram" ), mux_out(1))).foreach { x => x._1 := x._2 }
       } else {

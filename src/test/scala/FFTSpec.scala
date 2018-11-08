@@ -87,7 +87,7 @@ object spectrumTester {
     // return unscrambled output
     require(!retval.isEmpty, "Output queue is empty")
     require(retval.size == config.n, s"Output queue has the wrong number of values, got ${retval.size}, expected ${config.n}")
-    if (config.unscrambleOut == false) {
+    if (config.unscrambleOut == false && config.unscrambleIn == false) {
       unscramble(retval.toSeq, config.lanes)
     }
     else {
@@ -164,7 +164,15 @@ object spectrumTester {
       val b = if (fftSize > m) fftSize / m * bin else bin
       val tester = setupTester(c, verbose)
       val tone = getTone(fftSize, b.toDouble / fftSize)
-      val testResult = testSignal(tester, tone)
+      println("Original Tones")
+      tone.foreach{x=>print(x,',')}
+      println(" ")
+      println("Reversed Input Tones")
+      unscramble(tone, config.lanes).foreach{x=>print(x,',')}
+      println(" ")
+      val unscrambleTone = unscramble(tone, config.lanes)
+      println(" ")
+      val testResult = if (config.unscrambleIn==false) testSignal(tester, tone) else testSignal(tester, unscrambleTone)
       val expectedResult = fourierTr(DenseVector(tone.toArray)).toArray
       val expectedResultInv = iFourierTr(DenseVector(tone.toArray)).toArray.map(_ * config.n)
       if (verbose) {
@@ -190,7 +198,10 @@ object spectrumTester {
     (0 until 4).foreach { x =>
       val tester = setupTester(c, verbose)
       val tone = (0 until fftSize).map(x => Complex(Random.nextDouble(), Random.nextDouble()))
-      val testResult = testSignal(tester, tone)
+
+      val unscrambleTone = unscramble(tone, config.lanes)
+
+      val testResult = if (config.unscrambleIn==false) testSignal(tester, tone) else testSignal(tester, unscrambleTone)
       val expectedResult = fourierTr(DenseVector(tone.toArray)).toArray
       val expectedResultInv = iFourierTr(DenseVector(tone.toArray)).toArray.map(_ * config.n)
 
@@ -235,13 +246,13 @@ class FFTSpec extends FlatSpec with Matchers {
   it should "Fourier transform" in {
 
     val tests = Seq(
-      // (FFT points, lanes, total width, fractional bits, pipeline depth, inverse)
-      // Normal test for direct form FFT
-//      Seq(16, 16,  35, 19, 0, 0, 0),
+      // (FFT points, lanes, total width, fractional bits, pipeline depth, inverse,unscramble)
+//       Normal test for direct form FFT
+//      Seq(16, 8,  35, 19, 0, 0, 0),
       // Normal test for direct form IFFT
-//      Seq(16, 16,  35, 19, 0, 1, 0),
+//      Seq(8, 8,  35, 19, 0, 1, 0),
       // Unscramble test for direct form FFT
-//      Seq(16, 16,  35, 19, 0, 0, 1),
+//      Seq(16, 16,  35, 19, 0, 1, 0),
       // Unscramble test for direct form IFFT
 //      Seq(32, 32,  35, 19, 0, 1, 1),
       Seq(128, 16, 27, 16, 17, 0, 0),
@@ -266,6 +277,7 @@ class FFTSpec extends FlatSpec with Matchers {
         quadrature = false,
         unscrambleOut = if (test(6) != 0) true else false,
         inverse = if (test(5) != 0) true else false,
+        unscrambleIn = false,
       )
       implicit val p: Parameters = null
       println(s"Testing ${test(0)}-point FFT with ${test(1)} lanes, ${test(2)} total bits, ${test(3)} fractional bits, and ${test(4)} pipeline depth")
