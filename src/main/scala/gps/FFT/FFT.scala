@@ -140,7 +140,7 @@ val stage_outputs = List.fill(log2Ceil(config.lanes)+1)(List.fill(config.lanes)(
     for (j <- 0 until config.lanes/2) {
 
       var skip = pow(2,log2Ceil(config.n/2)-(i+log2Ceil(config.bp))).toInt
-      skip = if (config.unscrambleIn == false) skip else bit_reverse(skip, log2Ceil(config.n))
+      skip = if (config.unscrambleIn == false) skip else bit_reverse(skip, log2Ceil(config.lanes))
       val j_rev = if (config.unscrambleIn == false) j else bit_reverse(j, log2Ceil(config.lanes/2))
       var start = ((j_rev % skip) + floor(j_rev/skip) * skip*2).toInt
       println("skip",i,skip, start)
@@ -177,7 +177,8 @@ class BiplexFFT[T<:Data:Real](config: FFTConfig[T], genMid: DspComplex[T], genTw
   val io = IO(new BiplexFFTIO[T](config.lanes, config.genIn, genMid))
 
   // synchronize
-  val stage_delays = (0 until log2Ceil(config.bp)+1).map(x => { if (x == log2Ceil(config.bp)) config.bp/2 else (config.bp/pow(2,x+1)).toInt })
+  var stage_delays = (0 until log2Ceil(config.bp)+1).map(x => { if (x == log2Ceil(config.bp)) config.bp/2 else (config.bp/pow(2,x+1)).toInt })
+  stage_delays = if (config.unscrambleIn==false) stage_delays else stage_delays.reverse
   val sync = List.fill(log2Ceil(config.bp)+1)(Wire(UInt(width=log2Ceil(config.bp).W)))
   val valid_delay = RegNext(io.in.valid)
   sync(0) := CounterWithReset(true.B, config.bp, io.in.sync, ~valid_delay & io.in.valid)._1
@@ -188,6 +189,8 @@ class BiplexFFT[T<:Data:Real](config: FFTConfig[T], genMid: DspComplex[T], genTw
   // wire up twiddles
   val genTwiddleReal = genTwiddle.real
   val genTwiddleImag = genTwiddle.imag
+
+  println("[--DEBUG--]Stage_delays are:", stage_delays)
 //  val twiddle_rom = VecInit(config.twiddle.map(x => {
 //    val real = Wire(genTwiddleReal.cloneType)
 //    val imag = Wire(genTwiddleImag.cloneType)
@@ -270,7 +273,7 @@ val stage_outputs = List.fill(log2Ceil(config.bp)+2)(List.fill(config.lanes)(Wir
 
       val skip = 1
       val start = j*2
-
+      println("[--DEBUG--]Biplex:", i, j)
       // hook it up
       // last stage just has one extra permutation, no butterfly
       val mux_out = BarrelShifter(VecInit(stage_outputs(i)(start),
@@ -281,6 +284,8 @@ val stage_outputs = List.fill(log2Ceil(config.bp)+2)(List.fill(config.lanes)(Wir
         Seq(stage_outputs(i+1)(start), stage_outputs(i+1)(start+skip)).zip(Seq(ShiftRegisterMem(mux_out(0), stage_delays(i), name = this.name + s"_${i}_${j}_last_sram" ), mux_out(1))).foreach { x => x._1 := x._2 }
       } else {
         Seq(stage_outputs(i+1)(start), stage_outputs(i+1)(start+skip)).zip(Butterfly(Seq(ShiftRegisterMem(mux_out(0), stage_delays(i), name = this.name + s"_${i}_${j}_pipeline0_sram"), mux_out(1)), twiddle_rom(i)(sync(i+1)))).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i), name = this.name + s"_${i}_${j}_pipeline1_sram") }
+
+        printf("[--DEBUG--]SYNC%d", sync(i+1))
       }
 
     }
@@ -425,20 +430,38 @@ class FFT[T<:Data:Real](val config: FFTConfig[T])(implicit val p: Parameters) ex
   io.data_set_end_status := dses
 
   // instantiate sub-FFTs
-  val direct = Module(new DirectFFT[T](
-    config = config,
-    genMid = genMid,
-    genTwiddle = genTwiddleDirect,
-    genOutFull = genOutDirect
-  ))
-  io.out <> direct.io.out
+  if (config.unscrambleIn == false) {
+    val direct = Module(new DirectFFT[T](
+      config = config,
+      genMid = genMid,
+      genTwiddle = genTwiddleDirect,
+      genOutFull = genOutDirect
+    ))
+    io.out <> direct.io.out
 
-  if (config.n != config.lanes) {
-    val biplex = Module(new BiplexFFT[T](config, genMid, genTwiddleBiplex))
-    direct.io.in := biplex.io.out
-    biplex.io.in <> in
+    if (config.n != config.lanes) {
+      val biplex = Module(new BiplexFFT[T](config, genMid, genTwiddleBiplex))
+      direct.io.in := biplex.io.out
+      biplex.io.in <> in
+    } else {
+      direct.io.in <> in
+    }
   } else {
+    val direct = Module(new DirectFFT[T](
+      config = config,
+      genMid = genMid,
+      genTwiddle = genTwiddleDirect,
+      genOutFull = genOutDirect
+    ))
+
     direct.io.in <> in
+    if (config.n != config.lanes) {
+      val biplex = Module(new BiplexFFT[T](config, genMid, genTwiddleBiplex))
+      biplex.io.in := direct.io.out
+      io.out <> biplex.io.out
+    } else {
+      io.out <> direct.io.out
+    }
   }
 }
 
