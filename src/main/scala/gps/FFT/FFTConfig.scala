@@ -140,7 +140,7 @@ case class FFTConfig[T <: Data](
   println(dindices)
 
   // how the biplex indices (bindices) map to hardware butterflies
-  var tbindices = List.fill(log2Ceil(bp))(ArrayBuffer.fill(bp/2)(0)) 
+  var tbindices = List.fill(log2Ceil(bp))(ArrayBuffer.fill(bp/2)(0))
   bindices.zipWithIndex.foreach{ case (bindex, index) => {
     val col = log2Floor(index+1)
     val repl = math.pow(2, log2Ceil(bp)-col-1).toInt
@@ -169,7 +169,7 @@ case class FFTConfig[T <: Data](
     tdindices = tdindices ++ tdindices.map(x => x.map(y => y+tdindices_max))
     tdindices = tdindices.map(x => 0 +: x)
   }
-  tdindices= if (unscrambleIn==true) tdindices.map(i=>i.reverse) else tdindices
+//  tdindices= if (unscrambleIn==true) tdindices.map(i=>i.reverse) else tdindices
   println("The indices for direct form",tdindices)
 
   // pre-compute set of twiddle factors per-butterfly, including rotation for pipelining

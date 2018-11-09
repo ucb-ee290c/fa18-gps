@@ -252,7 +252,7 @@ class FFTSpec extends FlatSpec with Matchers {
 //       Normal test for direct form IFFT
 //      Seq(64, 8,  35, 19, 0, 1, 0),
       // Unscramble test for direct form FFT
-//      Seq(16, 16,  35, 19, 0, 1, 0),
+      Seq(16, 16,  35, 19, 0, 1, 0),
       // Unscramble test for direct form IFFT
 //      Seq(32, 32,  35, 19, 0, 1, 1),
 //      Seq(128, 16, 27, 16, 17, 0, 0),

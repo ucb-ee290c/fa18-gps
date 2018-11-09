@@ -177,8 +177,9 @@ class BiplexFFT[T<:Data:Real](config: FFTConfig[T], genMid: DspComplex[T], genTw
   val io = IO(new BiplexFFTIO[T](config.lanes, config.genIn, genMid))
 
   // synchronize
-  var stage_delays = (0 until log2Ceil(config.bp)+1).map(x => { if (x == log2Ceil(config.bp)) config.bp/2 else (config.bp/pow(2,x+1)).toInt })
-  stage_delays = if (config.unscrambleIn==false) stage_delays else stage_delays.reverse
+  val stage_delays = (0 until log2Ceil(config.bp)+1).map(x => { if (x == log2Ceil(config.bp)) config.bp/2 else (config.bp/pow(2,x+1)).toInt })
+
+//  stage_delays = if (config.unscrambleIn==false) stage_delays else stage_delays.reverse
   val sync = List.fill(log2Ceil(config.bp)+1)(Wire(UInt(width=log2Ceil(config.bp).W)))
   val valid_delay = RegNext(io.in.valid)
   sync(0) := CounterWithReset(true.B, config.bp, io.in.sync, ~valid_delay & io.in.valid)._1
@@ -464,6 +465,7 @@ class FFT[T<:Data:Real](val config: FFTConfig[T])(implicit val p: Parameters) ex
     }
   }
 }
+
 
 object unscramble {
   def apply[T <: Data : Ring](in: Seq[T], p: Int): Seq[T] = {
