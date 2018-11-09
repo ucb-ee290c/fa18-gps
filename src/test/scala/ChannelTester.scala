@@ -34,8 +34,8 @@ case class DataSetParam[T <: Data](
 object ExampleData extends DataSetParam(
   1.023*16*1e6,
   4.128460*1e6, 
-  15040,
-  32000,
+  15039,
+  100000,
   22,
   "python/adc_sample_data.bin",
   ExampleTrackingChannelParams()
@@ -49,7 +49,7 @@ class ChannelSpec extends FlatSpec with Matchers {
   it should "track" in {
     val params = ExampleData
     ChannelTester(params)
-  }
+  }  
 }
 
 /*
@@ -79,8 +79,10 @@ class ChannelTester[T <: Data](c: TrackingChannel[T], params: DataSetParam[T]) e
       ind += 1
     }
     
-    poke(c.io.svNumber, params.svNumber-1)
+    poke(c.io.svNumber, params.svNumber)
     while ({in = inFile.get.read; (in != -1) && (ind < params.stopInd)}) {
+      print(in.byteValue)
+      println()
       poke(c.io.dump, false)
       poke(c.io.dllIn, caCode)
       poke(c.io.costasIn, carrierCode)
