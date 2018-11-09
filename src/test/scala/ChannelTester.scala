@@ -57,7 +57,7 @@ class ChannelSpec extends FlatSpec with Matchers {
  */
 class ChannelTester[T <: Data](c: TrackingChannel[T], params: DataSetParam[T]) extends DspTester(c) {
   var inFile = None: Option[FileInputStream]
-  val dll = new DLLModel(10000, 10, params.sampleFreq, 0)
+  val dll = new DLLModel(12000, 10, params.sampleFreq, 0)
   val costas = new CostasModel(List(1000, 5, 0.5, 1e-6, 1e-7), 0, 1,
     params.carrierNcoCodeNom) 
   try { 
@@ -67,49 +67,64 @@ class ChannelTester[T <: Data](c: TrackingChannel[T], params: DataSetParam[T]) e
     var caCode: Int = params.caNcoCodeNom
     var carrierCode: Int = params.carrierNcoCodeNom
 
-    var hits = new ListBuffer[Int]()
-    var ieArr = new ListBuffer[Int]()
-    var ipArr = new ListBuffer[Int]()
-    var ilArr = new ListBuffer[Int]()
-    var qeArr = new ListBuffer[Int]()
-    var qpArr = new ListBuffer[Int]()
-    var qlArr = new ListBuffer[Int]()
+    val hits = new ListBuffer[Int]()
+    val ieArr = new ListBuffer[Int]()
+    val ipArr = new ListBuffer[Int]()
+    val ilArr = new ListBuffer[Int]()
+    val qeArr = new ListBuffer[Int]()
+    val qpArr = new ListBuffer[Int]()
+    val qlArr = new ListBuffer[Int]()
     
     while ({in = inFile.get.read; (in != -1) && (ind < params.startInd)}) {
       ind += 1
     }
     
     poke(c.io.svNumber, params.svNumber)
-    while ({in = inFile.get.read; (in != -1) && (ind < params.stopInd)}) {
-      print(in.byteValue)
-      println()
-      poke(c.io.dump, false)
-      poke(c.io.dllIn, caCode)
-      poke(c.io.costasIn, carrierCode)
-      poke(c.io.adcSample, in.byteValue)
-      step(1)
-      val count = peek(c.io.caIndex)
-      if (count == 1023) {
-        hits += ind
-        ieArr += peek(c.io.ie)
-        ipArr += peek(c.io.ip)
-        ilArr += peek(c.io.il)
-        qeArr += peek(c.io.qe)
-        qpArr += peek(c.io.qp)
-        qlArr += peek(c.io.ql)
+    updatableDspVerbose.withValue(false) {
+      while ({in = inFile.get.read; (in != -1) && (ind < params.stopInd)}) {
+        poke(c.io.dump, false)
+        poke(c.io.dllIn, caCode)
+        poke(c.io.costasIn, carrierCode)
+        poke(c.io.adcSample, in.byteValue)
+        step(1)
+        val count = peek(c.io.caIndex)
+        if (count == 1023) {
+          hits += ind
+          val ie = peek(c.io.ie)
+          val ip = peek(c.io.ip)
+          val il = peek(c.io.il)
+          val qe = peek(c.io.qe)
+          val qp = peek(c.io.qp)
+          val ql = peek(c.io.ql)
+
+          ieArr += ie
+          ipArr += ip
+          ilArr += il
+          qeArr += qe
+          qpArr += qp
+          qlArr += ql
+
+          caCode = dll.update((ie.toDouble, ip.toDouble, il.toDouble), 
+            (qe.toDouble, qp.toDouble, ql.toDouble), params.caNcoCodeNom)
+          carrierCode = costas.update(ip.toDouble, qp.toDouble, params.carrierNcoCodeNom)
+        }
+        ind += 1
       }
-      ind += 1
     }
     
     print(hits)
     println()
-    print(ipArr)
-    println()
     print(ieArr)
+    println()
+    print(ipArr)
     println()
     print(ilArr)
     println()
+    print(qeArr)
+    println()
     print(qpArr)
+    println()
+    print(qlArr)
     println()
   } catch {
     case e: IOException => e.printStackTrace

@@ -16,11 +16,11 @@ case class ExampleTrackingChannelParams() extends TrackingChannelParams[SInt] {
   // Assume ADC in is a 2bit signed number
   val adcWidth = 5
   // Carrier NCO is 32 bits wide counter, 2 bit out and has a sin output
-  val carrierNcoParams = SIntNcoParams(32, 5, true)
+  val carrierNcoParams = SIntNcoParams(30, 5, true)
   // Ca NCO is 32 bits wide and has no sin output, 1 bit output
-  val caNcoParams = SIntNcoParams(32, 1, false)
+  val caNcoParams = SIntNcoParams(30, 1, false)
   // Ca NCO 2x is only 31 bits wide to create double the frequency
-  val ca2xNcoParams = SIntNcoParams(31, 1, false)
+  val ca2xNcoParams = SIntNcoParams(29, 1, false)
   // Ca Params
   val caParams = CAParams(1, 2)
   // Multipliers are 2 bit in and 2 bit out

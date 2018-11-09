@@ -48,14 +48,18 @@ class DLLModel(dcGain:Double, bandwidth:Double, sampleRate:Double, discriminator
     y
   } 
 
-  def update(I_sample: Seq[Double], Q_sample: Seq[Double], freqBias: Double, carrierAssist: Double) {
+  def update(
+    I_sample: (Double, Double, Double), 
+    Q_sample: (Double, Double, Double), 
+    freqBias: Double
+  ) : Int = {
     if (disNum == 1) {
-      disOut = discriminator1(I_sample(0), I_sample(2), Q_sample(0), Q_sample(2))
+      disOut = discriminator1(I_sample._1, I_sample._3, Q_sample._1, Q_sample._3)
     } else if (disNum == 2) {
-      disOut = discriminator2(I_sample(0), I_sample(2), Q_sample(0), Q_sample(2))
+      disOut = discriminator2(I_sample._1, I_sample._3, Q_sample._1, Q_sample._3)
     }   
-    var lfOut = loopFilter(disOut)
+    var lfOut = loopFilter(disOut) + freqBias
     
-    lfOut         
+    lfOut.toInt
   }
 }
