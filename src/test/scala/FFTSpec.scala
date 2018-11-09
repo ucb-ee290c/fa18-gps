@@ -248,14 +248,14 @@ class FFTSpec extends FlatSpec with Matchers {
     val tests = Seq(
       // (FFT points, lanes, total width, fractional bits, pipeline depth, inverse,unscramble)
 //       Normal test for direct form FFT
-      Seq(8, 8,  35, 19, 0, 0, 0),
+//      Seq(8, 8,  35, 19, 0, 0, 0),
 //       Normal test for direct form IFFT
-//      Seq(64, 8,  35, 19, 0, 1, 0),
+      Seq(64, 8,  35, 19, 0, 1, 0),
       // Unscramble test for direct form FFT
-      Seq(16, 16,  35, 19, 0, 1, 0),
+//      Seq(16, 16,  35, 19, 0, 1, 0),
       // Unscramble test for direct form IFFT
 //      Seq(32, 32,  35, 19, 0, 1, 1),
-//      Seq(128, 16, 27, 16, 17, 0, 0),
+//      Seq(4, 4, 27, 16, 17, 0, 0),
 //      Seq(128, 16, 27, 16, 17, 1, 0),
 //      Seq(16, 2, 27, 16, 10, 0)
     )
@@ -277,7 +277,7 @@ class FFTSpec extends FlatSpec with Matchers {
         quadrature = false,
         unscrambleOut = if (test(6) != 0) true else false,
         inverse = if (test(5) != 0) true else false,
-        unscrambleIn = true,
+        unscrambleIn = false,
       )
       implicit val p: Parameters = null
       println(s"Testing ${test(0)}-point FFT with ${test(1)} lanes, ${test(2)} total bits, ${test(3)} fractional bits, and ${test(4)} pipeline depth")

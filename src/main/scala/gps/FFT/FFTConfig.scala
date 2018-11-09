@@ -106,9 +106,9 @@ case class FFTConfig[T <: Data](
   // twiddling
 //  val twiddle = (0 until n/2).map(x => Array(cos(2*Pi/n*x),-sin(2*Pi/n*x)))
   val twiddle = (0 until n/2).map(x => if (inverse == true) Array(cos(2*Pi/n*x),sin(2*Pi/n*x)) else Array(cos(2*Pi/n*x),-sin(2*Pi/n*x)))
-  print("The twiddle factors are:")
-  twiddle.foreach(x=>print(x(0),x(1)))
-  println(" ")
+//  print("The twiddle factors are:")
+//  twiddle.foreach(x=>print(x(0),x(1)))
+//  println(" ")
 
   // indicies to the twiddle factors
   var indices = Array.fill(log2Ceil(n))(0)
@@ -118,9 +118,9 @@ case class FFTConfig[T <: Data](
     prev.zip(next).foreach{case(px,nx) => {if (nx != px) indices = indices :+ nx}}
     prev = next.toArray
   }
-  print("The indices factors are:")
-  indices.foreach(x=> print(x))
-  println(" ")
+//  print("The indices factors are:")
+//  indices.foreach(x=> print(x))
+//  println(" ")
   indices = indices.map(x => bit_reverse(x, log2Ceil(n)-1))
 
   print("The indices factors are:")
@@ -146,17 +146,24 @@ case class FFTConfig[T <: Data](
     val repl = math.pow(2, log2Ceil(bp)-col-1).toInt
     val start = (index-math.pow(2,col).toInt+1)*repl
     for (i <- 0 until repl) {
-      tbindices(col)(start+i) = bindex
+      if (unscrambleIn == true) {
+        tbindices(col)(bit_reverse(start + i, log2Ceil(log2Ceil(bp)))) = bindex
+      } else {
+        tbindices(col)(start + i) = bindex
+      }
     }
   }}
 
+  tbindices = if (unscrambleIn == false) tbindices else tbindices.reverse
+
   println("The indices for biplex", tbindices)
   // pre-compute set of twiddle factors per-butterfly, including rotation for pipelining
-  val btwiddles = tbindices.zipWithIndex.map{ case(i, index) => {
+  var btwiddles = tbindices.zipWithIndex.map{ case(i, index) => {
     val rot_amt = pipe.dropRight(log2Up(n)-index).foldLeft(0)(_+_)
     val rot_list = rotateRight(i, rot_amt)
     rot_list.map(j => twiddle(j))
   }}
+
 
   print("The twiddles for biplex")
   btwiddles.foreach{x => x.foreach{y =>y .foreach{z => print(z,',')}}}
