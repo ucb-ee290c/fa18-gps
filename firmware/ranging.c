@@ -43,6 +43,17 @@ void extract_params(uint32_t* words, struct rcv_params* params) {
       params->IODE = (float)(words[2] >> 22);
       params->C_rs = ((float) ((*((int32_t*) (words + 2)) << 8) >> 14)) / ((float) (1 << 5));
       params->delta_n = ((float) (*((int32_t*) (words + 3)) >> 14)) / ((float) (1 << 43));
+
+      // This part is really yikes.
+      // int32_t M_0_MSB = (*((int32_t*) (words + 3)) << 18);
+      // uint32_t M_0_LSB = words[4] >> 6;
+      // params->M_0 = M_0_MSB | *((int32_t*) &M_0_LSB);
+
+      params->C_uc = ((float) (*((int32_t*) (words + 5)) >> 14)) / ((float) (1 << 29));
+      // Extracting e is also very yikes.
+      params->C_us = ((float) (*((int32_t*) (words + 7)) >> 14)) / ((float) (1 << 29));
+      // Extracting sqrt_A is also very yikes.
+      params->t_oe = (float) ((*((int32_t*) (words + 9)) >> 14) << 4);
       break;
   }
 }
