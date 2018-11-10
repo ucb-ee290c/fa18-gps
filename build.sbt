@@ -28,3 +28,5 @@ scalacOptions ++= Seq(
   "-Ywarn-unused:locals",
   "-Ywarn-value-discard",
 )
+
+parallelExecution in Test := false

@@ -78,14 +78,14 @@ class NcoTester[T <: chisel3.Data](c: NCO[T], input: Seq[Int], outputCos: Seq[Do
 
 object RealNcoTester {
     def apply(params: NcoParams[dsptools.numbers.DspReal], input: Seq[Int], outputCos: Seq[Double], outputSin: Seq[Double]): Boolean = { 
-        chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv"), () => new NCO(params)) {
+        dsptools.Driver.execute(() => new NCO(params), TestSetup.dspTesterOptionsVerilog) {
         c => new NcoTester(c, input, outputCos, outputSin, params.sinOut)
         }   
     }
 }
 object FixedNcoTester {
     def apply(params: FixedNcoParams, input: Seq[Int], outputCos: Seq[Double], outputSin: Seq[Double]): Boolean = { 
-        chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), () => new NCO(params)) {
+        dsptools.Driver.execute(() => new NCO(params), TestSetup.dspTesterOptionsVerilog) {
         c => new NcoTester(c, input, outputCos, outputSin, params.sinOut)
         }   
     }
