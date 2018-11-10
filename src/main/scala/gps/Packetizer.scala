@@ -14,6 +14,27 @@ case class PacketizerParams (
   val parityLength: Int
 )
 
+class ExtractedParamsBundle extends Bundle {
+  val subframe_id = UInt(3.W)
+  val iode = UInt(8.W)
+  val c_rs = SInt(16.W)
+  val delta_n = SInt(16.W)
+  val m_0 = SInt(32.W)
+  val c_uc = SInt(16.W)
+  val e = UInt(32.W)
+  val c_us = SInt(16.W)
+  val sqrt_a = UInt(32.W)
+  val t_oe = UInt(16.W)
+  val c_ic = SInt(16.W)
+  val omega_0 = SInt(32.W)
+  val c_is = SInt(16.W)
+  val i_0 = SInt(32.W)
+  val c_rc = SInt(16.W)
+  val omega = SInt(32.W)
+  val dot_omega = SInt(24.W)
+  val idot = SInt(14.W)
+}
+
 class Packetizer (
   params: PacketizerParams
 ) extends Module {
@@ -23,10 +44,12 @@ class Packetizer (
     val validOut = Output(Bool())
     val validBits = Output(Vec(params.subframeLength, Bool()))
     val subframe = Output(Vec(params.subframeLength, Vec(params.wordLength, Bool())))
+    val extractedValues = Output(new ExtractedParamsBundle)
   })
 
   val parser = Module(new Parser(params))
   val parityChecker = Module(new ParityChecker(params))
+  val paramExtractor = Module(new ParamExtractor(params))
 
   parser.io.iIn := io.iIn
   parser.io.validIn := io.validIn
@@ -36,6 +59,9 @@ class Packetizer (
     parityChecker.io.dataIn(w) := Reverse(parser.io.dataOut(w)).toBools
   }
   parityChecker.io.dStarIn := parser.io.dStarOut
+
+  paramExtractor.io.subframe := parser.io.dataOut
+  io.extractedValues := paramExtractor.io.extractedValues
 
   io.validOut := parityChecker.io.validOut
   io.validBits := parityChecker.io.validBits
@@ -157,4 +183,35 @@ class ParityChecker (
     io.validBits(w) := (parityBits(w).asUInt === ((subframe(w).asUInt >> (params.wordLength - params.parityLength)) & ((1 << params.parityLength) - 1).U))
     io.parityOut(w) := parityBits(w)
   }
+}
+
+class ParamExtractor (
+  params: PacketizerParams
+) extends Module {
+  val io = IO(new Bundle{
+    val subframe = Input(Vec(params.subframeLength, UInt(params.wordLength.W)))
+    val extractedValues = Output(new ExtractedParamsBundle)
+  })
+  io.extractedValues.subframe_id := io.subframe(1)(10, 8)
+
+  // From subframe 2
+  io.extractedValues.iode := io.subframe(2)(29, 22)
+  io.extractedValues.c_rs := io.subframe(2)(21, 6).asSInt
+  io.extractedValues.delta_n := io.subframe(3)(29, 14).asSInt
+  io.extractedValues.m_0 := Cat(io.subframe(3)(13, 6), io.subframe(4)(29, 6)).asSInt
+  io.extractedValues.c_uc := io.subframe(5)(29, 14).asSInt
+  io.extractedValues.e := Cat(io.subframe(5)(13, 6), io.subframe(6)(29, 6))
+  io.extractedValues.c_us := io.subframe(7)(29, 14).asSInt
+  io.extractedValues.sqrt_a := Cat(io.subframe(7)(13, 6), io.subframe(8)(29, 6))
+  io.extractedValues.t_oe := io.subframe(9)(29, 14)
+
+  // From subframe 3
+  io.extractedValues.c_ic := io.subframe(2)(29, 14).asSInt
+  io.extractedValues.omega_0 := Cat(io.subframe(2)(13, 6), io.subframe(3)(29, 6)).asSInt
+  io.extractedValues.c_is := io.subframe(4)(29, 14).asSInt
+  io.extractedValues.i_0 := Cat(io.subframe(4)(13, 6), io.subframe(5)(29, 6)).asSInt
+  io.extractedValues.c_rc := io.subframe(6)(29, 14).asSInt
+  io.extractedValues.omega := Cat(io.subframe(6)(13, 6), io.subframe(7)(29, 6)).asSInt
+  io.extractedValues.dot_omega := io.subframe(8)(29, 6).asSInt
+  io.extractedValues.idot := io.subframe(9)(21, 8).asSInt
 }
