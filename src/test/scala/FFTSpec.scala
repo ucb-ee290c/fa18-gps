@@ -51,6 +51,7 @@ object spectrumTester {
     require(signal.size >= config.n, "Cannot test a signal shorter than the FFT size")
     if (signal.size > config.n) { println("Warning: test signal longer than the FFT size, will only use first n points") }
 
+
     // synchronize to the next input
     //dut.poke(io.in.sync, 1)
     //dut.step(1)
@@ -121,11 +122,15 @@ object spectrumTester {
 
   def setupTester[T <: Data](c: () => FFT[T], verbose: Boolean = false): FFTTester[T] = {
     var tester: FFTTester[T] = null
-    val manager = new TesterOptionsManager {
+    val manager = new dsptools.DspTesterOptionsManager {
       testerOptions = TesterOptions(backendName = "firrtl", testerSeed = 7L)
       interpreterOptions = InterpreterOptions(setVerbose = false, writeVCD = verbose, maxExecutionDepth = 2000)
+      dspTesterOptions = dspTesterOptions.copy(
+        isVerbose = false
+      )
     }
-    chisel3.iotesters.Driver.execute(c, manager) (c => {
+
+    dsptools.Driver.execute(c, manager) (c => {
       val t = new FFTTester(c)
       tester = t
       t

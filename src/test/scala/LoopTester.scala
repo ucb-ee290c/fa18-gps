@@ -16,8 +16,10 @@ class LoopFilterTester(c: LoopFilter, input: Seq[SInt], output: Seq[SInt]) exten
 object LoopFilterTester {
   def apply(w: Int, dcGain: Double, bandwidth: Double, sampleRate: Double, input:
   Seq[SInt], output: Seq[SInt]): Boolean = {
-    chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), 
-      () => new LoopFilter(w, dcGain, bandwidth, sampleRate)) {
+    dsptools.Driver.execute(
+      () => new LoopFilter(w, dcGain, bandwidth, sampleRate),
+      TestSetup.dspTesterOptions
+    ) {
       c => new LoopFilterTester(c, input, output)
     }
   }
