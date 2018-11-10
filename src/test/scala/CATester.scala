@@ -84,7 +84,7 @@ class CAEarlyTester(c: CA, prnCodes: Array[Array[Int]], ncoInput: Array[Int]) ex
  */
 object CAEarlyTester {
   def apply(params: CAParams, prnCodes: Array[Array[Int]], ncoInput: Array[Int]): Boolean = {
-    chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), () => new CA(params)) {
+    dsptools.Driver.execute(() => new CA(params), TestSetup.dspTesterOptionsVerilog) {
       c => new CAEarlyTester(c, prnCodes, ncoInput)
     }
   }
@@ -114,7 +114,7 @@ class CANoOutputTester(c: CA, prnCodes: Array[Array[Int]], ncoInput: Array[Int])
 }
 object CANoOutputTester {
   def apply(params: CAParams, prnCodes: Array[Array[Int]], ncoInput: Array[Int]): Boolean = {
-    chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), () => new CA(params)) {
+    dsptools.Driver.execute(() => new CA(params), TestSetup.dspTesterOptionsVerilog) {
       c => new CANoOutputTester(c, prnCodes, ncoInput)
     }
   }
@@ -164,7 +164,7 @@ class CAPunctualTester(c: CA, prnCodes: Array[Array[Int]], ncoInput: Array[Int],
 
 object CAPunctualTester {
   def apply(params: CAParams, prnCodes: Array[Array[Int]], ncoInput: Array[Int], ncoInput2x: Array[Int]): Boolean = {
-    chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv"), () => new CA(params)) {
+    dsptools.Driver.execute(() => new CA(params), TestSetup.dspTesterOptionsVerilog) {
       c => new CAPunctualTester(c, prnCodes, ncoInput, ncoInput2x)
     }
   }
@@ -183,7 +183,7 @@ class CASwitchSatelliteTester(c: CA, prnCodes: Array[Array[Int]], ncoInput: Arra
 
 object CASwitchSatelliteTester {
   def apply(params: CAParams, prnCodes: Array[Array[Int]], ncoInput: Array[Int]): Boolean = {
-    chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv"), () => new CA(params)) {
+    dsptools.Driver.execute(() => new CA(params), TestSetup.dspTesterOptionsVerilog) {
       c => new CASwitchSatelliteTester(c, prnCodes, ncoInput)
     }
   }

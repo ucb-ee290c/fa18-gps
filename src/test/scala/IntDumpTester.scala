@@ -47,7 +47,7 @@ class IntDumpTester (c: IntDump[SInt]) extends DspTester(c) {
 
 object IntDumpTester {
   def apply(params: IntDumpParams[SInt]): Boolean = {
-    chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), () => new IntDump[SInt](params)) {
+    dsptools.Driver.execute(() => new IntDump[SInt](params), TestSetup.dspTesterOptions) {
       c => new IntDumpTester(c)
     }
   }
