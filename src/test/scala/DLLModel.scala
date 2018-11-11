@@ -7,10 +7,10 @@ class DLLModel(dcGain:Double, bandwidth:Double, sampleRate:Double, discriminator
   var sr: Double = sampleRate
   var disNum: Int = discriminatorNum
 
-  var tau: Double = 1/(2*Pi*bandwidth)
-  var t: Double = 1/sampleRate
-  var a: Double = 1 + 2*tau/t
-  var b: Double = 1 - 2*tau/t
+  var tau: Double = 1.0/(2.0*Pi*bandwidth)
+  var t: Double = 1.0/sampleRate
+  var a: Double = 1.0 + 2.0*tau/t
+  var b: Double = 1.0 - 2.0*tau/t
   var prevX: Double = 0
   var prevY: Double = 0
   var disOut: Double = 0
@@ -18,11 +18,11 @@ class DLLModel(dcGain:Double, bandwidth:Double, sampleRate:Double, discriminator
   def discriminator1(ie: Double, il: Double, qe: Double, ql: Double) : Double = {
     var e = sqrt(pow(ie, 2) + pow(qe, 2))
     var l = sqrt(pow(il, 2) + pow(ql, 2))
-    
+
     if (e == 0 || l == 0) {
       0
     } else {
-      1/2*(e-l)/(e+l)
+      1.0/2.0*(e-l)/(e+l)
     }
   }
     
@@ -33,7 +33,7 @@ class DLLModel(dcGain:Double, bandwidth:Double, sampleRate:Double, discriminator
     if (e == 0 || l == 0) {
       0
     } else {
-      1/2*(e-l)/(e+l)
+      1.0/2.0*(e-l)/(e+l)
     }
   } 
 
@@ -58,8 +58,8 @@ class DLLModel(dcGain:Double, bandwidth:Double, sampleRate:Double, discriminator
     } else if (disNum == 2) {
       disOut = discriminator2(I_sample._1, I_sample._3, Q_sample._1, Q_sample._3)
     }   
-    var lfOut = loopFilter(disOut) + freqBias
+    var lfOut = loopFilter(disOut)
     
-    lfOut.toInt
+    lfOut.toInt + freqBias.toInt
   }
 }

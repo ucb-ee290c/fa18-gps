@@ -64,7 +64,7 @@ class CostasModel (coeffs: Seq[Double], costasMode: Int, freqMode: Int, freqBias
     dLfOut = loopFilter(-1*err, freqError, lfCoeff)
     Ips_d = I_int
     Qps_d = Q_int
-
+    
     dLfOut.toInt + freqBias
   }
 }
