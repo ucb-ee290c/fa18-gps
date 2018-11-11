@@ -117,7 +117,7 @@ class ChannelTester[T <: Data](c: TrackingChannel[T], params: DataSetParam[T]) e
             (qe.toDouble, qp.toDouble, ql.toDouble), params.caNcoCodeNom)
           carrierCode = costas.update(ip.toDouble, qp.toDouble, params.carrierNcoCodeNom)
           costasError += costas.err
-          freqError += costas.freqError
+          freqError += costas.freqErr
           dllError += dll.disOut
           integrationTime = 0
           poke(c.io.dump, true)
