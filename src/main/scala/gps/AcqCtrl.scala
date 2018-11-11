@@ -138,6 +138,7 @@ class ACtrlTOutputBundle[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams
   val CPOptItm: T1 = Output(params.pCodePhase.cloneType)
   val CPOptOut: T1 = Output(params.pCodePhase.cloneType)
   val max: T3 = Output(params.pMax.cloneType)
+  val CPOpt_itm: T1 = Output(params.pCodePhase.cloneType)
   val vec = Output(Vec(params.nSample, params.pCorrelation.cloneType))
   val state = Output(Bool())
   val ready = Input(Bool())
@@ -160,6 +161,34 @@ object DummyBundle {
   def apply[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]): DummyBundle[T1, T2, T3] = new DummyBundle(params)
 }
 
+class ACtrlDebugBundle[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]) extends Bundle {
+
+  val iFreqNow: T1 = Output(params.pIdxFreq.cloneType)
+  val iLoopNow: T1 = Output(params.pLoop.cloneType)
+  val iCPNow: T1 = Output(params.pCodePhase.cloneType)
+  val max: T3 = Output(params.pMax.cloneType)
+  val reg_max: T3 = Output(params.pMax.cloneType)
+  val reg_tag_CP = Output(Bool())
+//  val freqOpt: T1 = Output(params.pFreq.cloneType)
+//  val CPOpt: T1 = Output(params.pCodePhase.cloneType)
+//  val sateFound = Output(Bool())
+//  val iFreqOptItm: T1 = Output(params.pIdxFreq.cloneType)
+//  val iFreqOptOut: T1 = Output(params.pIdxFreq.cloneType)
+//  val CPOptItm: T1 = Output(params.pCodePhase.cloneType)
+//  val CPOptOut: T1 = Output(params.pCodePhase.cloneType)
+//  val max: T3 = Output(params.pMax.cloneType)
+//  val CPOpt_itm: T1 = Output(params.pCodePhase.cloneType)
+//  val vec = Output(Vec(params.nSample, params.pCorrelation.cloneType))
+//  val state = Output(Bool())
+//  val ready = Input(Bool())
+//  val valid = Output(Bool())
+
+  override def cloneType: this.type = ACtrlDebugBundle(params).asInstanceOf[this.type]
+}
+object ACtrlDebugBundle {
+  def apply[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]): ACtrlDebugBundle[T1, T2, T3] = new ACtrlDebugBundle(params)
+}
+
 
 
 class ACtrlIO[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]) extends Bundle {
@@ -171,6 +200,7 @@ class ACtrlIO[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3
   val Aout = ACtrlAOutputBundle(params)
   val Tin = ACtrlTInputBundle(params)
   val Tout = ACtrlTOutputBundle(params)
+  val Debug = ACtrlDebugBundle(params)
 //  val Reg = DummyBundle(params)
 
 
@@ -179,6 +209,27 @@ class ACtrlIO[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3
 object ACtrlIO {
   def apply[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]): ACtrlIO[T1, T2, T3] =
     new ACtrlIO(params)
+}
+
+
+object TreeReduce {
+  def apply[V](in: Seq[V], func: (V, V) => V): V = {
+    if (in.length == 1) {
+      return in(0)
+    }
+    if (in.length == 2) {
+      return func(in(0), in(1))
+    }
+    if (in.length % 2 == 0) {
+      val withIdxs = in.zipWithIndex
+      val evens = withIdxs.filter{case (_, idx) => idx % 2 == 0}.map(_._1)
+      val odds  = withIdxs.filter{case (_, idx) => idx % 2 != 0}.map(_._1)
+      val evenOddPairs: Seq[(V, V)] = evens zip odds
+      return TreeReduce(evenOddPairs.map(x => func(x._1, x._2)), func)
+    } else {
+      return TreeReduce(Seq(in(0), TreeReduce(in.drop(1), func)), func)
+    }
+  }
 }
 
 
@@ -225,8 +276,9 @@ class ACtrl[T1 <: Data, T2 <: Data, T3 <: Data:ConvertableTo:Ring:Real](params: 
   reg_state := Mux(reg_state === idle, Mux(Tin_fire, acqing, idle),
                    Mux(reg_state === acqing, Mux(acq_finished, acqed, acqing), Mux(Tout_fire, idle, acqed)))
 
-  reg_tag_CP := Mux(reg_state === idle, false.B, Mux(reg_iCPNow > 0.U, true.B, reg_tag_CP))
-  reg_tag_Loop := Mux(reg_state === idle, false.B, Mux(reg_iLoopNow === 1.U, true.B, reg_tag_Loop))
+//  reg_tag_CP := Mux(reg_state === idle, false.B, Mux(reg_iCPNow > 0.U, true.B, reg_tag_CP))
+//  reg_tag_Loop := Mux(reg_state === idle, false.B, Mux((reg_iLoopNow === 1.U), true.B, reg_tag_Loop))
+  reg_tag_Loop := Mux(reg_state === idle, false.B, Mux(reg_tag_CP && reg_iCPNow===0.U, true.B, reg_tag_Loop))
   reg_tag_Freq := Mux(reg_state === idle, false.B, Mux(reg_iFreqNow === 1.U, true.B, reg_tag_Freq))
   reg_acq_finished := acq_finished
 
@@ -244,23 +296,65 @@ class ACtrl[T1 <: Data, T2 <: Data, T3 <: Data:ConvertableTo:Ring:Real](params: 
 
   val reg_max = RegInit(params.pMax, ConvertableTo[T3].fromInt(0))
   val reg_correlationArray = Reg(Vec(params.nSample, params.pCorrelation))
+
+
+
+
   val reg_sum = RegInit(params.pSum, ConvertableTo[T3].fromInt(0))
 
 //  val correlationArray = WireInit(Vec(10, UInt(5.W)))
-  val max_itm = WireInit(ConvertableTo[T3].fromInt(0))
+//  val max_itm = WireInit(ConvertableTo[T3].fromInt(0))
+//  val max_itm = reg_correlationArray.reduce(_ max _)
+  val max_itm = TreeReduce(reg_correlationArray, (x:T3, y:T3) => x.max(y))
   val CPOpt_itm = WireInit(UInt(params.wCodePhase.W), 0.U)
-  io.Tout.max := max_itm
-  io.Tout.vec := reg_correlationArray
-
-
-
-  max_itm := reg_correlationArray.reduce(_ max _)
-
   for (i <- 0 until params.nSample) {
     when (reg_correlationArray(i.U) === max_itm) {
       CPOpt_itm := i.U
     }
   }
+
+  io.Tout.max := max_itm
+  io.Tout.CPOpt_itm := CPOpt_itm
+  io.Tout.vec := reg_correlationArray
+
+
+  io.Debug.iFreqNow := reg_iFreqNow
+  io.Debug.iLoopNow := reg_iLoopNow
+  io.Debug.iCPNow := reg_iCPNow
+  io.Debug.max := max_itm
+  io.Debug.reg_max := reg_max
+  io.Debug.reg_tag_CP := reg_tag_CP
+
+//  max_itm := reg_correlationArray.reduce(_ max _)
+
+//
+//
+//  CPOpt_itm := reg_correlationArray.zipWithIndex.maxBy(_._1)._2.U
+
+//  val cArr_idx = reg_correlationArray.zipWithIndex
+////  val max_idx = (Wire(params.pMax), Wire(UInt(params.wCodePhase.W)))
+//  val max_idx = cArr_idx.reduce((x:(T3,UInt), y:(T3,UInt)) => Mux(x._1 > y._1, x, y))
+//  val max_idx = TreeReduce(cArr_idx, (x:(T3,Int), y:(T3,Int)) => Mux(x._1 > y._1, x, y))
+//  max_itm := max_idx._1
+//  CPOpt_itm := max_idx._2
+  //  cArr_idx(1) := cArr_idx(1) + 1.U
+//
+
+
+//  max_itm := TreeReduce(reg_correlationArray, (x:T3, y:T3) => x.max(y))
+//  max_itm := reg_correlationArray.reduce(_ max _)
+//  CPOpt_itm := reg_correlationArray.indexOf(max_itm, 0).S
+
+//  val iArray = Wire(Vec(params.nSample, UInt(params.wCodePhase.W)))
+////  val iArray = new Array[Int](params.nSample)
+//  for (i <- 0 until params.nSample) {
+//    iArray(i) := i.U
+//  }
+//  CPOpt_itm := TreeReduce(iArray, (x:UInt, y:UInt) => Mux(reg_correlationArray(x) > reg_correlationArray(y), x, y))
+
+
+
+
 
 //  val CPOpt_itm = reg_correlationArray.indexOf(max_itm).U
 
@@ -292,6 +386,7 @@ class ACtrl[T1 <: Data, T2 <: Data, T3 <: Data:ConvertableTo:Ring:Real](params: 
   // affect reg_optFreq and reg_optCP, if affected, try to
   // reset then if requested to start acquisition for a new satellite
   when(reg_state === idle) {
+    reg_tag_CP := false.B
 
     reg_max := ConvertableTo[T3].fromInt(0)
     reg_sum := ConvertableTo[T3].fromInt(0)
@@ -304,13 +399,16 @@ class ACtrl[T1 <: Data, T2 <: Data, T3 <: Data:ConvertableTo:Ring:Real](params: 
 
     // state machine
     when (Ain_fire) {
+      reg_tag_CP := true.B
+
       reg_iCPNow := iCPNext
       reg_iLoopNow := iLoopNext
       reg_iFreqNow := iFreqNext
 
-      for (j <- 0 until params.nLane) {
-        reg_sum := reg_sum + io.Ain.Correlation(j)
-      }
+//      for (j <- 0 until params.nLane) {
+//        reg_sum := reg_sum + io.Ain.Correlation(j)
+//      }
+      reg_sum := reg_sum + TreeReduce(io.Ain.Correlation, (x:T3, y:T3) => x+y)
 
 
       for (i <- 0 until params.nSample) {
@@ -318,12 +416,12 @@ class ACtrl[T1 <: Data, T2 <: Data, T3 <: Data:ConvertableTo:Ring:Real](params: 
 
           when(reg_iLoopNow === 0.U && reg_tag_Loop) {
             for (j <- 0 until params.nLane) {
-              reg_correlationArray(i+j) := io.Ain.Correlation(j)
+              reg_correlationArray((i+j)%params.nSample) := io.Ain.Correlation(j)
             }
           }
           .otherwise {
             for (j <- 0 until params.nLane) {
-              reg_correlationArray(i+j) := reg_correlationArray(i+j) + io.Ain.Correlation(j)
+              reg_correlationArray((i+j)%params.nSample) := reg_correlationArray((i+j)%params.nSample) + io.Ain.Correlation(j)
             }
           }
 
