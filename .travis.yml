@@ -20,3 +20,6 @@ install:
 
 script:
   - sbt $SBT_ARGS test
+
+notifications:
+  slack: 290cgps:raT8Xpiu4YBXSHBsIsclkssZ
