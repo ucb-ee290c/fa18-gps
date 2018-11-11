@@ -193,6 +193,7 @@ class ACtrlTester[T1 <: chisel3.Data,T2 <: chisel3.Data,T3 <: chisel3.Data](c: A
 object ACtrlTester {
   def apply(params: ACtrlParams[UInt,SInt,FixedPoint], trials: Seq[XYZ]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv", "-fimed", "1000000000000"), () => new ACtrl(params)) {
+//    dsptools.Driver.execute(() => new ACtrl(params), TestSetup.dspTesterOptions) {
       c => new ACtrlTester(c, trials)
     }
   }
