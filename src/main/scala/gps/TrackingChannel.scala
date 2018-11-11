@@ -23,10 +23,10 @@ case class ExampleTrackingChannelParams() extends TrackingChannelParams[SInt] {
   val ca2xNcoParams = SIntNcoParams(29, 1, false)
   // Ca Params
   val caParams = CAParams(1, 2)
-  // Multipliers are 2 bit in and 2 bit out
-  val mulParams = SampledMulParams(2)
+  // Multipliers are 5 bit in and 5 bit out
+  val mulParams = SampledMulParams(5)
   // Int Params 
-  val intParams = SampledIntDumpParams(2, Math.pow(2, 20).toInt)
+  val intParams = SampledIntDumpParams(5, 5*16*1023)
 }
 
 class TrackingChannelIO[T <: Data](params: TrackingChannelParams[T]) extends Bundle {
