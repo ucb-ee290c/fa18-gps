@@ -1,5 +1,7 @@
 package gps
 
+import breeze.linalg._
+import breeze.plot._
 import chisel3._
 import dsptools.DspTester 
 import dsptools.numbers._
@@ -126,6 +128,11 @@ class ChannelTester[T <: Data](c: TrackingChannel[T], params: DataSetParam[T]) e
     println()
     print(qlArr)
     println()
+
+    val fig = Figure()
+    val plt = fig.subplot(0)
+    plt += plot(DenseVector.range(0, ieArr.length, 1), ieArr)
+    fig.refresh()
   } catch {
     case e: IOException => e.printStackTrace
   } finally {
