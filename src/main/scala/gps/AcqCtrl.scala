@@ -7,7 +7,7 @@ import scala.math._
 import dsptools.numbers._
 import chisel3.experimental.FixedPoint
 
-trait ACtrlParams [T1 <: Data, T2 <: Data, T3 <: Data] {
+trait ACtrlParams [T <: Data] {
   val nLoop: Int
   val nFreq: Int
   val nSample: Int
@@ -25,15 +25,17 @@ trait ACtrlParams [T1 <: Data, T2 <: Data, T3 <: Data] {
 //  val wMax: Int
 //  val wSum: Int
 
-  val pIdxFreq: T1
-  val pFreq: T1
-  val pLoop: T1
-  val pCodePhase: T1
-  val pSate: T1
-  val pADC: T2
-  val pCorrelation: T3
-  val pMax: T3
-  val pSum: T3
+
+
+  val pIdxFreq: UInt
+  val pFreq: UInt
+  val pLoop: UInt
+  val pCodePhase: UInt
+  val pSate: UInt
+  val pADC: T
+  val pCorrelation: T
+  val pMax: T
+  val pSum: T
 
 }
 
@@ -54,7 +56,9 @@ case class IntACtrlParams (
                          val freqStep: Int,
 
 
-                       ) extends ACtrlParams[UInt, SInt, FixedPoint] {
+                       ) extends ACtrlParams[FixedPoint] {
+
+  val bpADC: Int = 0
 
   val wMax: Int = wCodePhase + wLoop + wADC
   val wSum: Int = wMax + wCodePhase + wIdxFreq
@@ -66,7 +70,7 @@ case class IntACtrlParams (
   val pLoop = UInt(wLoop.W)
   val pCodePhase = UInt(wCodePhase.W)
   val pSate = UInt(wSate.W)
-  val pADC = SInt(wADC.W)
+  val pADC = FixedPoint(wADC.W, bpADC.BP)
   val pCorrelation = FixedPoint((wCorrelation+1).W, 1.BP)
   val pMax = FixedPoint((wMax+1).W, 1.BP)
   val pSum = FixedPoint((wSum+1).W, 1.BP)
@@ -82,12 +86,12 @@ case class IntACtrlParams (
 
 
 // input interface within the acquisition loop
-class ACtrlAInputBundle[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]) extends Bundle {
+class ACtrlAInputBundle[T <: Data](params: ACtrlParams[T]) extends Bundle {
 //  val ADC: T2 = params.pADC
 //  val CodePhase: T1 = params.pCodePhase
 //  val Correlation: T3 = params.pCorrelation
-  val ADC: T2 = Input(params.pADC)
-  val CodePhase: T1 = Input(params.pCodePhase)
+  val ADC: T = Input(params.pADC)
+  val CodePhase: UInt = Input(params.pCodePhase)
   val Correlation = Input(Vec(params.nLane, params.pCorrelation))
   val ready = Output(Bool())
   val valid = Input(Bool())
@@ -95,50 +99,50 @@ class ACtrlAInputBundle[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[
   override def cloneType: this.type = ACtrlAInputBundle(params).asInstanceOf[this.type]
 }
 object ACtrlAInputBundle {
-  def apply[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]): ACtrlAInputBundle[T1, T2, T3] = new ACtrlAInputBundle(params)
+  def apply[T <: Data](params: ACtrlParams[T]): ACtrlAInputBundle[T] = new ACtrlAInputBundle(params)
 }
 
 
 // output interface within the acquisition loop
-class ACtrlAOutputBundle[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]) extends Bundle {
+class ACtrlAOutputBundle[T <: Data](params: ACtrlParams[T]) extends Bundle {
 
-  val freqNow: T1 = Output(params.pFreq.cloneType)
-  val freqNext: T1 = Output(params.pFreq.cloneType)
-  val cpNow: T1 = Output(params.pCodePhase.cloneType)
-  val cpNext: T1 = Output(params.pCodePhase.cloneType)
+  val freqNow: UInt = Output(params.pFreq.cloneType)
+  val freqNext: UInt = Output(params.pFreq.cloneType)
+  val cpNow: UInt = Output(params.pCodePhase.cloneType)
+  val cpNext: UInt = Output(params.pCodePhase.cloneType)
   val ready = Input(Bool())
   val valid = Output(Bool())
 
   override def cloneType: this.type = ACtrlAOutputBundle(params).asInstanceOf[this.type]
 }
 object ACtrlAOutputBundle {
-  def apply[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]): ACtrlAOutputBundle[T1, T2, T3] = new ACtrlAOutputBundle(params)
+  def apply[T <: Data](params: ACtrlParams[T]): ACtrlAOutputBundle[T] = new ACtrlAOutputBundle(params)
 }
 
 // input interface to the tracking loop
-class ACtrlTInputBundle[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]) extends Bundle {
-  val idx_sate: T1 = Input(params.pSate)
+class ACtrlTInputBundle[T <: Data](params: ACtrlParams[T]) extends Bundle {
+  val idx_sate: UInt = Input(params.pSate)
   val valid = Input(Bool())
   val ready = Output(Bool())
 
   override def cloneType: this.type = ACtrlTInputBundle(params).asInstanceOf[this.type]
 }
 object ACtrlTInputBundle {
-  def apply[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]): ACtrlTInputBundle[T1, T2, T3] = new ACtrlTInputBundle(params)
+  def apply[T <: Data](params: ACtrlParams[T]): ACtrlTInputBundle[T] = new ACtrlTInputBundle(params)
 }
 
 // output interface to the tracking loop
-class ACtrlTOutputBundle[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]) extends Bundle {
+class ACtrlTOutputBundle[T <: Data](params: ACtrlParams[T]) extends Bundle {
 
-  val freqOpt: T1 = Output(params.pFreq.cloneType)
-  val CPOpt: T1 = Output(params.pCodePhase.cloneType)
+  val freqOpt: UInt = Output(params.pFreq.cloneType)
+  val CPOpt: UInt = Output(params.pCodePhase.cloneType)
   val sateFound = Output(Bool())
-  val iFreqOptItm: T1 = Output(params.pIdxFreq.cloneType)
-  val iFreqOptOut: T1 = Output(params.pIdxFreq.cloneType)
-  val CPOptItm: T1 = Output(params.pCodePhase.cloneType)
-  val CPOptOut: T1 = Output(params.pCodePhase.cloneType)
-  val max: T3 = Output(params.pMax.cloneType)
-  val CPOpt_itm: T1 = Output(params.pCodePhase.cloneType)
+  val iFreqOptItm: UInt = Output(params.pIdxFreq.cloneType)
+  val iFreqOptOut: UInt = Output(params.pIdxFreq.cloneType)
+  val CPOptItm: UInt = Output(params.pCodePhase.cloneType)
+  val CPOptOut: UInt = Output(params.pCodePhase.cloneType)
+  val max: T = Output(params.pMax.cloneType)
+  val CPOpt_itm: UInt = Output(params.pCodePhase.cloneType)
   val vec = Output(Vec(params.nSample, params.pCorrelation.cloneType))
   val state = Output(Bool())
   val ready = Input(Bool())
@@ -147,27 +151,27 @@ class ACtrlTOutputBundle[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams
   override def cloneType: this.type = ACtrlTOutputBundle(params).asInstanceOf[this.type]
 }
 object ACtrlTOutputBundle {
-  def apply[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]): ACtrlTOutputBundle[T1, T2, T3] = new ACtrlTOutputBundle(params)
+  def apply[T <: Data](params: ACtrlParams[T]): ACtrlTOutputBundle[T] = new ACtrlTOutputBundle(params)
 }
 
-class DummyBundle[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]) extends Bundle {
+class DummyBundle[T <: Data](params: ACtrlParams[T]) extends Bundle {
 
-  val sum: T3 = Output(params.pSum.cloneType)
-  val max: T3 = Output(params.pMax.cloneType)
+  val sum: T = Output(params.pSum.cloneType)
+  val max: T = Output(params.pMax.cloneType)
 
   override def cloneType: this.type = DummyBundle(params).asInstanceOf[this.type]
 }
 object DummyBundle {
-  def apply[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]): DummyBundle[T1, T2, T3] = new DummyBundle(params)
+  def apply[T <: Data](params: ACtrlParams[T]): DummyBundle[T] = new DummyBundle(params)
 }
 
-class ACtrlDebugBundle[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]) extends Bundle {
+class ACtrlDebugBundle[T <: Data](params: ACtrlParams[T]) extends Bundle {
 
-  val iFreqNow: T1 = Output(params.pIdxFreq.cloneType)
-  val iLoopNow: T1 = Output(params.pLoop.cloneType)
-  val iCPNow: T1 = Output(params.pCodePhase.cloneType)
-  val max: T3 = Output(params.pMax.cloneType)
-  val reg_max: T3 = Output(params.pMax.cloneType)
+  val iFreqNow: UInt = Output(params.pIdxFreq.cloneType)
+  val iLoopNow: UInt = Output(params.pLoop.cloneType)
+  val iCPNow: UInt = Output(params.pCodePhase.cloneType)
+  val max: T = Output(params.pMax.cloneType)
+  val reg_max: T = Output(params.pMax.cloneType)
   val reg_tag_CP = Output(Bool())
 //  val freqOpt: T1 = Output(params.pFreq.cloneType)
 //  val CPOpt: T1 = Output(params.pCodePhase.cloneType)
@@ -186,12 +190,12 @@ class ACtrlDebugBundle[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T
   override def cloneType: this.type = ACtrlDebugBundle(params).asInstanceOf[this.type]
 }
 object ACtrlDebugBundle {
-  def apply[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]): ACtrlDebugBundle[T1, T2, T3] = new ACtrlDebugBundle(params)
+  def apply[T <: Data](params: ACtrlParams[T]): ACtrlDebugBundle[T] = new ACtrlDebugBundle(params)
 }
 
 
 
-class ACtrlIO[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]) extends Bundle {
+class ACtrlIO[T <: Data](params: ACtrlParams[T]) extends Bundle {
 //  val Ain = Flipped(Decoupled(Vec(params.nSample, ACtrlAInputBundle(params))))
 //  val Aout = Decoupled(ACtrlAOutputBundle(params))
 //  val Tin = Flipped(Decoupled(ACtrlTInputBundle(params)))
@@ -207,7 +211,7 @@ class ACtrlIO[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3
   override def cloneType: this.type = ACtrlIO(params).asInstanceOf[this.type]
 }
 object ACtrlIO {
-  def apply[T1 <: Data, T2 <: Data, T3 <: Data](params: ACtrlParams[T1, T2, T3]): ACtrlIO[T1, T2, T3] =
+  def apply[T <: Data](params: ACtrlParams[T]): ACtrlIO[T] =
     new ACtrlIO(params)
 }
 
@@ -233,7 +237,7 @@ object TreeReduce {
 }
 
 
-class ACtrl[T1 <: Data, T2 <: Data, T3 <: Data:ConvertableTo:Ring:Real](params: ACtrlParams[T1,T2,T3]) extends Module {
+class ACtrl[T <: Data:ConvertableTo:Ring:Real](params: ACtrlParams[T]) extends Module {
 
   val io = IO(ACtrlIO(params))
 
@@ -294,18 +298,18 @@ class ACtrl[T1 <: Data, T2 <: Data, T3 <: Data:ConvertableTo:Ring:Real](params: 
 
   val update_max = WireInit(Bool(), false.B)
 
-  val reg_max = RegInit(params.pMax, ConvertableTo[T3].fromInt(0))
+  val reg_max = RegInit(params.pMax, ConvertableTo[T].fromInt(0))
   val reg_correlationArray = Reg(Vec(params.nSample, params.pCorrelation))
 
 
 
 
-  val reg_sum = RegInit(params.pSum, ConvertableTo[T3].fromInt(0))
+  val reg_sum = RegInit(params.pSum, ConvertableTo[T].fromInt(0))
 
 //  val correlationArray = WireInit(Vec(10, UInt(5.W)))
 //  val max_itm = WireInit(ConvertableTo[T3].fromInt(0))
 //  val max_itm = reg_correlationArray.reduce(_ max _)
-  val max_itm = TreeReduce(reg_correlationArray, (x:T3, y:T3) => x.max(y))
+  val max_itm = TreeReduce(reg_correlationArray, (x:T, y:T) => x.max(y))
   val CPOpt_itm = WireInit(UInt(params.wCodePhase.W), 0.U)
   for (i <- 0 until params.nSample) {
     when (reg_correlationArray(i.U) === max_itm) {
@@ -388,10 +392,10 @@ class ACtrl[T1 <: Data, T2 <: Data, T3 <: Data:ConvertableTo:Ring:Real](params: 
   when(reg_state === idle) {
     reg_tag_CP := false.B
 
-    reg_max := ConvertableTo[T3].fromInt(0)
-    reg_sum := ConvertableTo[T3].fromInt(0)
+    reg_max := ConvertableTo[T].fromInt(0)
+    reg_sum := ConvertableTo[T].fromInt(0)
     for (i <- 0 until params.nSample) {
-      reg_correlationArray(i) := ConvertableTo[T3].fromInt(0)
+      reg_correlationArray(i) := ConvertableTo[T].fromInt(0)
     }
 
   }
@@ -408,7 +412,7 @@ class ACtrl[T1 <: Data, T2 <: Data, T3 <: Data:ConvertableTo:Ring:Real](params: 
 //      for (j <- 0 until params.nLane) {
 //        reg_sum := reg_sum + io.Ain.Correlation(j)
 //      }
-      reg_sum := reg_sum + TreeReduce(io.Ain.Correlation, (x:T3, y:T3) => x+y)
+      reg_sum := reg_sum + TreeReduce(io.Ain.Correlation, (x:T, y:T) => x+y)
 
 
       for (i <- 0 until params.nSample) {

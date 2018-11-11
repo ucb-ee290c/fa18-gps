@@ -65,7 +65,7 @@ case class XYZ(
  *
  * Run each trial in @trials
  */
-class ACtrlTester[T1 <: chisel3.Data,T2 <: chisel3.Data,T3 <: chisel3.Data](c: ACtrl[T1,T2,T3], trials: Seq[XYZ], tolLSBs: Int = 1)
+class ACtrlTester[T <: chisel3.Data](c: ACtrl[T], trials: Seq[XYZ], tolLSBs: Int = 1)
   extends DspTester(c) {
 
 
@@ -191,7 +191,7 @@ class ACtrlTester[T1 <: chisel3.Data,T2 <: chisel3.Data,T3 <: chisel3.Data](c: A
   * Convenience function for running tests
   */
 object ACtrlTester {
-  def apply(params: ACtrlParams[UInt,SInt,FixedPoint], trials: Seq[XYZ]): Boolean = {
+  def apply(params: ACtrlParams[FixedPoint], trials: Seq[XYZ]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv", "-fimed", "1000000000000"), () => new ACtrl(params)) {
 //    dsptools.Driver.execute(() => new ACtrl(params), TestSetup.dspTesterOptions) {
       c => new ACtrlTester(c, trials)
@@ -202,7 +202,7 @@ object ACtrlTester {
 
 
 
-class ACtrlTester2[T1 <: chisel3.Data,T2 <: chisel3.Data,T3 <: chisel3.Data](c: ACtrl[T1,T2,T3], trials: Seq[XYZ], tolLSBs: Int = 1)
+class ACtrlTester2[T <: chisel3.Data](c: ACtrl[T], trials: Seq[XYZ], tolLSBs: Int = 1)
   extends DspTester(c) {
 
 
@@ -342,7 +342,7 @@ class ACtrlTester2[T1 <: chisel3.Data,T2 <: chisel3.Data,T3 <: chisel3.Data](c: 
   * Convenience function for running tests
   */
 object ACtrlTester2 {
-  def apply(params: ACtrlParams[UInt,SInt,FixedPoint], trials: Seq[XYZ]): Boolean = {
+  def apply(params: ACtrlParams[FixedPoint], trials: Seq[XYZ]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv", "-fimed", "1000000000000"), () => new ACtrl(params)) {
       c => new ACtrlTester2(c, trials)
     }
