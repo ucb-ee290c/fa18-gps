@@ -124,7 +124,7 @@ case class FFTConfig[T <: Data](
   indices = indices.map(x => bit_reverse(x, log2Ceil(n)-1))
 
   print("The indices factors are:")
-  indices.foreach(x=> print(x))
+  indices.foreach(x=> print(x,','))
   println(" ")
   // take subsets of indices for split FFTs, then bit reverse to permute as needed
   var q = n
@@ -154,13 +154,17 @@ case class FFTConfig[T <: Data](
     }
   }}
 
-  tbindices = if (unscrambleIn == false) tbindices else tbindices.reverse
-
+//  tbindices = if (unscrambleIn == false) tbindices else tbindices.reverse
+  if (unscrambleIn == true){
+    tbindices = tbindices.reverse
+    tbindices.foreach{x=>x.foreach{i=>i/bp}}
+  }
   println("The indices for biplex", tbindices)
   // pre-compute set of twiddle factors per-butterfly, including rotation for pipelining
   var btwiddles = tbindices.zipWithIndex.map{ case(i, index) => {
     val rot_amt = pipe.dropRight(log2Up(n)-index).foldLeft(0)(_+_)
     val rot_list = rotateRight(i, rot_amt)
+    println("biplex twiddle list",rot_list)
     rot_list.map(j => twiddle(j))
   }}
 
@@ -170,13 +174,21 @@ case class FFTConfig[T <: Data](
   println(" ")
   // how the direct indices (dindices) map to hardware butterflies
   var tdindices = List(List(0,1),List(0,2))
+
   for (i <- 0 until log2Up(lanes_new)-2) {
-    tdindices = tdindices.map(x => x.map(y => y+1))
+    if (unscrambleIn == true){
+      tdindices = tdindices.map(x => x.map(y => (y+1)))
+    } else {
+      tdindices = tdindices.map(x => x.map(y => y + 1))
+    }
     val tdindices_max = tdindices.foldLeft(0)((b,a) => scala.math.max(b,a.reduceLeft((d,c) => scala.math.max(c,d))))
     tdindices = tdindices ++ tdindices.map(x => x.map(y => y+tdindices_max))
     tdindices = tdindices.map(x => 0 +: x)
   }
 //  tdindices= if (unscrambleIn==true) tdindices.map(i=>i.reverse) else tdindices
+//  if (unscrambleIn == true){
+//    tdindices.foreach{x=>x.foreach{i=> i =i*bp}}
+//  }
   println("The indices for direct form",tdindices)
 
   // pre-compute set of twiddle factors per-butterfly, including rotation for pipelining
@@ -186,12 +198,13 @@ case class FFTConfig[T <: Data](
     val rot_amt = pipe.drop(log2Ceil(bp)).dropRight(log2Up(lanes_new)-col).foldLeft(0)(_+_)
     val rot_list = rotateRight(i, rot_amt)
     // now map to twiddles
+    println("direct twiddle list",rot_list)
     rot_list.map(j => twiddle(j))
   }}
 
-//  print("The twiddles for DIT direct form")
-//  dtwiddles.foreach{x => x.foreach{y =>y .foreach{z => print(z,',')}}}
-//  println(" ")
+  print("The twiddles for DIT direct form")
+  dtwiddles.foreach{x => x.foreach{y =>y .foreach{z => print(z,',')}}}
+  println(" ")
 
 //  val dtwiddlesDIF = dtwiddles.reverse
 //  print("The twiddles for DIF direct form")

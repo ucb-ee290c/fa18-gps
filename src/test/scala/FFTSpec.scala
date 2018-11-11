@@ -60,7 +60,7 @@ object spectrumTester {
       if (x == log2Ceil(config.bp)) config.bp / 2 else (config.bp / pow(2, x + 1)).toInt
     })
     val test_length = config.bp + config.pipelineDepth + stage_delays.reduce(_ + _)
-
+    println(s"Total test length is $test_length")
     // create return val
     val retval = new scala.collection.mutable.Queue[Complex]()
     var synced = false
@@ -131,7 +131,7 @@ object spectrumTester {
   def setupTester[T <: Data](c: () => FFT[T], verbose: Boolean = true): FFTTester[T] = {
     var tester: FFTTester[T] = null
     val manager = new TesterOptionsManager {
-      testerOptions = TesterOptions(backendName = "firrtl", testerSeed = 7L)
+      testerOptions = TesterOptions(backendName = "verilator", testerSeed = 7L)
       interpreterOptions = InterpreterOptions(setVerbose = false, writeVCD = verbose, maxExecutionDepth = 2000)
     }
     chisel3.iotesters.Driver.execute(c, manager)(c => {
@@ -159,7 +159,7 @@ object spectrumTester {
     val fftSize = config.n
 
     // bin-by-bin testing
-    val m = 16 // at most 16 bins
+    val m = 2 // at most 16 bins
     (0 until min(fftSize, m)).foreach { bin =>
       val b = if (fftSize > m) fftSize / m * bin else bin
       val tester = setupTester(c, verbose)
@@ -194,7 +194,7 @@ object spectrumTester {
       }
     }
 
-    // random testing
+//     random testing
     (0 until 4).foreach { x =>
       val tester = setupTester(c, verbose)
       val tone = (0 until fftSize).map(x => Complex(Random.nextDouble(), Random.nextDouble()))
@@ -250,11 +250,11 @@ class FFTSpec extends FlatSpec with Matchers {
 //       Normal test for direct form FFT
 //      Seq(8, 8,  35, 19, 0, 0, 0),
 //       Normal test for direct form IFFT
-      Seq(64, 8,  35, 19, 0, 1, 0),
+      Seq(8, 8,  35, 19, 0, 1, 0),
       // Unscramble test for direct form FFT
-//      Seq(16, 16,  35, 19, 0, 1, 0),
+      Seq(16, 16,  35, 19, 0, 1, 0),
       // Unscramble test for direct form IFFT
-//      Seq(32, 32,  35, 19, 0, 1, 1),
+      Seq(32, 32,  35, 19, 0, 1, 1),
 //      Seq(4, 4, 27, 16, 17, 0, 0),
 //      Seq(128, 16, 27, 16, 17, 1, 0),
 //      Seq(16, 2, 27, 16, 10, 0)
@@ -277,7 +277,7 @@ class FFTSpec extends FlatSpec with Matchers {
         quadrature = false,
         unscrambleOut = if (test(6) != 0) true else false,
         inverse = if (test(5) != 0) true else false,
-        unscrambleIn = false,
+        unscrambleIn = true,
       )
       implicit val p: Parameters = null
       println(s"Testing ${test(0)}-point FFT with ${test(1)} lanes, ${test(2)} total bits, ${test(3)} fractional bits, and ${test(4)} pipeline depth")
