@@ -356,7 +356,7 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], g
           ).foreach { x => x._1 := x._2 }
         } else {
           Seq(stage_outputs(i + 1)(start), stage_outputs(i + 1)(start + skip)).zip(
-            Butterfly(
+            ButterflyDIF(
               Seq(
                 ShiftRegisterMem(
                   mux_out(0),
