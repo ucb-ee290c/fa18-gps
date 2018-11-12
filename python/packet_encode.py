@@ -35,7 +35,6 @@ def generate_subframe():
     subframe = [[] for i in range(SUBFRAME_LENGTH)]
     subframe[0] = parity_encode([0, 0], PREAMBLE + [random.randint(0, 1) for i in range(WORD_LENGTH - PARITY_BITS - len(PREAMBLE))])
     for word_idx in range(1, 10):
-        print(len(subframe[word_idx - 1]))
         subframe[word_idx] = parity_encode(subframe[word_idx - 1][WORD_LENGTH - 2:], [random.randint(0, 1) for i in range(WORD_LENGTH - PARITY_BITS)])
     return subframe
 
@@ -43,3 +42,4 @@ def generate_subframe():
 # d = [random.randint(0, 1) for i in range(24)]
 # a = parity_encode(dstar, d)
 # print(parity_check(dstar, a))
+print(generate_subframe())
