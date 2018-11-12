@@ -6,7 +6,7 @@ from .block import Block
 #TODO: Finish Integrate and Dump class
 class IntDump(Block):
 
-    def __init__(self, max_count=5):
+    def __init__(self):
         """ Int Dump
 
         Parameters
@@ -16,16 +16,24 @@ class IntDump(Block):
         """
         self.integ = np.array([0, 0, 0], dtype=np.float64)
         self.count = 0
+        # use integ_prev to keep IntDump output not change
+        self.integ_prev = np.array([0, 0, 0], dtype=np.float64)
+
+    def update(self, sample, max_count):
+
+        # update max count
         self.max_count = max_count
 
-    def update(self, sample, dump):
+        # update counter
+        self.count += 1
         reset = False
-        if dump:
-            self.count += 1
-        if self.count == self.max_count:
+
+        if self.count >= self.max_count:
+            self.integ_prev = self.integ
             self.count = 0
             self.integ = np.array([0, 0, 0], dtype=np.float64)
             reset = True
+
         self.integ += sample
-        return self.integ, reset
+        return self.integ_prev, reset
 
