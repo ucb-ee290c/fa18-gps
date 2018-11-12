@@ -70,7 +70,7 @@ object ParserTester {
   def apply(): Boolean = {
     val preamble = "b10001011".U(8.W)
     val params = PacketizerParams(10, 30, 8, preamble, 6)
-    chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), () => new Parser(params)) {
+    dsptools.Driver.execute(() => new Parser(params), TestSetup.dspTesterOptions) {
       c => new ParserTester(c)
     }
   }
@@ -130,7 +130,7 @@ object ParityCheckerTester {
   def apply(): Boolean = {
     val preamble = "b10001011".U(8.W)
     val params = PacketizerParams(10, 30, 8, preamble, 6)
-    chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), () => new ParityChecker(params)) {
+    dsptools.Driver.execute(() => new ParityChecker(params), TestSetup.dspTesterOptions) {
       c => new ParityCheckerTester(c)
     }
   }
@@ -189,7 +189,7 @@ object PacketizerTester {
   def apply(): Boolean = {
     val preamble = "b10001011".U(8.W)
     val params = PacketizerParams(10, 30, 8, preamble, 6)
-    chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), () => new Packetizer(params)) {
+    dsptools.Driver.execute(() => new Packetizer(params), TestSetup.dspTesterOptions) {
       c => new PacketizerTester(c)
     }
   }

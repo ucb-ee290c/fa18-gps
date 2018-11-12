@@ -76,7 +76,7 @@ class DesTester[T <: chisel3.Data](c: Des[T], trials: Seq[DES], tolLSBs: Int = 1
  */
 object DesTester {
   def apply(params: SIntDesParams, trials: Seq[DES]): Boolean = {
-    chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv"), () => new Des(params)) {
+    dsptools.Driver.execute(() => new Des(params), TestSetup.dspTesterOptionsVerilog) {
       c => new DesTester(c, trials)
     }
   }

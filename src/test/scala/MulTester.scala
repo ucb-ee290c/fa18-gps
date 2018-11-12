@@ -33,7 +33,7 @@ class MulTester(c: Mul[SInt]) extends DspTester(c) {
 
 object MulTester {
   def apply(params: SampledMulParams): Boolean = {
-    chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), () => new Mul[SInt](params)) {
+    dsptools.Driver.execute(() => new Mul[SInt](params), TestSetup.dspTesterOptions) {
       c => new MulTester(c)
     }
   }
