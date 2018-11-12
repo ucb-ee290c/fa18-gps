@@ -36,7 +36,8 @@ class DirectFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], g
 
   // synchronize
   val valid_delay = RegNext(io.in.valid)
-  val sync = CounterWithReset(true.B, config.bp, io.in.sync, ~valid_delay & io.in.valid)._1
+  val sync = Wire(UInt(log2Ceil(config.bp).W))
+  sync := CounterWithReset(true.B, config.bp, io.in.sync, ~valid_delay & io.in.valid)._1
   io.out.sync := ShiftRegisterWithReset(io.in.valid && sync === (config.bp - 1).U, config.direct_pipe, 0.U) // should valid keep sync from propagating?
   io.out.valid := ShiftRegisterWithReset(io.in.valid, config.direct_pipe, 0.U)
 
@@ -153,7 +154,11 @@ class DirectFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], g
         outputs.zip(butterfly_outputs).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i + log2Ceil(config.bp)), name = this.name + s"_${i}_${j}_pipeline_sram") }
       } else {
         // TODO: here might need to bit reverse sync signal from twiddle rom, keep it for now
-        val butterfly_outputs = ButterflyDIF[T](Seq(stage_outputs(i)(start), stage_outputs(i)(start + skip)), twiddle_rom(config.tdindices(j)(i_rev))(sync))
+        val sb=sync.getWidth
+        val butterfly_outputs = ButterflyDIF[T](Seq(stage_outputs(i)(start), stage_outputs(i)(start + skip)), twiddle_rom(config.tdindices(j)(i_rev))(
+
+          Reverse(sync.asUInt()))
+        )
         outputs.zip(butterfly_outputs).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i + log2Ceil(config.bp)), name = this.name + s"_${i}_${j}_pipeline_sram") }
       }
       // TODO: pipeline reorder
@@ -337,19 +342,7 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], g
           ShiftRegisterMem(sync(i)(if (i == 0) log2Ceil(config.bp) - 1 else i-1),
             {if (i == 0) 0 else config.pipe.dropRight(log2Ceil(config.n) - i).reduceRight(_ + _)}, name = this.name + s"_${i}_${j}_mux1_sram"))
         //TODO: why 0 is special here?
-//        if (i == 0) {
-//          Seq(stage_outputs(i + 1)(start), stage_outputs(i + 1)(start + skip)).zip(
-//            Seq(ShiftRegisterMem(mux_out(0), stage_delays(i), name = this.name + s"_${i}_${j}_first_sram"), mux_out(1))).foreach { x => x._1 := x._2 }
-//        } else {
-//          Seq(stage_outputs(i + 1)(start), stage_outputs(i + 1)(start + skip)).zip(
-//            ButterflyDIF(Seq(
-//              ShiftRegisterMem(mux_out(0), stage_delays(i), name = this.name + s"_${i}_${j}_pipeline0_sram"), mux_out(1)),
-//              twiddle_rom(i-1)(sync(i))
-//            )
-//          ).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i), name = this.name + s"_${i}_${j}_pipeline1_sram") }
-//          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
-//          printf("SYNC %d \n", sync(i))
-//        }
+
         if (i == log2Ceil(config.bp)) {
           Seq(stage_outputs(i + 1)(start), stage_outputs(i + 1)(start + skip)).zip(
             Seq(
@@ -600,3 +593,5 @@ object bit_reverse {
     out
   }
 }
+
+
