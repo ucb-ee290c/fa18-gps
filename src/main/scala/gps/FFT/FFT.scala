@@ -152,6 +152,7 @@ class DirectFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], g
         val butterfly_outputs = Butterfly[T](Seq(stage_outputs(i)(start), stage_outputs(i)(start + skip)), twiddle_rom(config.tdindices(j)(i_rev))(sync))
         outputs.zip(butterfly_outputs).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i + log2Ceil(config.bp)), name = this.name + s"_${i}_${j}_pipeline_sram") }
       } else {
+        // TODO: here might need to bit reverse sync signal from twiddle rom, keep it for now
         val butterfly_outputs = ButterflyDIF[T](Seq(stage_outputs(i)(start), stage_outputs(i)(start + skip)), twiddle_rom(config.tdindices(j)(i_rev))(sync))
         outputs.zip(butterfly_outputs).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i + log2Ceil(config.bp)), name = this.name + s"_${i}_${j}_pipeline_sram") }
       }
@@ -195,7 +196,7 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], g
   val valid_delay = RegNext(io.in.valid)
   sync(0) := CounterWithReset(true.B, config.bp, io.in.sync, ~valid_delay & io.in.valid)._1
   sync.drop(1).zip(sync).zip(stage_delays).foreach { case ((next, prev), delay) => next := ShiftRegisterWithReset(prev, delay, 0.U) }
-  io.out.sync := sync(log2Ceil(config.bp)) === ((config.bp / 2 - 1 + config.biplex_pipe) % config.bp).U
+  io.out.sync := (sync(log2Ceil(config.bp)) === ((config.bp / 2 - 1 + config.biplex_pipe) % config.bp).U) && (sync(log2Ceil(config.bp)) != 0.U)
   io.out.valid := ShiftRegisterWithReset(io.in.valid, stage_delays.reduce(_ + _) + config.biplex_pipe, 0.U)
 
   // wire up twiddles
@@ -297,10 +298,8 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], g
       // last stage just has one extra permutation, no butterfly
 
       if (config.unscrambleIn == false) {
-        val mux_out = BarrelShifter(VecInit(
-          stage_outputs(i)(start),
-          ShiftRegisterMem(stage_outputs(i)(start + skip), stage_delays(i), name = this.name + s"_${i}_${j}_mux0_sram")
-        ),
+        val mux_out = BarrelShifter(VecInit(stage_outputs(i)(start),
+          ShiftRegisterMem(stage_outputs(i)(start + skip), stage_delays(i), name = this.name + s"_${i}_${j}_mux0_sram")),
           ShiftRegisterMem(sync(i)(log2Ceil(config.bp) - 1 - {if (i == log2Ceil(config.bp)) 0 else i}),
           {if (i == 0) 0 else config.pipe.dropRight(log2Ceil(config.n) - i).reduceRight(_ + _)},
             name = this.name + s"_${i}_${j}_mux1_sram"))
@@ -329,25 +328,55 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], g
               twiddle_rom(i)(sync(i + 1))
             )
           ).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i), name = this.name + s"_${i}_${j}_pipeline1_sram") }
-          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
-          printf("SYNC %d \n", sync(i))
+//          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
+//          printf("SYNC %d \n", sync(i))
         }
       } else {
         val mux_out = BarrelShifter(VecInit(stage_outputs(i)(start),
           ShiftRegisterMem(stage_outputs(i)(start + skip), stage_delays(i), name = this.name + s"_${i}_${j}_mux0_sram")),
-          ShiftRegisterMem(sync(i)(log2Ceil(config.bp) - 1 - {if (i == log2Ceil(config.bp)) 0 else i}),
+          ShiftRegisterMem(sync(i)(if (i == 0) log2Ceil(config.bp) - 1 else i-1),
             {if (i == 0) 0 else config.pipe.dropRight(log2Ceil(config.n) - i).reduceRight(_ + _)}, name = this.name + s"_${i}_${j}_mux1_sram"))
-        if (i == 0) {
-          Seq(stage_outputs(i + 1)(start), stage_outputs(i + 1)(start + skip)).zip(Seq(ShiftRegisterMem(mux_out(0), stage_delays(i), name = this.name + s"_${i}_${j}_first_sram"), mux_out(1))).foreach { x => x._1 := x._2 }
+        //TODO: why 0 is special here?
+//        if (i == 0) {
+//          Seq(stage_outputs(i + 1)(start), stage_outputs(i + 1)(start + skip)).zip(
+//            Seq(ShiftRegisterMem(mux_out(0), stage_delays(i), name = this.name + s"_${i}_${j}_first_sram"), mux_out(1))).foreach { x => x._1 := x._2 }
+//        } else {
+//          Seq(stage_outputs(i + 1)(start), stage_outputs(i + 1)(start + skip)).zip(
+//            ButterflyDIF(Seq(
+//              ShiftRegisterMem(mux_out(0), stage_delays(i), name = this.name + s"_${i}_${j}_pipeline0_sram"), mux_out(1)),
+//              twiddle_rom(i-1)(sync(i))
+//            )
+//          ).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i), name = this.name + s"_${i}_${j}_pipeline1_sram") }
+//          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
+//          printf("SYNC %d \n", sync(i))
+//        }
+        if (i == log2Ceil(config.bp)) {
+          Seq(stage_outputs(i + 1)(start), stage_outputs(i + 1)(start + skip)).zip(
+            Seq(
+              ShiftRegisterMem(
+                mux_out(0),
+                stage_delays(i),
+                name = this.name + s"_${i}_${j}_last_sram"
+              ),
+              mux_out(1)
+            )
+          ).foreach { x => x._1 := x._2 }
         } else {
           Seq(stage_outputs(i + 1)(start), stage_outputs(i + 1)(start + skip)).zip(
-            Butterfly(Seq(
-              ShiftRegisterMem(mux_out(0), stage_delays(i), name = this.name + s"_${i}_${j}_pipeline0_sram"), mux_out(1)),
-              twiddle_rom(i-1)(sync(i))
+            Butterfly(
+              Seq(
+                ShiftRegisterMem(
+                  mux_out(0),
+                  stage_delays(i),
+                  name = this.name + s"_${i}_${j}_pipeline0_sram"
+                ),
+                mux_out(1)
+              ),
+              twiddle_rom(i)(sync(i + 1))
             )
           ).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i), name = this.name + s"_${i}_${j}_pipeline1_sram") }
-          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
-          printf("SYNC %d \n", sync(i))
+//          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
+//          printf("SYNC %d \n", sync(i))
         }
       }
 
@@ -358,6 +387,7 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], g
 
 }
 
+//TODO: Biplex's width should expand for unscrambleIn config
 /**
   * IO Bundle for FFT
   *

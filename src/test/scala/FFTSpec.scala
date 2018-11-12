@@ -128,10 +128,29 @@ object spectrumTester {
     res
   }
 
+  def unscrambleInt(in: Seq[Int], p: Int): Seq[Int] = {
+    val n = 16
+    val bp = n / p
+    val res = Array.fill(n)(0)
+    in.grouped(p).zipWithIndex.foreach { case (set, sindex) =>
+      set.zipWithIndex.foreach { case (bin, bindex) =>
+        if (bp > 1) {
+          val p1 = if (sindex / (bp / 2) >= 1) 1 else 0
+          val new_index = bit_reverse((sindex % (bp / 2)) * 2 + p1, log2Ceil(bp)) + bit_reverse(bindex, log2Ceil(n))
+          res(new_index) = bin
+        } else {
+          val new_index = bit_reverse(bindex, log2Ceil(n))
+          res(new_index) = bin
+        }
+      }
+    }
+    res
+  }
+
   def setupTester[T <: Data](c: () => FFT[T], verbose: Boolean = true): FFTTester[T] = {
     var tester: FFTTester[T] = null
     val manager = new TesterOptionsManager {
-      testerOptions = TesterOptions(backendName = "verilator", testerSeed = 7L)
+      testerOptions = TesterOptions(backendName = "firrtl", testerSeed = 7L)
       interpreterOptions = InterpreterOptions(setVerbose = false, writeVCD = verbose, maxExecutionDepth = 2000)
     }
     chisel3.iotesters.Driver.execute(c, manager)(c => {
@@ -159,7 +178,7 @@ object spectrumTester {
     val fftSize = config.n
 
     // bin-by-bin testing
-    val m = 2 // at most 16 bins
+    val m = 4 // at most 16 bins
     (0 until min(fftSize, m)).foreach { bin =>
       val b = if (fftSize > m) fftSize / m * bin else bin
       val tester = setupTester(c, verbose)
@@ -170,6 +189,10 @@ object spectrumTester {
       println("Reversed Input Tones")
       unscramble(tone, config.lanes).foreach{x=>print(x,',')}
       println(" ")
+      var testlist = (0 until 16).map(i=>i)
+      println("testlist", testlist)
+      println("scramble testlist", unscrambleInt(testlist,8))
+      println("get the testlist back", unscrambleInt(unscrambleInt(testlist,8),8))
       val unscrambleTone = unscramble(tone, config.lanes)
       println(" ")
       val testResult = if (config.unscrambleIn==false) testSignal(tester, tone) else testSignal(tester, unscrambleTone)
@@ -250,11 +273,11 @@ class FFTSpec extends FlatSpec with Matchers {
 //       Normal test for direct form FFT
 //      Seq(8, 8,  35, 19, 0, 0, 0),
 //       Normal test for direct form IFFT
-      Seq(8, 8,  35, 19, 0, 1, 0),
+      Seq(32, 16,  35, 19, 0, 1, 0),
       // Unscramble test for direct form FFT
-      Seq(16, 16,  35, 19, 0, 1, 0),
+//      Seq(16, 16,  35, 19, 0, 1, 0),
       // Unscramble test for direct form IFFT
-      Seq(32, 32,  35, 19, 0, 1, 1),
+//      Seq(32, 32,  35, 19, 0, 1, 0),
 //      Seq(4, 4, 27, 16, 17, 0, 0),
 //      Seq(128, 16, 27, 16, 17, 1, 0),
 //      Seq(16, 2, 27, 16, 10, 0)

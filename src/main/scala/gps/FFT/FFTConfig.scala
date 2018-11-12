@@ -146,18 +146,17 @@ case class FFTConfig[T <: Data](
     val repl = math.pow(2, log2Ceil(bp)-col-1).toInt
     val start = (index-math.pow(2,col).toInt+1)*repl
     for (i <- 0 until repl) {
-      if (unscrambleIn == true) {
-        tbindices(col)(bit_reverse(start + i, log2Ceil(log2Ceil(bp)))) = bindex
-      } else {
+//      if (unscrambleIn == true) {
+//        tbindices(col)(bit_reverse(start + i, log2Ceil(log2Ceil(bp)))) = bindex
+//      } else {
         tbindices(col)(start + i) = bindex
-      }
+//      }
     }
   }}
 
 //  tbindices = if (unscrambleIn == false) tbindices else tbindices.reverse
   if (unscrambleIn == true){
     tbindices = tbindices.reverse
-    tbindices.foreach{x=>x.foreach{i=>i/bp}}
   }
   println("The indices for biplex", tbindices)
   // pre-compute set of twiddle factors per-butterfly, including rotation for pipelining
