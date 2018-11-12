@@ -10,12 +10,13 @@ class DesSpec extends FlatSpec with Matchers {
   behavior of "Des"
 
   val params = SIntDesParams(
-    wADC = 4,
-    nSample = 5,
+    width = 8,
+    nSample = 16,
+    nLane = 4,
   )
   it should "des" in {
     val baseTrial = DES(offset=0)
-    val offset = Seq(2)
+    val offset = Seq(0)
     val trials = offset.map { offset => baseTrial.copy(offset = offset) }
     DesTester(params, trials) should be (true)
   }
@@ -50,17 +51,26 @@ class DesTester[T <: chisel3.Data](c: Des[T], trials: Seq[DES], tolLSBs: Int = 1
   for (trial <- trials) {
 
     poke(c.io.offset, trial.offset)
+    poke(c.io.ready, 1)
+    poke(c.io.newreq, 1)
 
     // wait until input is accepted
     var cycles = 0
 
     print("trial")
-    while (cycles < 30) {
-      poke(c.io.ready, true)
+    while (cycles < 60) {
+//      poke(c.io.ready, true)
       cycles += 1
-      poke(c.io.in, (cycles%6)-3)
+      if (cycles >= 20 && cycles < 30) {poke(c.io.ready, 0)}
+      if (cycles >= 30) {poke(c.io.ready, 1)}
+      poke(c.io.in, (cycles%17))
       peek(c.io.valid)
-      if (cycles%5 == 0) {peek(c.io.out)}
+
+      peek(c.io.out)
+      peek(c.io.valid)
+      peek(c.io.state)
+      peek(c.io.cnt_buffer)
+//      if (cycles%5 == 0) {peek(c.io.out)}
 
       step(1)
     }
@@ -76,7 +86,8 @@ class DesTester[T <: chisel3.Data](c: Des[T], trials: Seq[DES], tolLSBs: Int = 1
  */
 object DesTester {
   def apply(params: SIntDesParams, trials: Seq[DES]): Boolean = {
-    dsptools.Driver.execute(() => new Des(params), TestSetup.dspTesterOptionsVerilog) {
+    chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv", "-fimed", "10000000"), () => new Des(params)) {
+//    dsptools.Driver.execute(() => new Des(params), TestSetup.dspTesterOptionsVerilog) {
       c => new DesTester(c, trials)
     }
   }
