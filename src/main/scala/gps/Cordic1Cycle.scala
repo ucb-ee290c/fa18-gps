@@ -65,6 +65,7 @@ class IterativeCordicIO[T <: Data](params: CordicParams[T]) extends Bundle {
   val in = Input(CordicBundle(params))
   val out = Output(CordicBundle(params))
   val vectoring = Input(Bool())
+  val dividing = Input(Bool())
 
   override def cloneType: this.type = IterativeCordicIO(params).asInstanceOf[this.type]
 }

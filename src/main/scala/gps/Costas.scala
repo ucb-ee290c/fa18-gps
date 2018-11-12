@@ -83,9 +83,9 @@ class costasDis(val params: SampledCostasParams) extends Module {
     val costasDisOut = Output(SInt((params.costasLeftShift + 2).W))
 
     // debug
-    val xin = Input(params.protoCordic.protoXY)
-    val yin = Input(params.protoCordic.protoXY)
-    val zin = Input(params.protoCordic.protoZ)
+    val xin = Output(params.protoCordic.protoXY)
+    val yin = Output(params.protoCordic.protoXY)
+    val zin = Output(params.protoCordic.protoZ)
     val xout = Output(params.protoCordic.protoXY)
     val yout = Output(params.protoCordic.protoXY)
     val zout = Output(params.protoCordic.protoZ)
@@ -113,6 +113,7 @@ class costasDis(val params: SampledCostasParams) extends Module {
   cordic.io.in.y := yInCordic.asTypeOf(params.protoCordic.protoXY)
   cordic.io.in.z := 0.S.asTypeOf(params.protoCordic.protoZ)
   cordic.io.vectoring := true.B
+  cordic.io.dividing := false.B
   // cordic output
   xOutCordic := cordic.io.out.x
   yOutCordic := cordic.io.out.y
