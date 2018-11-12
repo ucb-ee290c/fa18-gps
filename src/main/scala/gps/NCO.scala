@@ -23,8 +23,8 @@ trait NcoParams[T <: Data] {
  */
 case class SIntNcoParams(
   resolutionWidth: Int,
-  sinOut: Boolean,
-  truncateWidth: Int
+  truncateWidth: Int,
+  sinOut: Boolean
 ) extends NcoParams[SInt] {
   // binary point is (Width-3) to represent Pi/2 exactly
   val proto = SInt(truncateWidth.W)
@@ -85,7 +85,6 @@ class NCOBase[T <: Data : Real](val params: NcoParams[T]) extends Module {
   val cosineLUT = VecInit(NCOConstants.cosine(params.truncateWidth).map(ConvertableTo[T].fromDouble(_)))
 
   reg := reg + io.stepSize
-  val truncateReg = reg >> (params.resolutionWidth - params.truncateWidth)
-  io.cos := cosineLUT(truncateReg)
-  io.truncateRegOut := truncateReg 
+  io.truncateRegOut := reg >> (params.resolutionWidth - params.truncateWidth)
+  io.cos := cosineLUT(io.truncateRegOut)
 }
