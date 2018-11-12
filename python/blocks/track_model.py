@@ -144,10 +144,10 @@ class Track(Block):
         Q_sample = [Q_e, Q_p, Q_l]
 
         # I_int and Q_int are lists of size 3
-        I_int, _ = self.intdumpI.update(I_sample, int_num)
-        Q_int, _ = self.intdumpQ.update(Q_sample, int_num)
+        I_int, reset = self.intdumpI.update(I_sample, int_num)
+        Q_int, reset = self.intdumpQ.update(Q_sample, int_num)
 
-        if clk_ca:
+        if reset:
             # dll loop
             dll_out, dll_lf_out = self.dll.update(I_sample=I_int, Q_sample=Q_int,
                                                   freq_bias=code_nco_freq,
