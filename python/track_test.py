@@ -12,7 +12,7 @@ if __name__ == '__main__':
     # data sample rate
     fs = 16528600
     sv_num = 1  # 22 #1
-    sv_freq = 4.132100e6 - 3862 - 100
+    sv_freq = 4.132100e6 - 3862 - 50
     chip_rate = 1.023e6
 
     # code bias
@@ -21,11 +21,11 @@ if __name__ == '__main__':
     print("Code bias is {}".format(code_bias))
 
     # NCO params
-    if_nco_width = 30
+    if_nco_width = 20   # 30
     carrier_count_max = 2**if_nco_width - 1
     if_nco_freq = round(sv_freq / fs * carrier_count_max)
 
-    code_nco_width = 30
+    code_nco_width = 20     # 30
     code_count_max = 2**code_nco_width - 1
     code_nco_freq = round(chip_rate / fs * code_count_max)
 
@@ -38,16 +38,16 @@ if __name__ == '__main__':
     code_nco_init_phase = 0
 
     # dll parameters
-    dll_dc_gain = 12000
+    dll_dc_gain = 12.00
     dll_bandwidth = 10
     dll_sample_rate = 1e3
     dll_discriminator_num = 1
 
     # costas parameters
-    costas_lf_coeff = [100, 50, 0, 1e-5, 0]
+    costas_lf_coeff = [0.1, 0.01, 0, 1e-5, 0] # [100, 10, 0.1, 1e-2, 0]
 
     # num of cycles to run
-    num_cycles = 6400000    # len(raw_data)
+    num_cycles = 16000000    # len(raw_data)
 
     # time keeper
     time_keeper = TimeKeeper()
