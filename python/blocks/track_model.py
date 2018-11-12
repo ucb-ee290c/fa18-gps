@@ -124,6 +124,7 @@ class Track(Block):
         # mixer update
         I = self.multI.update(adc_data, cos_if)
         Q = self.multQ.update(adc_data, sin_if)
+        # print(f"I : {I}, Q : {Q}")
 
         # code NCO update
         ck_code, ck2x_code = self.nco_code.update(freq_ctrl=self.dll_out, phase_ctrl=0)
@@ -142,6 +143,7 @@ class Track(Block):
 
         I_sample = [I_e, I_p, I_l]
         Q_sample = [Q_e, Q_p, Q_l]
+        # print(I_sample, Q_sample)
 
         # I_int and Q_int are lists of size 3
         I_int, reset = self.intdumpI.update(I_sample, int_num)
@@ -164,7 +166,7 @@ class Track(Block):
 
         # packet update
         # self.packet.update(x, I_int, Q_int)
-
+        return clk_ca
 
 
 

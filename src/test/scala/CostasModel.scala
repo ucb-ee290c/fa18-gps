@@ -56,9 +56,16 @@ class CostasModel (coeffs: Seq[Double], costasMode: Int, freqMode: Int, freqBias
   }
 
   def update(I_int: Double, Q_int: Double, freqBias: Int) : Int = {
-    err = costasDetector(I_int, Q_int)
-    freqErr = freqDetector(I_int, Q_int)
-    dLfOut = loopFilter(-1*err)
+    err = costasDetector(I_int, Q_int, cm)
+    print(err)
+    println()
+    freqError = freqDetector(I_int, Q_int, fm)
+    print(freqError)
+    println()
+    dLfOut = loopFilter(-1*err, freqError, lfCoeff)
+    print("DLF out: ")
+    print(dLfOut)
+    println()
     Ips_d = I_int
     Qps_d = Q_int
     

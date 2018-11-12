@@ -44,6 +44,10 @@ class Costas(Block):
         self._lf = 0
         self._lf_sum = 0
         self._lf_sum_sum = 0
+        self.alpha = 0
+        self.alpha_prev = 0
+        self.beta = 0
+        self.beta_prev = 0
 
     def costas_detector(self, Ips, Qps, mode):
         """
@@ -141,10 +145,24 @@ class Costas(Block):
         lf_out:
             loop filter output.
         """
+        #self._lf_sum_sum += lf_coeff[2] * phase_err + lf_coeff[4] * freq_err
+        #self._lf_sum += lf_coeff[1] * phase_err + lf_coeff[3] * freq_err + self._lf_sum_sum
+        #self._lf = lf_coeff[0] * phase_err + self._lf_sum
+        bn = 18
+        T = 0.002
+        w0f = bn/0.53
+        w0p = bn/0.7845
+        a2 = 1.414
+        a3 = 1.1
+        b3 = 2.4
+        self.beta = (w0f**2)*T*freq_err + (w0p**3)*T*phase_err + self.beta_prev
+        alpha2 = T*(a2*w0f*freq_err + a3*(w0p**2)*phase_err+0.5*(self.beta_prev + self.beta))
+        self.alpha = alpha2 + self.alpha_prev
+        self._lf = b3 * w0p * phase_err + 0.5*(self.alpha + self.alpha_prev)
+      
+        self.beta_prev = self.beta
+        self.alpha_prev = self.alpha
 
-        self._lf_sum_sum += lf_coeff[2] * phase_err + lf_coeff[4] * freq_err
-        self._lf_sum += lf_coeff[1] * phase_err + lf_coeff[3] * freq_err + self._lf_sum_sum
-        self._lf = lf_coeff[0] * phase_err + self._lf_sum
         return self._lf
 
     def update(self, Ips, Qps, freq_bias):
