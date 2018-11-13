@@ -96,7 +96,7 @@ object spectrumTester {
   }
 
   // bit reverse a value
-  def bit_reverse(in: Integer, width: Integer): Integer = {
+  def bit_reverse(in: Int, width: Int): Int = {
     var test = in
     var out = 0
     for (i <- 0 until width) {
@@ -106,6 +106,45 @@ object spectrumTester {
       }
     }
     out
+  }
+
+  // unscramble fft output
+  def scrambleInt(in: Seq[Int], p: Int): Seq[Int] = {
+    val n = 64
+    val bp = n / p
+    val res = Array.fill(n)(0)
+    in.grouped(bp).zipWithIndex.foreach { case (set, sindex) =>
+      set.zipWithIndex.foreach { case (bin, bindex) =>
+        if (bp > 1) {
+          val p1 = if (bindex / (bp / 2) >= 1) 1 else 0
+          val new_index = bit_reverse((bindex % (bp / 2)) * 2 + p1, log2Ceil(n)) + bit_reverse(sindex, log2Ceil(p))
+          res(new_index) = bin
+        } else {
+          val new_index = bit_reverse(sindex, log2Ceil(p))
+          res(new_index) = bin
+        }
+      }
+    }
+    res
+  }
+
+  def scramble(in: Seq[Complex], p: Int): Seq[Complex] = {
+    val n = in.size
+    val bp = n / p
+    val res = Array.fill(n)(Complex(0.0, 0.0))
+    in.grouped(bp).zipWithIndex.foreach { case (set, sindex) =>
+      set.zipWithIndex.foreach { case (bin, bindex) =>
+        if (bp > 1) {
+          val p1 = if (bindex / (bp / 2) >= 1) 1 else 0
+          val new_index = bit_reverse((bindex % (bp / 2)) * 2 + p1, log2Ceil(n)) + bit_reverse(sindex, log2Ceil(p))
+          res(new_index) = bin
+        } else {
+          val new_index = bit_reverse(sindex, log2Ceil(p))
+          res(new_index) = bin
+        }
+      }
+    }
+    res
   }
 
   // unscramble fft output
@@ -129,7 +168,7 @@ object spectrumTester {
   }
 
   def unscrambleInt(in: Seq[Int], p: Int): Seq[Int] = {
-    val n = 16
+    val n = 64
     val bp = n / p
     val res = Array.fill(n)(0)
     in.grouped(p).zipWithIndex.foreach { case (set, sindex) =>
@@ -178,7 +217,7 @@ object spectrumTester {
     val fftSize = config.n
 
     // bin-by-bin testing
-    val m = 4 // at most 16 bins
+    val m = 3 // at most 16 bins
     (0 until min(fftSize, m)).foreach { bin =>
       val b = if (fftSize > m) fftSize / m * bin else bin
       val tester = setupTester(c, verbose)
@@ -189,13 +228,15 @@ object spectrumTester {
       println("Reversed Input Tones")
       unscramble(tone, config.lanes).foreach{x=>print(x,',')}
       println(" ")
-      var testlist = (0 until 16).map(i=>i)
+      var testlist = (0 until 64).map(i=>i)
       println("testlist", testlist)
-      println("scramble testlist", unscrambleInt(testlist,8))
-      println("get the testlist back", unscrambleInt(unscrambleInt(testlist,8),8))
-      val unscrambleTone = unscramble(tone, config.lanes)
+      println("scramble testlist", scrambleInt(testlist,16))
+      println("get the testlist back", unscrambleInt(scrambleInt(testlist,16),16))
+      testlist = (0 until 64).map(i=>bit_reverse(i,5))
+      println("bit reverse", testlist)
+      val scrambleTone = scramble(tone, config.lanes)
       println(" ")
-      val testResult = if (config.unscrambleIn==false) testSignal(tester, tone) else testSignal(tester, unscrambleTone)
+      val testResult = if (config.unscrambleIn==false) testSignal(tester, tone) else testSignal(tester, scrambleTone)
       val expectedResult = fourierTr(DenseVector(tone.toArray)).toArray
       val expectedResultInv = iFourierTr(DenseVector(tone.toArray)).toArray.map(_ * config.n)
       if (verbose) {
@@ -273,7 +314,7 @@ class FFTSpec extends FlatSpec with Matchers {
 //       Normal test for direct form FFT
 //      Seq(8, 8,  35, 19, 0, 0, 0),
 //       Normal test for direct form IFFT
-      Seq(32, 16,  35, 19, 0, 1, 0),
+      Seq(16, 8,  35, 19, 0, 1, 0),
       // Unscramble test for direct form FFT
 //      Seq(16, 16,  35, 19, 0, 1, 0),
       // Unscramble test for direct form IFFT

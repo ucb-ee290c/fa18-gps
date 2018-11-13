@@ -149,15 +149,16 @@ case class FFTConfig[T <: Data](
 //      if (unscrambleIn == true) {
 //        tbindices(col)(bit_reverse(start + i, log2Ceil(log2Ceil(bp)))) = bindex
 //      } else {
-        tbindices(col)(start + i) = bindex
+          tbindices(col)(start + i) = bindex
 //      }
+      }
     }
-  }}
+  }
 
 //  tbindices = if (unscrambleIn == false) tbindices else tbindices.reverse
-  if (unscrambleIn == true){
-    tbindices = tbindices.reverse
-  }
+//  if (unscrambleIn == true){
+//    tbindices = tbindices.reverse
+//  }
   println("The indices for biplex", tbindices)
   // pre-compute set of twiddle factors per-butterfly, including rotation for pipelining
   var btwiddles = tbindices.zipWithIndex.map{ case(i, index) => {
