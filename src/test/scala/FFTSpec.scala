@@ -110,7 +110,7 @@ object spectrumTester {
 
   // unscramble fft output
   def scrambleInt(in: Seq[Int], p: Int): Seq[Int] = {
-    val n = 64
+    val n = 32
     val bp = n / p
     val res = Array.fill(n)(0)
     in.grouped(bp).zipWithIndex.foreach { case (set, sindex) =>
@@ -168,7 +168,7 @@ object spectrumTester {
   }
 
   def unscrambleInt(in: Seq[Int], p: Int): Seq[Int] = {
-    val n = 64
+    val n = 32
     val bp = n / p
     val res = Array.fill(n)(0)
     in.grouped(p).zipWithIndex.foreach { case (set, sindex) =>
@@ -217,7 +217,7 @@ object spectrumTester {
     val fftSize = config.n
 
     // bin-by-bin testing
-    val m = 3 // at most 16 bins
+    val m = 16 // at most 16 bins
     (0 until min(fftSize, m)).foreach { bin =>
       val b = if (fftSize > m) fftSize / m * bin else bin
       val tester = setupTester(c, verbose)
@@ -228,11 +228,11 @@ object spectrumTester {
       println("Reversed Input Tones")
       unscramble(tone, config.lanes).foreach{x=>print(x,',')}
       println(" ")
-      var testlist = (0 until 64).map(i=>i)
+      var testlist = (0 until 32).map(i=>i)
       println("testlist", testlist)
-      println("scramble testlist", scrambleInt(testlist,16))
-      println("get the testlist back", unscrambleInt(scrambleInt(testlist,16),16))
-      testlist = (0 until 64).map(i=>bit_reverse(i,5))
+      println("scramble testlist", scrambleInt(testlist,8))
+      println("get the testlist back", unscrambleInt(scrambleInt(testlist,8),8))
+      testlist = (0 until 32).map(i=>bit_reverse(i,5))
       println("bit reverse", testlist)
       val scrambleTone = scramble(tone, config.lanes)
       println(" ")
@@ -314,7 +314,7 @@ class FFTSpec extends FlatSpec with Matchers {
 //       Normal test for direct form FFT
 //      Seq(8, 8,  35, 19, 0, 0, 0),
 //       Normal test for direct form IFFT
-      Seq(16, 8,  35, 19, 0, 1, 0),
+      Seq(32, 8,  35, 19, 0, 1, 0),
       // Unscramble test for direct form FFT
 //      Seq(16, 16,  35, 19, 0, 1, 0),
       // Unscramble test for direct form IFFT

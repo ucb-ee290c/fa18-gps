@@ -153,8 +153,8 @@ class DirectFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], g
         val butterfly_outputs = Butterfly[T](Seq(stage_outputs(i)(start), stage_outputs(i)(start + skip)), twiddle_rom(config.tdindices(j)(i_rev))(sync))
         outputs.zip(butterfly_outputs).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i + log2Ceil(config.bp)), name = this.name + s"_${i}_${j}_pipeline_sram") }
       } else {
-        // TODO: here might need to bit reverse sync signal from twiddle rom, keep it for now
-        val butterfly_outputs = ButterflyDIF[T](Seq(stage_outputs(i)(start), stage_outputs(i)(start + skip)), twiddle_rom(config.tdindices(j)(i_rev))(Reverse(sync.asUInt())))
+        // TODO: here might need to bit reverse sync signal from twiddle rom, keep use sync for now?
+        val butterfly_outputs = ButterflyDIF[T](Seq(stage_outputs(i)(start), stage_outputs(i)(start + skip)), twiddle_rom(config.tdindices(j)(i_rev))(sync))
         outputs.zip(butterfly_outputs).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i + log2Ceil(config.bp)), name = this.name + s"_${i}_${j}_pipeline_sram") }
       }
       // TODO: pipeline reorder
@@ -367,6 +367,7 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], g
                 mux_out(1)
               ),
               twiddle_rom(log2Ceil(config.bp)-1-i)(sync(i + 1))
+//                twiddle_rom(i)(sync(i + 1))
             )
           ).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i), name = this.name + s"_${i}_${j}_pipeline1_sram") }
 //          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
