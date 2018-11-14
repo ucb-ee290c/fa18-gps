@@ -3,30 +3,35 @@ package gps
 import scala.math._
 
 
-class CostasModel (intTime: Double, pllBW: Double, fllBw: Double) {
-  var costasMode: Int = costasMode
+class CostasModel (intTime: Double, pllBW: Double, fllBw: Double, mode: Int, freqMode: Int) {
+  var costasMode: Int = mode
   var fllMode: Int = freqMode
+  var timeStep: Double = intTime
 
+  var lf: Double = 0
   var ips2: Double = 0
   var qps2: Double = 0
   var phaseErr: Double = 0
   var freqErr: Double = 0
   var alpha: Double = 0
   var beta: Double = 0
+  
 
-  val w0f = fllBw*1.89
+  val w0f = fllBw/0.53
+  val w0p = pllBW/0.7845
+
 
   def costasDetector(ips: Double, qps: Double): Double = {
     costasMode match {
-      case 0 => if (I_ps >= 0) {
-          atan2(Q_ps, I_ps)
+      case 0 => if (ips >= 0) {
+          atan2(qps, ips)
         } else {
-          atan2(-1*Q_ps, -1*I_ps) 
+          atan2(-1*qps, -1*ips) 
         }
-      case 1 => math.atan2(Q_ps, I_ps)
-      case 2 => Q_ps * signum(I_ps)
-      case 3 => Q_ps / I_ps
-      case _ => Q_ps * I_ps
+      case 1 => math.atan2(qps, ips)
+      case 2 => qps * signum(ips)
+      case 3 => qps / ips
+      case _ => qps * ips
     }
   }
 
@@ -42,8 +47,13 @@ class CostasModel (intTime: Double, pllBW: Double, fllBw: Double) {
   }
 
   def loopFilter(): Double = {
-    val b = pow(w0f, 2)*timeStep*freqErr+pow(w0p, 3)*timeStep*phaseErr+beta
-    val a = timeStep*(a2*w0f*freqErr+a3*pow(w0p,2)*phaseErr+0.5*(b + beta))+alpha
+    // Filter Constants
+    val a2 = 1.414
+    val a3 = 1.1
+    val b3 = 2.4
+
+    var b = pow(w0f, 2)*timeStep*freqErr+pow(w0p, 3)*timeStep*phaseErr+beta
+    var a = timeStep*(a2*w0f*freqErr+a3*pow(w0p,2)*phaseErr+0.5*(b + beta))+alpha
     lf = b3*w0p*phaseErr+0.5*(a+alpha)
     beta = b
     alpha = a
@@ -52,7 +62,7 @@ class CostasModel (intTime: Double, pllBW: Double, fllBw: Double) {
 
   def update(ips: Double, qps: Double, freqBias: Int): Int = {
     phaseErr = -1*costasDetector(ips, qps)
-    freqError = freqDetector(ips, qps)
+    freqErr = freqDetector(ips, qps)
     loopFilter()
     ips2 = ips
     qps2 = qps
