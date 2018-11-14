@@ -14,7 +14,7 @@ import dsptools.DspTester
 import scala.collection.mutable
 import scala.math.abs
 
-case class XYZ(
+case class TEST(
                 // input x, y and z
                 dataIn: Seq[Double],
                 caIn: Seq[Double],
@@ -36,11 +36,11 @@ class FFTMulSpec extends FlatSpec with Matchers {
   it should "convert from stream to parallel" in {
 
     val testNum = 4
-    val trials = new scala.collection.mutable.Queue[XYZ]()
+    val trials = new scala.collection.mutable.Queue[TEST]()
     (0 until testNum).foreach {x =>
       val dataInTmp = (0 until laneCount).map(i => scala.util.Random.nextDouble())
       val caInTmp = (0 until laneCount).map(i => scala.util.Random.nextDouble())
-      trials += XYZ(dataIn=dataInTmp, caIn=dataInTmp)
+      trials += TEST(dataIn=dataInTmp, caIn=dataInTmp)
     }
       FixedFFTMulTester(params, trials) should be(true)
   }
@@ -48,7 +48,7 @@ class FFTMulSpec extends FlatSpec with Matchers {
 
 
 
-class FFTMulTester[T <: chisel3.Data](c: FFTMul[T], trials: Seq[XYZ], lane: Int) extends DspTester(c) {
+class FFTMulTester[T <: chisel3.Data](c: FFTMul[T], trials: Seq[TEST], lane: Int) extends DspTester(c) {
 
   def compareOutputComplex(chisel: Seq[Double], ref: Seq[Double], epsilon: Double = 1e-4): Unit = {
     chisel.zip(ref).zipWithIndex.foreach { case ((c, r), index) =>
@@ -78,7 +78,7 @@ class FFTMulTester[T <: chisel3.Data](c: FFTMul[T], trials: Seq[XYZ], lane: Int)
   }
 }
 object FixedFFTMulTester {
-  def apply(params: FixedFFTMulParams, trials: Seq[XYZ]): Boolean = {
+  def apply(params: FixedFFTMulParams, trials: Seq[TEST]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), () => new FFTMul(params)) {
       c => new FFTMulTester(c, trials, params.laneCount)
     }
