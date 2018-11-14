@@ -74,7 +74,6 @@ case class IntACtrlParams (
   val pCorrelation = FixedPoint((wCorrelation+1).W, 1.BP)
   val pMax = FixedPoint((wMax+1).W, 1.BP)
   val pSum = FixedPoint((wSum+1).W, 1.BP)
-
 //  val pCorrelation = SInt(wCorrelation.W)
 //  val pMax = SInt(wMax.W)
 //  val pSum = SInt(wSum.W)
@@ -237,7 +236,7 @@ object TreeReduce {
 }
 
 
-class ACtrl[T <: Data:ConvertableTo:Ring:Real](params: ACtrlParams[T]) extends Module {
+class ACtrl[T <: Data:ConvertableTo:Ring:Real:BinaryRepresentation](params: ACtrlParams[T]) extends Module {
 
   val io = IO(ACtrlIO(params))
 

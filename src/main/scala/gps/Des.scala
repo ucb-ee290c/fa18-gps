@@ -7,6 +7,8 @@ import chisel3.util.Decoupled
 import chisel3.util._
 import scala.math._
 import dsptools._
+import dsptools.numbers._
+import dsptools.numbers.implicits._
 //import freechips.rocketchip.diplomacy.LazyModule
 //import freechips.rocketchip.subsystem.BaseSubsystem
 
@@ -83,14 +85,15 @@ case class SIntDesParams(
 //
 //}
 
-class Des[T <: Data](val params: DesParams[T]) extends Module {
+class Des[T <: Data:Real:BinaryRepresentation](val params: DesParams[T]) extends Module {
 
   require(params.nSample > 0)
   require(params.width > 0)
 
   val io = IO(new Bundle{
-    val in = Input(SInt(params.width.W))
-    val out = Output(Vec(params.nLane, params.proto))
+    val in: T = Input(params.proto)
+    val out: Vec[T] = Output(Vec(params.nLane, params.proto))
+//    val out = Output(Vec(params.nLane, SInt(2.W)))
     val ready = Input(Bool())
     val valid = Output(Bool())
     val newreq = Input(Bool())
