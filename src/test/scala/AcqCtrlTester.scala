@@ -78,8 +78,8 @@ class ACtrlTester[T <: chisel3.Data](c: ACtrl[T], trials: Seq[XYZ], tolLSBs: Int
   for (trial <- trials) {
 
 
-    poke(c.io.Ain.ADC, trial.ADC)
-    poke(c.io.Ain.CodePhase, trial.CodePhase)
+//    poke(c.io.Ain.ADC, trial.ADC)
+//    poke(c.io.Ain.CodePhase, trial.CodePhase)
     poke(c.io.Tin.idx_sate, trial.idx_sate)
 
 
@@ -215,8 +215,8 @@ class ACtrlTester2[T <: chisel3.Data](c: ACtrl[T], trials: Seq[XYZ], tolLSBs: In
   for (trial <- trials) {
 
 
-    poke(c.io.Ain.ADC, trial.ADC)
-    poke(c.io.Ain.CodePhase, trial.CodePhase)
+//    poke(c.io.Ain.ADC, trial.ADC)
+//    poke(c.io.Ain.CodePhase, trial.CodePhase)
     poke(c.io.Tin.idx_sate, trial.idx_sate)
 
     // wait until input is accepted

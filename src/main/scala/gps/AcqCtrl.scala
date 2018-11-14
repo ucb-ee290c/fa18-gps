@@ -60,7 +60,7 @@ case class IntACtrlParams (
 
   val bpADC: Int = 0
 
-  val wMax: Int = wCodePhase + wLoop + wADC
+  val wMax: Int = 2 * (wCodePhase + wLoop + wADC)
   val wSum: Int = wMax + wCodePhase + wIdxFreq
   val wCyc: Int = wCodePhase - wLane + 1
 
@@ -86,11 +86,9 @@ case class IntACtrlParams (
 
 // input interface within the acquisition loop
 class ACtrlAInputBundle[T <: Data](params: ACtrlParams[T]) extends Bundle {
-//  val ADC: T2 = params.pADC
-//  val CodePhase: T1 = params.pCodePhase
-//  val Correlation: T3 = params.pCorrelation
-  val ADC: T = Input(params.pADC)
-  val CodePhase: UInt = Input(params.pCodePhase)
+
+//  val ADC: T = Input(params.pADC)
+//  val CodePhase: UInt = Input(params.pCodePhase)
   val Correlation = Input(Vec(params.nLane, params.pCorrelation))
   val ready = Output(Bool())
   val valid = Input(Bool())

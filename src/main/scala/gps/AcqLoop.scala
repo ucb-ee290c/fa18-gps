@@ -185,6 +185,24 @@ extends Module {
   for (i <- 0 until DesParams_ADC.nLane) {
     actrl.io.Ain.Correlation(i) := ifft.io.out.bits(i).abssq()
   }
+  actrl.io.Ain.valid := ifft.io.out.valid
+  // TODO: should ready always be true?
+  actrl.io.Aout.ready := true.B
+  actrl.io.Tin.idx_sate := io.in.idx_sate
+  actrl.io.Tin.valid := io.in.valid
+  actrl.io.Tout.ready := io.out.ready
+
+  io.out.iFreqOpt := actrl.io.Tout
+  io.out.freqOpt := actrl.io.Tout.freqOpt
+  io.out.CPOpt := actrl.io.Tout.CPOpt
+  io.out.sateFound := actrl.io.Tout.sateFound
+  io.out.valid := actrl.io.Tout.ready
+
+
+
+
+
+
 
 //  actrl.io.Ain.Correlation := fft.io.***.abs()
 
