@@ -30,8 +30,10 @@ trait CordicParams[T <: Data] {
 case class FixedCordicParams(
   // width of X and Y
   xyWidth: Int,
+  xyBPWidth: Int,
   // width of Z
   zWidth: Int,
+  zBPWidth: Int,
   // number of stages
   nStages: Int,
   // scale output by correction factor?
@@ -39,10 +41,10 @@ case class FixedCordicParams(
 ) extends CordicParams[FixedPoint] {
   // prototype for x and y
   // binary point is (xyWidth-2) to represent 1.0 exactly
-  val protoXY = FixedPoint(xyWidth.W, (xyWidth-2).BP)
+  val protoXY = FixedPoint(xyWidth.W, xyBPWidth.BP)
   // prototype for z
   // binary point is (xyWidth-2) to represent Pi/2 exactly
-  val protoZ = FixedPoint(zWidth.W, (zWidth-2).BP)
+  val protoZ = FixedPoint(zWidth.W, zBPWidth.BP)
 }
 
 /**
@@ -93,7 +95,7 @@ class Cordic1Cycle[T <: Data : Real : BinaryRepresentation](val params: CordicPa
 
   // get constants
   val const = CordicConstants
-  val linear = const.linear(params.nStages)
+  val linear = const.linear(0, params.nStages)
   val gain = ConvertableTo[T].fromDouble(1/const.gain(params.nStages))
   val arctan = VecInit(const.arctan(params.nStages).map(ConvertableTo[T].fromDouble(_)))
 
@@ -146,7 +148,7 @@ class Cordic1Cycle[T <: Data : Real : BinaryRepresentation](val params: CordicPa
   // gain correcting
   if (params.correctGain){
     io.out.x := gain*xMid(params.nStages)
-    io.out.y := gain*xMid(params.nStages)
+    io.out.y := gain*yMid(params.nStages)
   }else{
     io.out.x := xMid(params.nStages)
     io.out.y := xMid(params.nStages)

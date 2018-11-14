@@ -12,7 +12,7 @@ if __name__ == '__main__':
     # data sample rate
     fs = 16528600
     sv_num = 1  # 22 #1
-    sv_freq = 4.132100e6 - 3862 - 50
+    sv_freq = 4.132100e6 - 3862 - 200
     chip_rate = 1.023e6
 
     # code bias
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     dll_discriminator_num = 1
 
     # costas parameters
-    costas_lf_coeff = [0.1, 0.01, 0, 1e-5, 0] # [100, 10, 0.1, 1e-2, 0]
+    costas_lf_coeff = [0.1, 0.01, 0, 1e-5, 0]   # [100, 10, 0.1, 1e-2, 0]
 
     # num of cycles to run
     num_cycles = 16000000    # len(raw_data)

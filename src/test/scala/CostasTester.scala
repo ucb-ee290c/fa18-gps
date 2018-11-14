@@ -24,19 +24,15 @@ class CostasSpec extends FlatSpec with Matchers {
 
   val params = SampledCostasParams(
     dataWidth = 10,
-    freqWidth = 20,
-    phaseWidth = 20,
-    cordicXYWidth = 16,
-    cordicZWidth = 16,
-    cordicNStages = 8,
+    ncoWidth = 20,
+    cordicNStages = 12,
     cordicCorrectGain = true,
-    costasLeftShift = 16 - 2, // get all the bits
     fllRightShift = 0,  // keep 0 right shift
     lfCoeffWidth = 10,
   )
 
   it should "Run CostasTest" in {
-    val input = ABC(ip=256, qp=0, lfcoeff0=1, lfcoeff1=0, lfcoeff2=0, lfcoeff3=0, lfcoeff4=0,
+    val input = ABC(ip=128, qp=128, lfcoeff0=10000, lfcoeff1=0, lfcoeff2=0, lfcoeff3=0, lfcoeff4=0,
       fbias=0)
     SampledCostasTester(params, input) should be (true)
   }
