@@ -188,8 +188,8 @@ class BiplexFFTIO[T <: Data : Real](lanes: Int, genIn: DspComplex[T], genMid: Ds
   *
   * @tparam T
   */
-class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], genTwiddle: DspComplex[T])(implicit val p: Parameters) extends Module {
-  val io = IO(new BiplexFFTIO[T](config.lanes, config.genIn, genMid))
+class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genIn: DspComplex[T], genMid: DspComplex[T], genTwiddle: DspComplex[T])(implicit val p: Parameters) extends Module {
+  val io = IO(new BiplexFFTIO[T](config.lanes, genIn, genMid))
 
   // synchronize
   var stage_delays = (0 until log2Ceil(config.bp) + 1).map(x => {
@@ -197,6 +197,11 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], g
   })
 
   stage_delays = if (config.unscrambleIn==false) stage_delays else stage_delays.reverse
+//  if (config.unscrambleIn == true){
+//    stage_delays = stage_delays.reverse
+//    stage_delays = stage_delays.drop(1) ++ stage_delays.take(1)
+//    seq.drop(size - (i % size)) ++ seq.take(size - (i % size))
+//  }
 
   val sync = List.fill(log2Ceil(config.bp) + 1)(Wire(UInt(width = log2Ceil(config.bp).W)))
   val valid_delay = RegNext(io.in.valid)
@@ -340,7 +345,7 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], g
       } else {
         val mux_out = BarrelShifter(VecInit(stage_outputs(i)(start),
           ShiftRegisterMem(stage_outputs(i)(start + skip), stage_delays(i), name = this.name + s"_${i}_${j}_mux0_sram")),
-          ShiftRegisterMem(sync(i)(if (i == 0) log2Ceil(config.bp) - 1 else i-1),
+          ShiftRegisterMem(sync(i)({if (i == 0) log2Ceil(config.bp)-1 else i-1}),
             {if (i == 0) 0 else config.pipe.dropRight(log2Ceil(config.n) - i).reduceRight(_ + _)}, name = this.name + s"_${i}_${j}_mux1_sram"))
         //TODO: why 0 is special here?
 
@@ -366,7 +371,8 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], g
                 ),
                 mux_out(1)
               ),
-              twiddle_rom(log2Ceil(config.bp)-1-i)(sync(i + 1))
+//              twiddle_rom(i)((Reverse(sync(i+1).asUInt())))
+                twiddle_rom(log2Ceil(config.bp)-1-i)(sync(i+1))
 //                twiddle_rom(i)(sync(i + 1))
             )
           ).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i), name = this.name + s"_${i}_${j}_pipeline1_sram") }
@@ -419,7 +425,8 @@ class FFT[T <: Data : Real](val config: FFTConfig[T])(implicit val p: Parameters
       config.genIn
     }
     else {
-      val growth = log2Ceil(config.bp)
+//      val growth = log2Ceil(config.bp)
+      val growth = if(config.unscrambleIn==false )log2Ceil(config.n) else log2Ceil(config.n)
       config.genIn.underlyingType() match {
         case "fixed" =>
           config.genIn.real.asInstanceOf[FixedPoint].binaryPoint match {
@@ -440,7 +447,9 @@ class FFT[T <: Data : Real](val config: FFTConfig[T])(implicit val p: Parameters
   // calculate twiddle factor bitwidth
   // total input bits
   val genTwiddleBiplex: DspComplex[T] = {
-    val growth = log2Ceil(config.bp)
+//    val growth = log2Ceil(config.bp)
+    //TODO: figure out the right way to calculate width
+    val growth = if(config.unscrambleIn==false )log2Ceil(config.n) else log2Ceil(config.n)
     config.genIn.underlyingType() match {
       case "fixed" =>
         config.genIn.asInstanceOf[DspComplex[T]].real.asInstanceOf[FixedPoint].binaryPoint match {
@@ -458,7 +467,7 @@ class FFT[T <: Data : Real](val config: FFTConfig[T])(implicit val p: Parameters
   }
 
   val genTwiddleDirect: DspComplex[T] = {
-    val growth = log2Ceil(config.n)
+    val growth = if(config.unscrambleIn==false )log2Ceil(config.n) else log2Ceil(config.n)
     config.genIn.underlyingType() match {
       case "fixed" =>
         config.genIn.asInstanceOf[DspComplex[T]].real.asInstanceOf[FixedPoint].binaryPoint match {
@@ -482,7 +491,8 @@ class FFT[T <: Data : Real](val config: FFTConfig[T])(implicit val p: Parameters
       config.genIn
     }
     else {
-      val growth = log2Ceil(config.n)
+//      val growth = log2Ceil(config.n)
+      val growth = if(config.unscrambleIn==false )log2Ceil(config.n) else log2Ceil(config.n)
       config.genIn.underlyingType() match {
         case "fixed" =>
           config.genIn.asInstanceOf[DspComplex[T]].real.asInstanceOf[FixedPoint].binaryPoint match {
@@ -534,7 +544,7 @@ class FFT[T <: Data : Real](val config: FFTConfig[T])(implicit val p: Parameters
     io.out <> direct.io.out
 
     if (config.n != config.lanes) {
-      val biplex = Module(new BiplexFFT[T](config, genMid, genTwiddleBiplex))
+      val biplex = Module(new BiplexFFT[T](config, config.genIn, genMid, genTwiddleBiplex))
       direct.io.in := biplex.io.out
       biplex.io.in <> in
     } else {
@@ -543,14 +553,14 @@ class FFT[T <: Data : Real](val config: FFTConfig[T])(implicit val p: Parameters
   } else {
     val direct = Module(new DirectFFT[T](
       config = config,
-      genMid = genMid,
-      genTwiddle = genTwiddleDirect,
-      genOutFull = genOutDirect
+      genMid = config.genIn,
+      genTwiddle = genTwiddleBiplex,
+      genOutFull = genMid
     ))
 
     direct.io.in <> in
     if (config.n != config.lanes) {
-      val biplex = Module(new BiplexFFT[T](config, genMid, genTwiddleBiplex))
+      val biplex = Module(new BiplexFFT[T](config, genMid, genOutDirect, genTwiddleDirect))
       biplex.io.in := direct.io.out
       io.out <> biplex.io.out
     } else {
