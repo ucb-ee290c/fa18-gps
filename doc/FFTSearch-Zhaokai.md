@@ -33,6 +33,15 @@ But for large input points, pipelined topology is necessary to reduce the hardwa
 ## Support unscrambleIn option
 In order to support IFFT in acquisition process of GPS. The FFT generator need handle the output properly, unless it have to store the pipelined output than unsramble it. The generator now support the input bits with scrambled input, which means it can directly handle the output from itself to do IFFT without any requirements for the output order.
 
+### Topology for unscrambleIn options
+![32pFFT](pictures/fft/fft32p.png)
+
+![TwiddleDetail](pictures/fft/twiddles_detail.png)
+
+#### Biplex 
+The Biplex stages are "reversed". The first stage is still N/2 because it need to take half of output to another way. After this, every stage's delay and swithing period is reversed compared to original Biplex FFT. The butterfly use decimation-in-frequency.
+![BiplexExample](pictures/fft/biplex_example.png)
+
 ### Original FFT Topology:
 #### Pipelined FFT(Radix-2 Multipath Delay Commuattor) and Biplex FFT
 R2MDC is a the most straightforward approach of pipelined FFT. When a new frame arrives, first half of points are multiplexed , delayed by N/2 samples and connected to the upper input of butterfly cell. The second half of points are selected and directly connected to the lower input of BF, and it will arrive simutaneously with the first half data. The output of first stage triggers the second stage. The upper input of second stage connect to the upper output of the first stage for two samples and then switch the lower input of second stage to upper output of first stage. And the lower output of first stage connect to the upper input of the second stage.
@@ -49,12 +58,7 @@ When the input is serialized, the FFT may have fewer input lanes than the size o
 - Extra shift registers of n/2 at the output unscramble the data before they arrive at the direct form FFT. Pipeline registers may be inserted after each butterfly, but never at the input or output.
 - A final direct form FFT sits at the output of the biplex FFTs, finishing the Fourier transform. Pipeline registers favor the direct form FFT slightly, though the critical path through this circuit is still through log2(n) butterflies, so one pipeline register per stage (a pipeline depth of log2(n)) is recommended.
 - The outputs are scrambled spectral bins. Since there is some unscrambling between the biplex and direct form FFT, the output indices are not purely bit reversed. To accommodate this time multiplexing, the FFT architecture changes. Pipelined biplex FFTs are inserted before the direct form FFT.
-### Topology for unscrambleIn options
-![TwiddleDetail](pictures/fft/twiddles_detail.png)
 
-#### Biplex 
-The Biplex stages are "reversed". The first stage is still N/2 because it need to take half of output to another way. After this, every stage's delay and swithing period is reversed compared to original Biplex FFT. The butterfly use decimation-in-frequency.
-![BiplexExample](pictures/fft/biplex_example.png)
 
 ## Other modifications
 ### Unscramble output option
