@@ -1,17 +1,46 @@
 # Tapein 2:
 
-## FFT Generators Topology
+## FFT Generator
+The figure below shows the complete FFT search diagram.
+Basically the generators work in a way that the correct order inputs (from DATA and CA code) are processed by the FFT configuration. After that, the output order is not very straightforward because of the two stage topology, it can be handled by the following code:
+```scala
+\\ n: total fft points
+\\ p: number of lanes
+\\ bp: biplex fft points
+def unscramble(in: Seq[Complex], p: Int): Seq[Complex] = {
+  val n = in.size
+  val bp = n/p
+  val res = Array.fill(n)(Complex(0.0,0.0))
+  in.grouped(p).zipWithIndex.foreach { case (set, sindex) =>
+    set.zipWithIndex.foreach { case (bin, bindex) =>
+      if (bp > 1) {
+        val p1 = if (sindex/(bp/2) >= 1) 1 else 0
+        val new_index = bit_reverse((sindex % (bp/2)) * 2 + p1, log2Up(bp)) + bit_reverse(bindex, log2Up(n))
+        res(new_index) = bin
+      } else {
+        val new_index = bit_reverse(bindex, log2Up(n))
+        res(new_index) = bin
+      }
+    }
+  }
+  res
+}
+```
+But for large input points, pipelined topology is necessary to reduce the hardware cost, and the extra delay and memory for storing and reordering the bit order is non-ideal. So the IFFT configuration should be able to directly take the scrambled output from FFT and perform the IFFT to get the correct result with right order. So that entire searching proccess can work continuously from the input of DATA to the output result.
+![FFT_Search_Diagram](pictures/fft/fft-search-diagram.png)
 
-### Pipelined FFT(Radix-2 Multipath Delay Commuattor)
+## Support unscrambleIn option
+In order to support IFFT in acquisition process of GPS. The FFT generator need handle the output properly, unless it have to store the pipelined output than unsramble it. The generator now support the input bits with scrambled input, which means it can directly handle the output from itself to do IFFT without any requirements for the output order.
+
+### Original FFT Topology:
+#### Pipelined FFT(Radix-2 Multipath Delay Commuattor) and Biplex FFT
 R2MDC is a the most straightforward approach of pipelined FFT. When a new frame arrives, first half of points are multiplexed , delayed by N/2 samples and connected to the upper input of butterfly cell. The second half of points are selected and directly connected to the lower input of BF, and it will arrive simutaneously with the first half data. The output of first stage triggers the second stage. The upper input of second stage connect to the upper output of the first stage for two samples and then switch the lower input of second stage to upper output of first stage. And the lower output of first stage connect to the upper input of the second stage.
-
-### Biplex pipelined FFT
 In the pipelined FFT above, each stage have a swicth at twice the frequency of the previous stage and have half delay for each sample. The total required memory is N/2+N/4+N/4+...+2=3/2N-2. But in this case, the butterflies only works half the time. By using biplex structure, each biplex core takes two inputs and the butterfly works interleavely for adjacent input samples to work at full rate.
 
-###  Cooley–Tukey algorithms
+#### Cooley–Tukey algorithms
 Coorley-tukey algorithms recursively re-express a DFT of a composite size N = N1*N2. It's because the frequency output X[k]=sigma(x[i]W[k,N]^(-i) = sigma(W[k,N]^(j)*(sigma(x[i]W[k,N]^)-i+j)))). So a single output can be calculated by sum of several subsets. For a input number smaller than FFT point case, the pipelined biplex architecture is used as subset to proccess N1 points, then the direct FFT at second stage can proccess the N2 subsets to get final N result.
 
-### The original Architecture of FFT generator from ucb-art/fft
+#### The original Architecture of FFT generator from ucb-art/fft
 The FFT supports any power of two size of 4 or greater (n >= 4). The input rate may be divided down, resulting in a number of parallel input lanes different from the FFT size. But the input lanes (p) must be a power of 2, greater than or equal to 2, but less than or equal to the FFT size.  
 
 When the number of parallel inputs equals the FFT size, a simple, direct form, streaming FFT is used. The dotted lines mark "stage" boundaries, or places where pipeline registers may be inserted. The input will never be pipelined, but the output might be pipelined based on your desired pipeline depth. Pipeline registers are automatically inserted in reasonable locations.
@@ -23,23 +52,22 @@ When the input is serialized, the FFT may have fewer input lanes than the size o
 - A final direct form FFT sits at the output of the biplex FFTs, finishing the Fourier transform. Pipeline registers favor the direct form FFT slightly, though the critical path through this circuit is still through log2(n) butterflies, so one pipeline register per stage (a pipeline depth of log2(n)) is recommended.
 - The outputs are scrambled spectral bins. Since there is some unscrambling between the biplex and direct form FFT, the output indices are not purely bit reversed. To accommodate this time multiplexing, the FFT architecture changes. Pipelined biplex FFTs are inserted before the direct form FFT.
 
-## FFT Generator Modifications
-### Support unscrambleIn option
-In order to support IFFT in acquisition process of GPS. The FFT generator need handle the output properly, unless it have to store the pipelined output than unsramble it. The generator now support the input bits with scrambled input, which means it can directly handle the output from itself to do IFFT without any requirements for the output order.  
 
-Basically the functions works in a way that the correct order input (from DATA and CA code) is processed by the FFT configuration. After that, the output order is not very straightforward, it can be handled by the following code:[TODO: add code]. But for large input points, pipelined FFT is necessary to reduce the hardware cost, and the extra delay and memory for storing and reordering the bit order is non-ideal. So the IFFT configuration should directly take the output from FFT and perform the IFFT to get the correct result with right order.  
-
-The entire procedure is illustrated in the figure below. Because of the duality of DIT and DIF FFT. 
-
+## Other modifications
 ### Unscramble output option
 The FFT output result in a bit-order that hard to understand. Basically because it has two stage, so the result comes out from the first stage is not completely bit-reversed order. Then those result go thru the direct form FFT. Basically, the final result is composed of several sub-groups, the order of groups are in bit-reverse order while inside each group the order also needs to be adjusted. In tapein 2, a configurable option is added for direct form only now.
 
+![BiplexExample](pictures/fft/biplex_example.png)
+![TwiddleDetail](pictures/fft/twiddles_detail.png)
+
 So the result for direct form FFT is ready to use now.
+
 ### IFFT suport for biplex version
 The original FFT generator can pass both direct FFT and biplex+direct FFT. But the IFFT cannot pass by simply changing the twiddle factor. 
 
 Now both FFT and IFFT for both version is supported. IFFT generator can be configured thru set inverse to true. But the IFFT also expects input with correct bit order, either a different IFFT or a unscrambler for biplex+direct form FFT is needed in the future.
-### FFT Multiplication Block
+
+## FFT Multiplication Block
 #### IO
 - Inputs: It takes two input from the output of FFT, the interface is provided by ValidwithSync from the output of two FFT blocks which do the FFT calculation for CA code and DATA seperately 
 - Output: It provides output to other blocks which should handle the interaction with IFFT, with unscrambleIn option of IFFT, it can directly output result to IFFT. The interface also provide Valid and Sync signal.
@@ -67,12 +95,12 @@ Use the dataset and simple acquisition model to test FFT search, can get the fol
 
 The table below is the SV infomation provided by the data source. From here we can see the phase is a little bit shift, which need tracking loop to locked the exact phase. Also, the frequency shift because of the finite doppler shift search resolution and range, and will also be covered by tracking loop.
 
-![signal](pictures/signal.png)
+![signal](pictures/fft/signal.png)
 ### Effect of different K
 - Larger K will improve the signal to noise ratio of weak satellite signal and will reduce the possibility of false acquisition. 
 - The result of using different K when FFT searching is list in the figure below. For K=1, there is still obvious noise floor in plot 1, but it is gradually averaged out when K increase. In this case, even K=1 can get good SNR(sufficient to get correct phase). But the number of iterations should be parameterize in higher-level control logic generator.
 
-![fft](pictures/fft-keffect.png)
+![fft](pictures/fft/fft-keffect.png)
 
 ### Sparse FFT
 - The sparse FFT aliases the input data, which is equivalent to subsample FFT spectrum. Since for GPS application, the FFT result only have one peak ideally, the correct code phase can be obtained using the subsampled FFT result.
@@ -85,7 +113,7 @@ The table below is the SV infomation provided by the data source. From here we c
 | 10 | 1.378309     | 0.492115            |
 | 20 | 2.980500     | 1.014424            |
 
-![sfft](pictures/sfft-effect.png)
+![sfft](pictures/fft/sfft-effect.png)
 
 ## Chisel Generator
 The fft generator use existing code from
