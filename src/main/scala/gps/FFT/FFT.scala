@@ -159,7 +159,7 @@ class DirectFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], g
       }
       // TODO: pipeline reorder
 ////      if (io.in.valid == true) {
-        printf("SYNCC %d %d \n", sync, (Reverse(sync.asUInt())))
+//        printf("SYNCC %d %d \n", sync, (Reverse(sync.asUInt())))
 //      }
     }
   }
@@ -290,7 +290,7 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genIn: DspComplex[T], ge
   //
   //  // wire up top-level outputs
   //  io.out.bits := stage_outputs(log2Ceil(config.bp)+1)
-  val stage_outputs = List.fill(log2Ceil(config.bp) + 2)(List.fill(config.lanes)(Wire(genMid)))
+  val stage_outputs = List.fill(log2Ceil(config.bp) + 2)(List.fill(config.lanes)(Wire(genIn)))
   io.in.bits.zip(stage_outputs(0)).foreach { case (in, out) => out := in }
 
   printf("[--DEBUG--]SYNCS ARE:")
@@ -339,8 +339,8 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genIn: DspComplex[T], ge
               twiddle_rom(i)(sync(i + 1))
             )
           ).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i), name = this.name + s"_${i}_${j}_pipeline1_sram") }
-//          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
-//          printf("SYNC %d \n", sync(i))
+          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
+          printf("SYNC %d \n", sync(i+1))
         }
       } else {
         val mux_out = BarrelShifter(VecInit(stage_outputs(i)(start),
@@ -372,18 +372,36 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genIn: DspComplex[T], ge
                 mux_out(1)
               ),
 //              twiddle_rom(i)((Reverse(sync(i+1).asUInt())))
-                twiddle_rom(log2Ceil(config.bp)-1-i)(sync(i+1))
+              twiddle_rom(log2Ceil(config.bp)-1-i)(sync(i+1))
 //                twiddle_rom(i)(sync(i + 1))
             )
           ).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i), name = this.name + s"_${i}_${j}_pipeline1_sram") }
-//          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
-//          printf("SYNC %d \n", sync(i))
+          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
+//          printf("%d, %d",               twiddle_rom(log2Ceil(config.bp)-1-i)(sync(i+1)).real,               twiddle_rom(log2Ceil(config.bp)-1-i)(sync(i+1)).imag)
+          printf("SYNC %d \n", sync(i+1))
         }
       }
 
     }
   }
-  // wire up top-level outputs
+  println("twiddle_rom")
+  twiddle_rom.foreach{x=>
+   x.foreach{ y=>
+     print(y,'/')
+   }
+  }
+  println("twiddle_rom2")
+//      print(twiddle_rom(0)(0.U),twiddle_rom(1)(3.U))
+//  (0 until 4).foreach{i=>
+    printf("sssss%d", twiddle_rom(1)(3.U).asUInt())
+  printf("xxxxx%d", twiddle_rom(1)(2.U).asUInt())
+  printf("ssxxx%d", twiddle_rom(1)(1.U).asUInt())
+  printf("aaaaa%d", twiddle_rom(1)(0.U).asUInt())
+//    print(twiddle_rom(0)(i.U),'/')
+//    print(twiddle_rom(1)(i.U),'/')
+//
+//  }
+  // wire up top-level output
   io.out.bits := stage_outputs(log2Ceil(config.bp) + 1)
 
 }

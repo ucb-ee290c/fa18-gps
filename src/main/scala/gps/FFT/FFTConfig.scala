@@ -185,11 +185,10 @@ case class FFTConfig[T <: Data](
     tdindices = tdindices ++ tdindices.map(x => x.map(y => y+tdindices_max))
     tdindices = tdindices.map(x => 0 +: x)
   }
-//  tdindices= if (unscrambleIn==true) tdindices.map(i=>i.reverse) else tdindices
-//  if (unscrambleIn == true){
-//    tdindices.foreach{x=>x.foreach{i=> i =i*bp}}
-//  }
-  println("The indices for direct form",tdindices)
+  print("The twiddles for Biplex ")
+//  btwiddles.foreach{x => x.foreach{y =>y .foreach{z => print(z,',')}}}
+  btwiddles.foreach{x => x.foreach{y => print(y,',')}}
+  println(" ")
 
   // pre-compute set of twiddle factors per-butterfly, including rotation for pipelining
   val dtwiddles = dindices.grouped(lanes_new-1).toList.transpose.zipWithIndex.map{ case(i,index) => {

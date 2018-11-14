@@ -210,6 +210,11 @@ object spectrumTester {
     //(0 until numSamples).map(i => pow(2, -(numSamples+1))*Complex(math.cos(2 * math.Pi * f * i), math.sin(2 * math.Pi * f * i)))
     (0 until numSamples).map(i => Complex(math.cos(2 * math.Pi * f * i), math.sin(2 * math.Pi * f * i)))
   }
+  def getOne(numSamples: Int, f: Double): Seq[Complex] = {
+    // uncomment to scale input tone
+    //(0 until numSamples).map(i => pow(2, -(numSamples+1))*Complex(math.cos(2 * math.Pi * f * i), math.sin(2 * math.Pi * f * i)))
+    Complex(1.0, 0.0)+:(1 until numSamples).map(i => Complex(0.0, 0.0))
+  }
 
   def apply[T <: Data](c: () => FFT[T], config: FFTConfig[T], verbose: Boolean = true): Unit = {
 
@@ -217,54 +222,55 @@ object spectrumTester {
     val fftSize = config.n
 
     // bin-by-bin testing
-    val m = 16   // at most 16 bins
-    (7 until min(fftSize, m)).foreach { bin =>
-//    (1 until 32).foreach { bin =>
-      val b = if (fftSize > m) fftSize / m * bin else bin
-      val tester = setupTester(c, verbose)
-      val tone = getTone(fftSize, b.toDouble / fftSize)
-      println("Original Tones")
-      tone.foreach{x=>print(x,',')}
-      println(" ")
-      println("Reversed Input Tones")
-      unscramble(tone, config.lanes).foreach{x=>print(x,',')}
-      println(" ")
-      var testlist = (0 until 64).map(i=>i)
-      println("testlist", testlist)
-      println("scramble testlist", scrambleInt(testlist,8))
-      println("get the testlist back", unscrambleInt(scrambleInt(testlist,8),8))
-      testlist = (0 until 64).map(i=>bit_reverse(i,6))
-      println("bit reverse", testlist)
-      val scrambleTone = scramble(tone, config.lanes)
-      println(" ")
-      val testResult = if (config.unscrambleIn==false) testSignal(tester, tone) else testSignal(tester, scrambleTone)
-      val expectedResult = fourierTr(DenseVector(tone.toArray)).toArray
-      val expectedResultInv = iFourierTr(DenseVector(tone.toArray)).toArray.map(_ * config.n)
-      if (verbose) {
-        println("Tone = ")
-        println(tone.toArray.deep.mkString("\n"))
-        println("Chisel output = ")
-        println(testResult.toArray.deep.mkString("\n"))
-        println("Expected output = ")
-        println(expectedResult.toArray.deep.mkString("\n"))
-        println("Expected Inv output = ")
-        println(expectedResultInv.toArray.deep.mkString("\n"))
-      }
-      if (config.inverse == true) {
-        compareOutputComplex(testResult, expectedResultInv, 1e-2)
-        teardownTester(tester)
-      } else {
-        compareOutputComplex(testResult, expectedResult, 1e-2)
-        teardownTester(tester)
-      }
-    }
+    val m = 1   // at most 16 bins
+//    (0 until min(fftSize, m)).foreach { bin =>
+////    (1 until 32).foreach { bin =>
+//      val b = if (fftSize > m) fftSize / m * bin else bin
+//      val tester = setupTester(c, verbose)
+////      val tone = getTone(fftSize, b.toDouble / fftSize)
+//            val tone = getOne(fftSize, b.toDouble / fftSize)
+//      println("Original Tones")
+//      tone.foreach{x=>print(x,',')}
+//      println(" ")
+//      println("Reversed Input Tones")
+//      unscramble(tone, config.lanes).foreach{x=>print(x,',')}
+//      println(" ")
+//      var testlist = (0 until 64).map(i=>i)
+//      println("testlist", testlist)
+//      println("scramble testlist", scrambleInt(testlist,8))
+//      println("get the testlist back", unscrambleInt(scrambleInt(testlist,8),8))
+//      testlist = (0 until 64).map(i=>bit_reverse(i,6))
+//      println("bit reverse", testlist)
+//      val scrambleTone = scramble(tone, config.lanes)
+//      println(" ")
+//      val testResult = if (config.unscrambleIn==false) testSignal(tester, tone) else testSignal(tester, scrambleTone)
+//      val expectedResult = fourierTr(DenseVector(tone.toArray)).toArray
+//      val expectedResultInv = iFourierTr(DenseVector(tone.toArray)).toArray.map(_ * config.n)
+//      if (verbose) {
+//        println("Tone = ")
+//        println(tone.toArray.deep.mkString("\n"))
+//        println("Chisel output = ")
+//        println(testResult.toArray.deep.mkString("\n"))
+//        println("Expected output = ")
+//        println(expectedResult.toArray.deep.mkString("\n"))
+//        println("Expected Inv output = ")
+//        println(expectedResultInv.toArray.deep.mkString("\n"))
+//      }
+//      if (config.inverse == true) {
+//        compareOutputComplex(testResult, expectedResultInv, 1e-2)
+//        teardownTester(tester)
+//      } else {
+//        compareOutputComplex(testResult, expectedResult, 1e-2)
+//        teardownTester(tester)
+//      }
+//    }
 
 //     random testing
     (0 until 4).foreach { x =>
       val tester = setupTester(c, verbose)
       val tone = (0 until fftSize).map(x => Complex(Random.nextDouble(), Random.nextDouble()))
 
-      val unscrambleTone = unscramble(tone, config.lanes)
+      val unscrambleTone = scramble(tone, config.lanes)
 
       val testResult = if (config.unscrambleIn==false) testSignal(tester, tone) else testSignal(tester, unscrambleTone)
       val expectedResult = fourierTr(DenseVector(tone.toArray)).toArray
@@ -295,7 +301,7 @@ object spectrumTester {
     chisel.zip(ref).zipWithIndex.foreach { case ((c, r), index) =>
       if (c.real != r.real) {
         val err = abs(c.real - r.real) / (abs(r.real) + epsilon)
-        assert(err < epsilon || abs(r.real) < epsilon, s"Error: mismatch in real value on output $index of ${err * 100}%\n\tReference: ${r.real}\n\tChisel:    ${c.real}")
+        assert(err < epsilon || abs(r.real) < epsilon, s"Error: mismatch in real value on output $index of pa${err * 100}%\n\tReference: ${r.real}\n\tChisel:    ${c.real}")
       }
       if (c.imag != r.imag) {
         val err = abs(c.imag - r.imag) / (abs(r.imag) + epsilon)
@@ -315,7 +321,7 @@ class FFTSpec extends FlatSpec with Matchers {
 //       Normal test for direct form FFT
 //      Seq(8, 8,  35, 19, 0, 0, 0),
 //       Normal test for direct form IFFT
-      Seq(64, 8,  35, 19, 0, 0, 0),
+      Seq(64, 8,  35, 20, 0, 0, 0),
       // Unscramble test for direct form FFT
 //      Seq(16, 16,  35, 19, 0, 1, 0),
       // Unscramble test for direct form IFFT
