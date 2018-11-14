@@ -196,12 +196,7 @@ object spectrumTester {
         isVerbose = false
       )
     }
-<<<<<<< HEAD
     chisel3.iotesters.Driver.execute(c, manager)(c => {
-=======
-
-    dsptools.Driver.execute(c, manager) (c => {
->>>>>>> 7673331b3d1fc3d5984f2215ecf634ef1a1756d2
       val t = new FFTTester(c)
       tester = t
       t
