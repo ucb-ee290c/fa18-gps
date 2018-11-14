@@ -7,10 +7,10 @@ from blocks import *
 if __name__ == '__main__':
 
     # data file
-    raw_data = np.fromfile('adc_sample_data.bin', dtype=np.int8)[15040:]
+    raw_data = np.fromfile('adc_sample_data.bin', dtype=np.int8)[31408:]
 
     # data sample rate
-    fs = 1023*16*1000 #16367600 # 16528600
+    fs = 16367600 # 16528600
     sv_num =  22 #3 #1
     sv_freq =   4.128460e6 #4.127190e6  # 4.132100e6 + 1115
     chip_rate = 1.023e6
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     code_nco_freq = round(1.023e6 / fs * code_count_max)
 
     # integrate time
-    int_time = 2e-3
+    int_time = 1e-3
     int_num = round(int_time * fs)
 
     # initial phase
@@ -38,9 +38,9 @@ if __name__ == '__main__':
     code_nco_init_phase = 0
 
     # dll parameters
-    dll_dc_gain = 12000
-    dll_bandwidth = 10
-    dll_sample_rate = 1e3
+    dll_dc_gain = 6000
+    dll_bandwidth = 3
+    dll_sample_rate = 1000
     dll_discriminator_num = 1
 
     # costas parameters
@@ -85,7 +85,7 @@ if __name__ == '__main__':
             code_nco_freq=code_nco_freq,
             sv_num=sv_num,
             code_bias=code_bias,
-            int_num=int_num,
+            int_num=1,
             )
         if val: 
             # add to list

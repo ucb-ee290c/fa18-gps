@@ -83,6 +83,7 @@ class CA(Block):
             self.curr_index += 1
             if self.curr_index >= len(self.curr_prn_list):
                 self.curr_index = 0
+                print("PRN GENERATION DONE")
                 self.done = 1
 
         self.prev_tick = tick
