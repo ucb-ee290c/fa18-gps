@@ -60,7 +60,7 @@ class ChannelSpec extends FlatSpec with Matchers {
 class ChannelTester[T <: Data](c: TrackingChannel[T], params: DataSetParam[T]) extends DspTester(c) {
   var inFile = None: Option[FileInputStream]
   val dll = new DLLModel(12000, 10, 1e3, 1)
-  val costas = new CostasModel(0.002, 17.0, 3.0, 0, 1) 
+  val costas = new CostasModel(0.002, 17.0, 3.0, 0, 2) 
   try { 
     inFile = Some(new FileInputStream(params.filename))
     var in: Int = 0

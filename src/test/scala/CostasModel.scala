@@ -42,7 +42,7 @@ class CostasModel (intTime: Double, pllBW: Double, fllBw: Double, mode: Int, fre
     freqMode match {
       case 0 => cross
       case 1 => cross * signum(dot) 
-      case 2 => atan2(cross, dot)
+      case 2 => atan2(cross, dot)/timeStep
     }
   }
 
@@ -64,8 +64,10 @@ class CostasModel (intTime: Double, pllBW: Double, fllBw: Double, mode: Int, fre
     phaseErr = -1*costasDetector(ips, qps)
     freqErr = freqDetector(ips, qps)
     loopFilter()
+    var delta_freq = lf/(2*Pi)
+    var code = delta_freq / (16*1023*1e3) * (pow(2, 30) - 1) 
     ips2 = ips
     qps2 = qps
-    lf.toInt + freqBias
+    code.toInt + freqBias
   }
 }
