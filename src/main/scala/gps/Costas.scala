@@ -17,6 +17,9 @@ case class SampledCostasParams(
   dataWidth: Int,
   // width of freq ctrl
   ncoWidth: Int,
+  //
+  cordicXYWidth: Int,
+  cordicZWidth: Int,
   // nStages
   cordicNStages: Int,
   // correct gain
@@ -31,12 +34,12 @@ case class SampledCostasParams(
   val protoData = SInt(dataWidth.W)
   val protoFreq = SInt(ncoWidth.W)
   val protoPhase = SInt(ncoWidth.W)
-  val protoCoeff = FixedPoint((ncoWidth+cordicNStages).W, cordicNStages.BP)
+  val protoCoeff = FixedPoint((ncoWidth+cordicZWidth-dataWidth).W, (cordicZWidth-dataWidth).BP)
   val protoCordic = FixedCordicParams(
-    xyWidth = dataWidth+cordicNStages,
-    xyBPWidth = cordicNStages,
-    zWidth = dataWidth+cordicNStages,
-    zBPWidth = cordicNStages,
+    xyWidth = cordicXYWidth,
+    xyBPWidth = cordicXYWidth-dataWidth,
+    zWidth = cordicZWidth,
+    zBPWidth = cordicZWidth-dataWidth,
     nStages = cordicNStages,
     correctGain = cordicCorrectGain,
     calAtan2 = cordicCalAtan2,
@@ -103,8 +106,8 @@ class costasDis(val params: SampledCostasParams) extends Module {
   val zOutCordic = Wire(params.protoCordic.protoZ.cloneType)
 
   // format to cordic Input
-  cordic.io.in.x := io.Ip.asTypeOf(params.protoCordic.protoXY.cloneType) << params.cordicNStages
-  cordic.io.in.y := io.Qp.asTypeOf(params.protoCordic.protoXY.cloneType) << params.cordicNStages
+  cordic.io.in.x := io.Ip.asTypeOf(params.protoCordic.protoXY.cloneType) << (params.cordicXYWidth-params.dataWidth)
+  cordic.io.in.y := io.Qp.asTypeOf(params.protoCordic.protoXY.cloneType) << (params.cordicXYWidth-params.dataWidth)
   cordic.io.in.z := 0.S.asTypeOf(params.protoCordic.protoZ)
   cordic.io.vectoring := true.B
   // cordic.io.dividing := false.B
@@ -167,7 +170,7 @@ class loopFilter(val params: SampledCostasParams) extends Module {
   val lfSumSum = RegInit(params.protoCoeff.cloneType, 0.S.asTypeOf(params.protoCoeff))
   val lfSum = RegInit(params.protoCoeff.cloneType, 0.S.asTypeOf(params.protoCoeff))
 
-  fllDisMid := io.fllDis.asTypeOf(params.protoCoeff.cloneType) << params.cordicNStages
+  fllDisMid := io.fllDis.asTypeOf(params.protoCoeff.cloneType) << (params.cordicZWidth-params.dataWidth)
 
   lfSumSum := io.lfCoeff.phaseCoeff2 * io.costasDis + io.lfCoeff.freqCoeff1 * fllDisMid
   lfSum := io.lfCoeff.phaseCoeff1 * io.costasDis + io.lfCoeff.freqCoeff0 * fllDisMid + lfSumSum

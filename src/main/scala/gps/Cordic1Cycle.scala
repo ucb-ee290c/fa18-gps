@@ -102,7 +102,7 @@ class Cordic1Cycle[T <: Data : Real : BinaryRepresentation](val params: CordicPa
   val io = IO(IterativeCordicIO(params))
 
   // get intermediate wires
-  val xMid = Wire(Vec(params.nStages+1, params.protoXY.cloneType))  // use Seq?
+  val xMid = Wire(Vec(params.nStages+1, params.protoXY.cloneType))
   val yMid = Wire(Vec(params.nStages+1, params.protoXY.cloneType))
   val zMid = Wire(Vec(params.nStages+1, params.protoZ.cloneType))
 
@@ -110,7 +110,8 @@ class Cordic1Cycle[T <: Data : Real : BinaryRepresentation](val params: CordicPa
   val const = CordicConstants
   val gain = ConvertableTo[T].fromDouble(1/const.gain(params.nStages))
   val arctan = VecInit(const.arctan(params.nStages).map(ConvertableTo[T].fromDouble(_)))
-  val linear = VecInit(const.linear(0, 2*params.nStages).map(ConvertableTo[T].fromDouble(_)))
+  val linear = VecInit(const.linear(-params.xyBPWidth, params.xyBPWidth).map(ConvertableTo[T].fromDouble(_)))
+  println(const.linear(-params.xyBPWidth+1, params.xyBPWidth+1))
   val divPstv = Wire(Bool())
 
   divPstv := true.B
@@ -129,9 +130,9 @@ class Cordic1Cycle[T <: Data : Real : BinaryRepresentation](val params: CordicPa
         xMid(0) := io.in.x
       }
       when(io.in.y < Ring[T].zero) {
-        yMid(0) := -io.in.y
+        yMid(0) := -(io.in.y >> params.xyBPWidth)
       }.otherwise{
-        yMid(0) := io.in.y
+        yMid(0) := io.in.y >> params.xyBPWidth
       }
       zMid(0) := io.in.z
     }else{
@@ -187,7 +188,6 @@ class Cordic1Cycle[T <: Data : Real : BinaryRepresentation](val params: CordicPa
       }
     }else{
       for(i <- 0 until params.nStages) {
-        val arctan = VecInit(const.arctan(params.nStages).map(ConvertableTo[T].fromDouble(_)))
         xMid(i + 1) := AddSub(yMid(i) <= Ring[T].zero, xMid(i), -yMid(i) >> i)
         yMid(i + 1) := AddSub(yMid(i) <= Ring[T].zero, yMid(i), xMid(i) >> i)
         zMid(i + 1) := AddSub(yMid(i) <= Ring[T].zero, zMid(i), -arctan(i))
@@ -202,14 +202,14 @@ class Cordic1Cycle[T <: Data : Real : BinaryRepresentation](val params: CordicPa
   }
 
   // gain correcting
-  if (params.correctGain){
-    io.out.x := gain*xMid(params.nStages)
-    io.out.y := gain*yMid(params.nStages)
-  }else {
+  if(params.correctGain) {
+    io.out.x := gain * xMid(params.nStages)
+    io.out.y := gain * yMid(params.nStages)
+  }else{
     io.out.x := xMid(params.nStages)
     io.out.y := yMid(params.nStages)
   }
-  when(divPstv){
+  when(divPstv) {
     io.out.z := zMid(params.nStages)
   }.otherwise{
     io.out.z := -zMid(params.nStages)

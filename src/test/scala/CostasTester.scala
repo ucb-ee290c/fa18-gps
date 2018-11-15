@@ -25,6 +25,8 @@ class CostasSpec extends FlatSpec with Matchers {
   val params_costas = SampledCostasParams(
     dataWidth = 10,
     ncoWidth = 20,
+    cordicXYWidth=22,
+    cordicZWidth=22,
     cordicNStages = 12,
     cordicCorrectGain = true,
     cordicCalAtan2 = false,
@@ -39,12 +41,13 @@ class CostasSpec extends FlatSpec with Matchers {
     SampledCostasTester(params_costas, input) should be (true)
   }
 
-
   behavior of "Div"
   val params_div = SampledCostasParams(
     dataWidth = 10,
     ncoWidth = 20,
-    cordicNStages = 10,
+    cordicXYWidth = 20,
+    cordicZWidth = 20,
+    cordicNStages = 20,
     cordicCorrectGain = false,
     cordicCalAtan2 = false,
     cordicDividing = true,
@@ -53,7 +56,7 @@ class CostasSpec extends FlatSpec with Matchers {
   )
 
   it should "Run DivTest" in {
-    val input = ABC(ip=(-128), qp=(-128), lfcoeff0=10000, lfcoeff1=0, lfcoeff2=0, lfcoeff3=0, lfcoeff4=0,
+    val input = ABC(ip=(1), qp=(-128), lfcoeff0=10000, lfcoeff1=0, lfcoeff2=0, lfcoeff3=0, lfcoeff4=0,
       fbias=0)
     SampledCostasTester(params_div, input) should be (true)
   }
