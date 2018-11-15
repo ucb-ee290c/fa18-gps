@@ -5,7 +5,8 @@ organization := "edu.berkeley.cs"
 version := "0.1-SNAPSHOT"
 
 libraryDependencies ++= Seq(
-  "edu.berkeley.cs" %% "rocket-dsptools" % "1.2-102318-SNAPSHOT"
+  "edu.berkeley.cs" %% "rocket-dsptools" % "1.2-102318-SNAPSHOT",
+  "org.scalanlp" %% "breeze-viz" % "0.13.2"
 )
 
 scalaVersion := "2.12.6"

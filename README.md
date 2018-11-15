@@ -4,6 +4,7 @@
 
 - This repository contains our EE290C class GPS project
 - For documentation of tape-ins, please see the /doc directory.
-
+## Tape-in 2
+- [Tape-in 2 report for FFT Generator](https://github.com/ucberkeley-ee290c/fa18-gps/blob/zhaokai/doc/FFTSearch-Zhaokai.md)
 ## Tape-in 1
 - [Tape-in 1 report](https://github.com/ucberkeley-ee290c/fa18-gps/tree/master/doc)
