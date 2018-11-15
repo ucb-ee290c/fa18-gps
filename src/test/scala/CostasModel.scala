@@ -1,67 +1,79 @@
 package gps 
+
 import scala.math._
 
-class CostasModel (coeffs: Seq[Double], costasMode: Int, freqMode: Int, freqBias: Int) {
-  var lfCoeff: Seq[Double] = coeffs
-  var mode: Int = costasMode
-  var fmode: Int = freqMode
-  var fb: Int = freqBias
 
-  var Ips_d: Double = 0
-  var Qps_d: Double = 0
-  var err: Double = 0
-  var freqErr: Double = 0
-  var dLfOut: Double = 0
+class CostasModel (intTime: Double, pllBW: Double, fllBw: Double, mode: Int, freqMode: Int) {
+  var costasMode: Int = mode
+  var fllMode: Int = freqMode
+  var timeStep: Double = intTime
+
   var lf: Double = 0
-  var lfSum: Double = 0
-  var lfSumSum: Double = 0
+  var ips2: Double = 0
+  var qps2: Double = 0
+  var phaseErr: Double = 0
+  var freqErr: Double = 0
+  var freqUpdate: Boolean = false
+  var alpha: Double = 0
+  var beta: Double = 0
+  
 
-  def costasDetector(I_ps: Double, Q_ps: Double) : Double = {
-    if (mode == 0) {
-      if (I_ps >= 0) {
-        atan2(Q_ps, I_ps)
-      } else {
-        atan2(-1*Q_ps, -1*I_ps) 
-      }
-    } else if (mode == 1) {
-      math.atan2(Q_ps, I_ps)
-    } else if (mode == 2) {
-      Q_ps * signum(I_ps)
-    } else if (mode == 3) {
-      Q_ps / I_ps
-    } else {
-      Q_ps * I_ps
+  val w0f = fllBw/0.53
+  val w0p = pllBW/0.7845
+
+
+  def costasDetector(ips: Double, qps: Double): Double = {
+    costasMode match {
+      case 0 => if (ips >= 0) {
+          atan2(qps, ips)
+        } else {
+          atan2(-1*qps, -1*ips) 
+        }
+      case 1 => math.atan2(qps, ips)
+      case 2 => qps * signum(ips)
+      case 3 => qps / ips
+      case _ => qps * ips
     }
   }
 
-  def freqDetector(I_ps:Double, Q_ps: Double) : Double = {
-    var cross = I_ps * Qps_d - Ips_d * Q_ps
-    var dot = I_ps * Ips_d - Q_ps * Qps_d
+  def freqDetector(ips1: Double, qps1: Double): Double = {
+    val cross = ips1 * qps2 - ips2 * qps1
+    val dot = ips1 * ips2 + qps1 * qps2
 
-    if (fmode == 1) {
-      cross
-    } else if (fmode == 2) {
-      cross * signum(dot)
-    } else {
-      atan2(dot, cross)
+    freqMode match {
+      case 0 => cross
+      case 1 => cross * signum(dot) 
+      case 2 => atan2(cross, dot)/timeStep
     }
   }
 
-  def loopFilter(phaseErr: Double) : Double = {
-    lfSumSum += lfCoeff(2) * phaseErr + lfCoeff(4) * freqErr
-    lfSum += lfCoeff(1) * phaseErr + lfCoeff(3) * freqErr + lfSumSum
-    lf = lfCoeff(0) * phaseErr + lfSum
+  def loopFilter(): Double = {
+    // Filter Constants
+    val a2 = 1.414
+    val a3 = 1.1
+    val b3 = 2.4
 
+    var b = pow(w0f, 2)*timeStep*freqErr+pow(w0p, 3)*timeStep*phaseErr+beta
+    var a = timeStep*(a2*w0f*freqErr+a3*pow(w0p,2)*phaseErr+0.5*(b + beta))+alpha
+    lf = b3*w0p*phaseErr+0.5*(a+alpha)
+    beta = b
+    alpha = a
     lf
   }
 
-  def update(I_int: Double, Q_int: Double, freqBias: Int) : Int = {
-    err = costasDetector(I_int, Q_int)
-    freqErr = freqDetector(I_int, Q_int)
-    dLfOut = loopFilter(-1*err)
-    Ips_d = I_int
-    Qps_d = Q_int
-    
-    dLfOut.toInt + freqBias
+  def update(ips: Double, qps: Double, freqBias: Int): Int = {
+    phaseErr = -1*costasDetector(ips, qps)
+    if (freqUpdate) {
+      freqErr = freqDetector(ips, qps)
+      freqUpdate = false
+    } else {
+      freqUpdate = true
+    }
+    loopFilter()
+    var delta_freq = lf/(2*Pi)
+    var code = delta_freq / (16*1023*1e3) * (pow(2, 30) - 1) 
+    ips2 = ips
+    qps2 = qps
+    code.toInt + freqBias
   }
 }

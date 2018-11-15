@@ -34,35 +34,24 @@ But for large input points, pipelined topology is necessary to reduce the hardwa
 In order to support IFFT in acquisition process of GPS. The FFT generator need handle the output properly, unless it have to store the pipelined output than unsramble it. The generator now support the input bits with scrambled input, which means it can directly handle the output from itself to do IFFT without any requirements for the output order.
 
 ### Topology for unscrambleIn options
-The figure below shows 32 points DIF FFT operation. The twiddle factors are annotated in dashed boxes. The output bits are in bit-reverse order. With a symmetric DIF implementation the bit-reversed input can be bit-reversed again to convert back the correct order. The original FFT is two staged and the output bits are not in a pure bit-reversed order. But with proper "symmetrical" operation the bit order can still be corrected in this way.
-
 ![32pFFT](pictures/fft/fft32p.png)
-
-The symmetrical configuration is in the figure below. The configuration with normal order input use Biplex from as the first stage and followed by direct form. And the twiddle factors for each times the direct form is in operation is shown in the colored box. The order of loading twiddle factors is simiar to bit-reverse in group. The configuration with scrambled input performs direct FFT first and output connect to Biplex FFT. The twiddle factor is mirrored. 
 
 ![TwiddleDetail](pictures/fft/twiddles_detail.png)
 
 #### Biplex 
-The Biplex topology is shown in the FFT search digram. The biplex in two configuration is different in terms of switching period and delay time.
-Basically, the Biplex stages are "reversed". 
-The first stage is still delayed by N/2 because it need to take half of output in time to another channel.
-After this, every stage's delay and swithing period is reversed compared to original Biplex FFT. The butterfly use decimation-in-frequency.
-Then the output should have correct order.
-
-The example below shows how the biplex works with 32 bit FFT and 8 lanes. 
-The output from direct form is bit reversed by group, which is compatible with the order of loading twiddle factors.
-For the first biplex core, the upper input order is 0,1,2,3. But the correct order should be 0,2,1,3. And the lower input have order 16,17,18,19 which ideally should be 16, 18, 17, 19. Then after the biplex operation the output should be corrected. The number here is corresponding to the input original number instead of position.
+The Biplex stages are "reversed". The first stage is still N/2 because it need to take half of output to another way. After this, every stage's delay and swithing period is reversed compared to original Biplex FFT. The butterfly use decimation-in-frequency.
 ![BiplexExample](pictures/fft/biplex_example.png)
 
 ### Original FFT Topology:
 #### Pipelined FFT(Radix-2 Multipath Delay Commuattor) and Biplex FFT
-R2MDC is a the most straightforward approach of pipelined FFT. When a new frame arrives, first half of points are multiplexed , delayed by N/2 samples and connected to the upper input of butterfly cell. The second half of points are selected and directly connected to the lower input of butterfly, and it will arrive simutaneously with the first half data. The output of first stage triggers the second stage. The upper input of second stage connect to the upper output of the first stage for two samples and then switch the lower input of second stage to upper output of first stage. And the lower output of first stage connect to the upper input of the second stage.
+R2MDC is a the most straightforward approach of pipelined FFT. When a new frame arrives, first half of points are multiplexed , delayed by N/2 samples and connected to the upper input of butterfly cell. The second half of points are selected and directly connected to the lower input of BF, and it will arrive simutaneously with the first half data. The output of first stage triggers the second stage. The upper input of second stage connect to the upper output of the first stage for two samples and then switch the lower input of second stage to upper output of first stage. And the lower output of first stage connect to the upper input of the second stage.
 In the pipelined FFT above, each stage have a swicth at twice the frequency of the previous stage and have half delay for each sample. The total required memory is N/2+N/4+N/4+...+2=3/2N-2. But in this case, the butterflies only works half the time. By using biplex structure, each biplex core takes two inputs and the butterfly works interleavely for adjacent input samples to work at full rate.
 
 #### The original Architecture of FFT generator from ucb-art/fft
 The FFT supports any power of two size of 4 or greater (n >= 4). The input rate may be divided down, resulting in a number of parallel input lanes different from the FFT size. But the input lanes (p) must be a power of 2, greater than or equal to 2, but less than or equal to the FFT size.  
 
-When the number of parallel inputs equals the FFT size, a simple, direct form, streaming FFT is used. 
+When the number of parallel inputs equals the FFT size, a simple, direct form, streaming FFT is used. The dotted lines mark "stage" boundaries, or places where pipeline registers may be inserted. The input will never be pipelined, but the output might be pipelined based on your desired pipeline depth. Pipeline registers are automatically inserted in reasonable locations.
+
 When the input is serialized, the FFT may have fewer input lanes than the size of the FFT .It is expected that the bits inputs contain time-series data time-multiplexed on the inputs, such that on the first cycle are values x[0], x[1], …, x[p-1], then the next cycle contains x[p], x[p+1], … and this continues until the input is x[n-p], x[n-p+1], …, x[n-1]. 
 
 - These FFTs efficiently reuse hardware and memories to calculate the FFT at a slower rate but higher latency.

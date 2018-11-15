@@ -33,7 +33,7 @@ class Track(Block):
                  # costas loop
                  costas_lf_coeff,
                  costas_pll_mode=0,
-                 costas_fll_mode=1,
+                 costas_fll_mode=3,
                  ):
 
         # Initial DLL and Costas value
@@ -105,6 +105,7 @@ class Track(Block):
         self.dll_out = code_nco_freq
         self.dll_lf_out = 0
         self.costas_out = if_nco_freq
+        self.counter_done = 0
 
     def update(self, if_nco_freq, code_nco_freq, sv_num, code_bias, int_num):
 
@@ -129,8 +130,10 @@ class Track(Block):
         ck_code, ck2x_code = self.nco_code.update(freq_ctrl=self.dll_out, phase_ctrl=0)
 
         # CA code update
-        e, p, l, clk_ca = self.ca.update(tick=ck_code, tick_2x=ck2x_code,
-                                         sv_num=sv_num, code_bias=code_bias)
+        e, p, l, done = self.ca.update(tick=ck_code, tick_2x=ck2x_code,
+                                       sv_num=sv_num, code_bias=code_bias)
+        if done: 
+            self.counter_done += 1
 
         # code/data XOR update
         I_e = self.multIe.update(I, e)
@@ -144,10 +147,10 @@ class Track(Block):
         Q_sample = [Q_e, Q_p, Q_l]
 
         # I_int and Q_int are lists of size 3
-        I_int, reset = self.intdumpI.update(I_sample, int_num)
-        Q_int, reset = self.intdumpQ.update(Q_sample, int_num)
+        I_int = self.intdumpI.update(I_sample, self.counter_done==int_num)
+        Q_int = self.intdumpQ.update(Q_sample, self.counter_done==int_num)
 
-        if reset:
+        if self.counter_done==int_num:
             # dll loop
             dll_out, dll_lf_out = self.dll.update(I_sample=I_int, Q_sample=Q_int,
                                                   freq_bias=code_nco_freq,
@@ -158,13 +161,12 @@ class Track(Block):
             self.dll_out = dll_out
             self.dll_lf_out = dll_lf_out
             self.costas_out = costas_out
+            self.counter_done = 0
 
         self.I_int = I_int
         self.Q_int = Q_int
 
-        # packet update
-        # self.packet.update(x, I_int, Q_int)
-
+        return done
 
 
 

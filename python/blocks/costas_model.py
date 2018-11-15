@@ -44,6 +44,12 @@ class Costas(Block):
         self._lf = 0
         self._lf_sum = 0
         self._lf_sum_sum = 0
+        self.alpha = 0
+        self.alpha_prev = 0
+        self.beta = 0
+        self.beta_prev = 0
+
+        self.freq_update = False
 
     def costas_detector(self, Ips, Qps, mode):
         """
@@ -111,7 +117,7 @@ class Costas(Block):
 
         # cross and dot
         cross = Ips * self._Qps_d - self._Ips_d * Qps
-        dot = Ips * self._Ips_d - Qps * self._Qps_d
+        dot = Ips * self._Ips_d + Qps * self._Qps_d
 
         # different modes
         if mode == 1:
@@ -119,7 +125,8 @@ class Costas(Block):
         elif mode == 2:
             return cross * np.sign(dot)
         elif mode == 3:
-            return math.atan2(dot, cross)
+            print(f"Fll error {math.degrees(math.atan2(cross, dot))}")
+            return math.atan2(cross, dot)/(0.002)
         else:
             raise ValueError("For frequency discriminator, mode is only supported for 1, 2, 3 and 4.")
 
@@ -141,10 +148,25 @@ class Costas(Block):
         lf_out:
             loop filter output.
         """
+        #self._lf_sum_sum += lf_coeff[2] * phase_err + lf_coeff[4] * freq_err
+        #self._lf_sum += lf_coeff[1] * phase_err + lf_coeff[3] * freq_err + self._lf_sum_sum
+        #self._lf = lf_coeff[0] * phase_err + self._lf_sum
+        bnp = 17
+        bnf = 3
+        T = 0.001
+        w0f = bnf/0.53
+        w0p = bnp/0.7845
+        a2 = 1.414
+        a3 = 1.1
+        b3 = 2.4
+        self.beta = (w0f**2)*T*freq_err + (w0p**3)*T*phase_err + self.beta_prev
+        alpha2 = T*(a2*w0f*freq_err + a3*(w0p**2)*phase_err+0.5*(self.beta_prev + self.beta))
+        self.alpha = alpha2 + self.alpha_prev
+        self._lf = b3 * w0p * phase_err + 0.5*(self.alpha + self.alpha_prev)
+      
+        self.beta_prev = self.beta
+        self.alpha_prev = self.alpha
 
-        self._lf_sum_sum += lf_coeff[2] * phase_err + lf_coeff[4] * freq_err
-        self._lf_sum += lf_coeff[1] * phase_err + lf_coeff[3] * freq_err + self._lf_sum_sum
-        self._lf = lf_coeff[0] * phase_err + self._lf_sum
         return self._lf
 
     def update(self, Ips, Qps, freq_bias):
@@ -172,11 +194,17 @@ class Costas(Block):
         self.costas_err = self.costas_detector(Ips, Qps, mode=self._costas_mode)
 
         # get frequency error
-        self.freq_err = self.frequency_detector(Ips, Qps, mode=self._freq_mode)
+        if self.freq_update: 
+            self.freq_err = self.frequency_detector(Ips, Qps, mode=self._freq_mode)
+            self.freq_update = False
+        else:
+            self.freq_update = True
 
         # get loop filter output
-        self.d_lf_out = self.loop_filter(-self.costas_err, self.freq_err, self._lf_coeff)
-        self.lf_out = self.d_lf_out + self.freq_bias
+        self.d_lf_out = self.loop_filter(-self.costas_err,self.freq_err, self._lf_coeff)
+        delta_freq = self.d_lf_out / (2*np.pi)
+        code = delta_freq / (16*1023*1e3) * (2**30 - 1)
+        self.lf_out = code + self.freq_bias
 
         self._Ips_d = Ips
         self._Qps_d = Qps

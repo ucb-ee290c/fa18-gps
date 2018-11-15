@@ -61,7 +61,6 @@ class DLL(Block):
             y = -1000
         self.prev_x = x
         self.prev_y = y
-        # print(y)
         return y
 
     def update(self, I_sample, Q_sample, freq_bias, carrier_assist):
@@ -81,6 +80,7 @@ class DLL(Block):
             self.dis_out = self.discriminator2(I_sample[0], I_sample[2],
                 Q_sample[0], Q_sample[2])
 
+        print(f"DLL Error: {self.dis_out}")
         lf_out = self.loop_filter(self.dis_out)
 
         return freq_bias + carrier_assist + lf_out, lf_out

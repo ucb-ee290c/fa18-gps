@@ -7,16 +7,16 @@ from blocks import *
 if __name__ == '__main__':
 
     # data file
-    raw_data = np.fromfile('adc_sample_data.bin', dtype=np.int8)
+    raw_data = np.fromfile('adc_sample_data.bin', dtype=np.int8)[31408:]
 
     # data sample rate
     fs = 16367600 # 16528600
-    sv_num = 3 # 22 #1
-    sv_freq = 4.127190e6 # 4.128460e6  # 4.132100e6 + 1115
+    sv_num =  22 #3 #1
+    sv_freq =   4.128460e6 #4.127190e6  # 4.132100e6 + 1115
     chip_rate = 1.023e6
 
     # code bias
-    code_bias_sample_rate = 1618
+    code_bias_sample_rate = 0 #1618
     code_bias = int(code_bias_sample_rate / (fs/chip_rate))
     print("Code bias is {}".format(code_bias))
 
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     code_nco_freq = round(1.023e6 / fs * code_count_max)
 
     # integrate time
-    int_time = 2e-3
+    int_time = 1e-3
     int_num = round(int_time * fs)
 
     # initial phase
@@ -38,9 +38,9 @@ if __name__ == '__main__':
     code_nco_init_phase = 0
 
     # dll parameters
-    dll_dc_gain = 12000
-    dll_bandwidth = 10
-    dll_sample_rate = 1e3
+    dll_dc_gain = 6000
+    dll_bandwidth = 3
+    dll_sample_rate = 1000
     dll_discriminator_num = 1
 
     # costas parameters
@@ -65,7 +65,7 @@ if __name__ == '__main__':
         dll_discriminator_num=dll_discriminator_num,
         int_num=int_num,
         costas_lf_coeff=costas_lf_coeff,
-        )
+    )
 
     # list to plot
     time_list = []
@@ -78,34 +78,35 @@ if __name__ == '__main__':
     d_freq_list = []
     code_freq_list = []
 
-    for cycle in range(num_cycles//5):
+    for cycle in range(16000000):
 
-        track.update(
+        val = track.update(
             if_nco_freq=if_nco_freq,
             code_nco_freq=code_nco_freq,
             sv_num=sv_num,
             code_bias=code_bias,
-            int_num=int_num,
+            int_num=1,
             )
+        if val: 
+            # add to list
+            print(f"Cycle num: {cycle}")
+            time_list.append(cycle / fs)
+            I_int_list.append(track.I_int[1])
+            Q_int_list.append(track.Q_int[1])
 
-        # add to list
-        time_list.append(cycle / fs)
-        I_int_list.append(track.I_int[1])
-        Q_int_list.append(track.Q_int[1])
+            # costas error and frequency error
+            costas_err_list.append(track.costas.costas_err)
+            freq_err_list.append(track.costas.freq_err)
 
-        # costas error and frequency error
-        costas_err_list.append(track.costas.costas_err)
-        freq_err_list.append(track.costas.freq_err)
+            # dll error
+            dll_err_list.append(track.dll_lf_out)
 
-        # dll error
-        dll_err_list.append(track.dll_lf_out)
+            # IF d_freq and freq
+            d_freq_list.append(track.costas.d_lf_out / carrier_count_max * fs)
+            freq_list.append(track.costas.lf_out / carrier_count_max * fs)
 
-        # IF d_freq and freq
-        d_freq_list.append(track.costas.d_lf_out / carrier_count_max * fs)
-        freq_list.append(track.costas.lf_out / carrier_count_max * fs)
-
-        # code nco freq
-        code_freq_list.append(track.dll_out / code_count_max * fs)
+            # code nco freq
+            code_freq_list.append(track.dll_out / code_count_max * fs)
 
         # get completion amount
         if cycle / num_cycles * 10 % 1 == 0:
@@ -115,6 +116,10 @@ if __name__ == '__main__':
 
     # plot data
     plt.close("all")
+
+    print(I_int_list[:10])
+    print("========================================")
+    print(Q_int_list[:10])
 
     plt.figure()
     plt.title("Costas Loop Locking")
