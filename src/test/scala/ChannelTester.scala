@@ -61,6 +61,7 @@ class ChannelTester[T <: Data](c: TrackingChannel[T], params: DataSetParam[T]) e
   var inFile = None: Option[FileInputStream]
   val dll = new DLLModel(6000, 3, 1e3, 1)
   val costas = new CostasModel(0.001, 17.0, 3.0, 0, 2) 
+  val display = false
   try { 
     inFile = Some(new FileInputStream(params.filename))
     var in: Int = 0
@@ -133,27 +134,29 @@ class ChannelTester[T <: Data](c: TrackingChannel[T], params: DataSetParam[T]) e
       }
     }
 
-    val dllFig = new Figure("DLL Response", 2,1)
-    val iqPltD = dllFig.subplot(0)
-    iqPltD += plot(DenseVector.range(0, ipArr.length, 1), ieArr,
-      colorcode="blue")
-    iqPltD += plot(DenseVector.range(0, qpArr.length, 1), qpArr,
-      colorcode="red")
-    val errPltD = dllFig.subplot(1)
-    errPltD += plot(DenseVector.rangeD(0.0, dllError.length.toDouble, 1.0), dllError)
-    dllFig.refresh()
-    
-    val costasFig = new Figure("Costas Response", 3,1)
-    val iqPltC = costasFig.subplot(0)
-    iqPltC += plot(DenseVector.range(0, ipArr.length, 1), ieArr)
-    iqPltC += plot(DenseVector.range(0, qpArr.length, 1), qpArr)
-    val freqErrPlt = costasFig.subplot(1)
-    freqErrPlt += plot(DenseVector.rangeD(0.0, dllError.length.toDouble, 1.0),
-      freqError)
-    val costasErrPlt = costasFig.subplot(2)
-    costasErrPlt += plot(DenseVector.rangeD(0.0, dllError.length.toDouble, 1.0),
-      costasError)
-    costasFig.refresh()
+    if (display) {
+      val dllFig = new Figure("DLL Response", 2,1)
+      val iqPltD = dllFig.subplot(0)
+      iqPltD += plot(DenseVector.range(0, ipArr.length, 1), ieArr,
+        colorcode="blue")
+      iqPltD += plot(DenseVector.range(0, qpArr.length, 1), qpArr,
+        colorcode="red")
+      val errPltD = dllFig.subplot(1)
+      errPltD += plot(DenseVector.rangeD(0.0, dllError.length.toDouble, 1.0), dllError)
+      dllFig.refresh()
+      
+      val costasFig = new Figure("Costas Response", 3,1)
+      val iqPltC = costasFig.subplot(0)
+      iqPltC += plot(DenseVector.range(0, ipArr.length, 1), ieArr)
+      iqPltC += plot(DenseVector.range(0, qpArr.length, 1), qpArr)
+      val freqErrPlt = costasFig.subplot(1)
+      freqErrPlt += plot(DenseVector.rangeD(0.0, dllError.length.toDouble, 1.0),
+        freqError)
+      val costasErrPlt = costasFig.subplot(2)
+      costasErrPlt += plot(DenseVector.rangeD(0.0, dllError.length.toDouble, 1.0),
+        costasError)
+      costasFig.refresh()
+    }
   
   } catch {
     case e: IOException => e.printStackTrace
