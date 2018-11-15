@@ -19,6 +19,8 @@ class MulIO[T <: Data](params: MulParams[T]) extends Bundle {
   val in1 = Input(params.protoIn)
   val in2 = Input(params.protoIn)
   val out = Output(params.protoOut)
+
+  override def cloneType: this.type = new MulIO(params).asInstanceOf[this.type]
 }
 
 object MulIO {
