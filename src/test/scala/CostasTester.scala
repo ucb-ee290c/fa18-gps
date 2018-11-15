@@ -32,7 +32,6 @@ class CostasSpec extends FlatSpec with Matchers {
     cordicCalAtan2 = false,
     cordicDividing = false,
     fllRightShift = 0,  // keep 0 right shift
-    // lfCoeffWidth = 10,
   )
 
   it should "Run CostasTest" in {
@@ -52,11 +51,10 @@ class CostasSpec extends FlatSpec with Matchers {
     cordicCalAtan2 = false,
     cordicDividing = true,
     fllRightShift = 0,  // keep 0 right shift
-    // lfCoeffWidth = 10,
   )
 
   it should "Run DivTest" in {
-    val input = ABC(ip=(1), qp=(-128), lfcoeff0=10000, lfcoeff1=0, lfcoeff2=0, lfcoeff3=0, lfcoeff4=0,
+    val input = ABC(ip=(128), qp=(-10), lfcoeff0=10000, lfcoeff1=0, lfcoeff2=0, lfcoeff3=0, lfcoeff4=0,
       fbias=0)
     SampledCostasTester(params_div, input) should be (true)
   }
@@ -85,11 +83,6 @@ class CostasTester[T <: chisel3.Data](dut: CostasLoop, input: ABC) extends DspTe
   peek(dut.io.xout)
   peek(dut.io.yout)
   peek(dut.io.zout)
-
-  peek(dut.io.xMid)
-  peek(dut.io.yMid)
-  peek(dut.io.zMid)
-
 
   expect(true, "always true")
   step(1)

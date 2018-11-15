@@ -70,9 +70,6 @@ class CostasIO[T <: Data](params: SampledCostasParams) extends Bundle {
   val xout = Output(params.protoCordic.protoXY)
   val yout = Output(params.protoCordic.protoXY)
   val zout = Output(params.protoCordic.protoZ)
-  val xMid = Output(Vec(params.cordicNStages+1, params.protoCordic.protoXY))
-  val yMid = Output(Vec(params.cordicNStages+1, params.protoCordic.protoXY))
-  val zMid = Output(Vec(params.cordicNStages+1, params.protoCordic.protoZ))
 }
 
 object CostasIO {
@@ -93,9 +90,6 @@ class costasDis(val params: SampledCostasParams) extends Module {
     val xout = Output(params.protoCordic.protoXY)
     val yout = Output(params.protoCordic.protoXY)
     val zout = Output(params.protoCordic.protoZ)
-    val xMid = Output(Vec(params.cordicNStages+1, params.protoCordic.protoXY))
-    val yMid = Output(Vec(params.cordicNStages+1, params.protoCordic.protoXY))
-    val zMid = Output(Vec(params.cordicNStages+1, params.protoCordic.protoZ))
   })
   // get cordic
   val cordic = Module(new Cordic1Cycle(params.protoCordic))
@@ -119,17 +113,13 @@ class costasDis(val params: SampledCostasParams) extends Module {
   // costas discreminator
   io.costasDisOut := zOutCordic.asTypeOf(params.protoCoeff.cloneType)
 
+  // debug
   io.xin := cordic.io.in.x
-  io.yin :=  cordic.io.in.y
+  io.yin := cordic.io.in.y
   io.zin := cordic.io.in.z
   io.xout := xOutCordic
   io.yout := yOutCordic
   io.zout := zOutCordic
-
-  io.xMid := cordic.io.xMid
-  io.yMid := cordic.io.yMid
-  io.zMid := cordic.io.zMid
-
 }
 
 
@@ -223,7 +213,4 @@ class CostasLoop(val params: SampledCostasParams) extends Module {
   io.yout := costas.io.yout
   io.zout := costas.io.zout
 
-  io.xMid := costas.io.xMid
-  io.yMid := costas.io.yMid
-  io.zMid := costas.io.zMid
 }

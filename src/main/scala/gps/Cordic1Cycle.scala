@@ -77,11 +77,6 @@ class IterativeCordicIO[T <: Data](params: CordicParams[T]) extends Bundle {
   val vectoring = Input(Bool())
   // val dividing = Input(Bool())
 
-  // debug
-  val xMid = Output(Vec(params.nStages+1, params.protoXY.cloneType))
-  val yMid = Output(Vec(params.nStages+1, params.protoXY.cloneType))
-  val zMid = Output(Vec(params.nStages+1, params.protoZ.cloneType))
-
   override def cloneType: this.type = IterativeCordicIO(params).asInstanceOf[this.type]
 }
 object IterativeCordicIO {
@@ -110,8 +105,7 @@ class Cordic1Cycle[T <: Data : Real : BinaryRepresentation](val params: CordicPa
   val const = CordicConstants
   val gain = ConvertableTo[T].fromDouble(1/const.gain(params.nStages))
   val arctan = VecInit(const.arctan(params.nStages).map(ConvertableTo[T].fromDouble(_)))
-  val linear = VecInit(const.linear(-params.xyBPWidth, params.xyBPWidth).map(ConvertableTo[T].fromDouble(_)))
-  println(const.linear(-params.xyBPWidth+1, params.xyBPWidth+1))
+  val linear = VecInit(const.linear(-(params.xyWidth-params.xyBPWidth), max((params.xyWidth-params.xyBPWidth), params.nStages)).map(ConvertableTo[T].fromDouble(_)))
   val divPstv = Wire(Bool())
 
   divPstv := true.B
@@ -130,9 +124,9 @@ class Cordic1Cycle[T <: Data : Real : BinaryRepresentation](val params: CordicPa
         xMid(0) := io.in.x
       }
       when(io.in.y < Ring[T].zero) {
-        yMid(0) := -(io.in.y >> params.xyBPWidth)
+        yMid(0) := -(io.in.y >> (params.xyWidth-params.xyBPWidth))
       }.otherwise{
-        yMid(0) := io.in.y >> params.xyBPWidth
+        yMid(0) := io.in.y >> (params.xyWidth-params.xyBPWidth)
       }
       zMid(0) := io.in.z
     }else{
@@ -214,10 +208,6 @@ class Cordic1Cycle[T <: Data : Real : BinaryRepresentation](val params: CordicPa
   }.otherwise{
     io.out.z := -zMid(params.nStages)
   }
-
-  io.xMid := xMid
-  io.yMid := yMid
-  io.zMid := zMid
 }
 
 
