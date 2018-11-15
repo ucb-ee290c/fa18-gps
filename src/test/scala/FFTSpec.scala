@@ -225,51 +225,51 @@ object spectrumTester {
     // get some parameters
     val fftSize = config.n
 
-    // bin-by-bin testing
-//    val m = 1   // at most 16 bins
-//    (0 until min(fftSize, m)).foreach { bin =>
-////    (1 until 32).foreach { bin =>
-//      val b = if (fftSize > m) fftSize / m * bin else bin
-//      val tester = setupTester(c, verbose)
-////      val tone = getTone(fftSize, b.toDouble / fftSize)
-//            val tone = getOne(fftSize, b.toDouble / fftSize)
-//      println("Original Tones")
-//      tone.foreach{x=>print(x,',')}
-//      println(" ")
-//      println("Reversed Input Tones")
-//      unscramble(tone, config.lanes).foreach{x=>print(x,',')}
-//      println(" ")
-//      var testlist = (0 until 64).map(i=>i)
-//      println("testlist", testlist)
-//      println("scramble testlist", scrambleInt(testlist,8))
-//      println("get the testlist back", unscrambleInt(scrambleInt(testlist,8),8))
-//      testlist = (0 until 32).map(i=>bit_reverse(i,5))
-//      println("bit reverse", testlist)
-//      testlist = (0 until 16).map(i=>bit_reverse(i,4))
-//      println("bit reverse", testlist)
-//      val scrambleTone = scramble(tone, config.lanes)
-//      println(" ")
-//      val testResult = if (config.unscrambleIn==false) testSignal(tester, tone) else testSignal(tester, scrambleTone)
-//      val expectedResult = fourierTr(DenseVector(tone.toArray)).toArray
-//      val expectedResultInv = iFourierTr(DenseVector(tone.toArray)).toArray.map(_ * config.n)
-//      if (verbose) {
-//        println("Tone = ")
-//        println(tone.toArray.deep.mkString("\n"))
-//        println("Chisel output = ")
-//        println(testResult.toArray.deep.mkString("\n"))
-//        println("Expected output = ")
-//        println(expectedResult.toArray.deep.mkString("\n"))
-//        println("Expected Inv output = ")
-//        println(expectedResultInv.toArray.deep.mkString("\n"))
-//      }
-//      if (config.inverse == true) {
-//        compareOutputComplex(testResult, expectedResultInv, 1e-2)
-//        teardownTester(tester)
-//      } else {
-//        compareOutputComplex(testResult, expectedResult, 1e-2)
-//        teardownTester(tester)
-//      }
-//    }
+//     bin-by-bin testing
+    val m = 1   // at most 16 bins
+    (0 until min(fftSize, m)).foreach { bin =>
+//    (1 until 32).foreach { bin =>
+      val b = if (fftSize > m) fftSize / m * bin else bin
+      val tester = setupTester(c, verbose)
+//      val tone = getTone(fftSize, b.toDouble / fftSize)
+            val tone = getOne(fftSize, b.toDouble / fftSize)
+      println("Original Tones")
+      tone.foreach{x=>print(x,',')}
+      println(" ")
+      println("Reversed Input Tones")
+      unscramble(tone, config.lanes).foreach{x=>print(x,',')}
+      println(" ")
+      var testlist = (0 until 64).map(i=>i)
+      println("testlist", testlist)
+      println("scramble testlist", scrambleInt(testlist,8))
+      println("get the testlist back", unscrambleInt(scrambleInt(testlist,8),8))
+      testlist = (0 until 32).map(i=>bit_reverse(i,5))
+      println("bit reverse", testlist)
+      testlist = (0 until 16).map(i=>bit_reverse(i,4))
+      println("bit reverse", testlist)
+      val scrambleTone = scramble(tone, config.lanes)
+      println(" ")
+      val testResult = if (config.unscrambleIn==false) testSignal(tester, tone) else testSignal(tester, scrambleTone)
+      val expectedResult = fourierTr(DenseVector(tone.toArray)).toArray
+      val expectedResultInv = iFourierTr(DenseVector(tone.toArray)).toArray.map(_ * config.n)
+      if (verbose) {
+        println("Tone = ")
+        println(tone.toArray.deep.mkString("\n"))
+        println("Chisel output = ")
+        println(testResult.toArray.deep.mkString("\n"))
+        println("Expected output = ")
+        println(expectedResult.toArray.deep.mkString("\n"))
+        println("Expected Inv output = ")
+        println(expectedResultInv.toArray.deep.mkString("\n"))
+      }
+      if (config.inverse == true) {
+        compareOutputComplex(testResult, expectedResultInv, 1e-2)
+        teardownTester(tester)
+      } else {
+        compareOutputComplex(testResult, expectedResult, 1e-2)
+        teardownTester(tester)
+      }
+    }
 
 //     random testing
     (0 until 4).foreach { x =>
@@ -327,7 +327,7 @@ class FFTSpec extends FlatSpec with Matchers {
 //       Normal test for direct form FFT
 //      Seq(8, 8,  35, 19, 0, 0, 0),
 //       Normal test for direct form IFFT
-      Seq(128, 8,  35, 20, 0, 0, 0),
+      Seq(16, 8,  35, 20, 0, 0, 0),
       // Unscramble test for direct form FFT
 //      Seq(16, 16,  35, 19, 0, 1, 0),
       // Unscramble test for direct form IFFT

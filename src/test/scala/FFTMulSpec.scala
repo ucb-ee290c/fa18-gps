@@ -27,8 +27,8 @@ class FFTMulSpec extends FlatSpec with Matchers {
 
   val laneCount = 16
   val params = FixedFFTMulParams(
-    width = 14,
-    bp = 10,
+    width = 24,
+    bp = 20,
     laneCount = laneCount,
     pipeStageCount = 1,
   )
@@ -73,7 +73,7 @@ class FFTMulTester[T <: chisel3.Data](c: FFTMul[T], trials: Seq[TEST], lane: Int
       c.io.out.bits.foreach(x => retval += peek(x))
       step(1)
     }
-    compareOutputComplex(retval, idealRes)
+    compareOutputComplex(retval, idealRes, epsilon = 1e-2)
 
   }
 }

@@ -393,10 +393,10 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genIn: DspComplex[T], ge
   println("twiddle_rom2")
 //      print(twiddle_rom(0)(0.U),twiddle_rom(1)(3.U))
 //  (0 until 4).foreach{i=>
-    printf("sssss%d", twiddle_rom(1)(3.U).asUInt())
-  printf("xxxxx%d", twiddle_rom(1)(2.U).asUInt())
-  printf("ssxxx%d", twiddle_rom(1)(1.U).asUInt())
-  printf("aaaaa%d", twiddle_rom(1)(0.U).asUInt())
+//    printf("sssss%d", twiddle_rom(1)(3.U).asUInt())
+//  printf("xxxxx%d", twiddle_rom(1)(2.U).asUInt())
+//  printf("ssxxx%d", twiddle_rom(1)(1.U).asUInt())
+//  printf("aaaaa%d", twiddle_rom(1)(0.U).asUInt())
 //    print(twiddle_rom(0)(i.U),'/')
 //    print(twiddle_rom(1)(i.U),'/')
 //
