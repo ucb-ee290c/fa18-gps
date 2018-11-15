@@ -1,7 +1,7 @@
 package gps
 import scala.math._ 
 
-class DLLModel(dcGain:Double, bandwidth:Double, sampleRate:Double, discriminatorNum:Int) {
+class DLLModel(dcGain: Double, bandwidth: Double, sampleRate: Double, discriminatorNum: Int) {
   var gain: Double = dcGain
   var bw: Double = bandwidth
   var sr: Double = sampleRate
@@ -15,7 +15,7 @@ class DLLModel(dcGain:Double, bandwidth:Double, sampleRate:Double, discriminator
   var prevY: Double = 0
   var disOut: Double = 0
 
-  def discriminator1(ie: Double, il: Double, qe: Double, ql: Double) : Double = {
+  def discriminator1(ie: Double, il: Double, qe: Double, ql: Double): Double = {
     var e = sqrt(pow(ie, 2) + pow(qe, 2))
     var l = sqrt(pow(il, 2) + pow(ql, 2))
 
@@ -26,7 +26,7 @@ class DLLModel(dcGain:Double, bandwidth:Double, sampleRate:Double, discriminator
     }
   }
     
-  def discriminator2(ie: Double, il: Double, qe: Double, ql: Double) : Double = {
+  def discriminator2(ie: Double, il: Double, qe: Double, ql: Double): Double = {
     var e = pow(ie, 2) + pow(qe, 2)
     var l = pow(il, 2) + pow(ql, 2)
     
@@ -37,7 +37,7 @@ class DLLModel(dcGain:Double, bandwidth:Double, sampleRate:Double, discriminator
     }
   } 
 
-  def loopFilter(x: Double) : Double = {
+  def loopFilter(x: Double): Double = {
     var y = gain/a * (x + prevX) - b / a * prevY
 
     if (y < -1000) {

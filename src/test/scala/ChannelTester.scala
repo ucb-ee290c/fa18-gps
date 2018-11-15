@@ -34,9 +34,9 @@ case class DataSetParam[T <: Data](
  * Example Data from adc_sample_data.bin
  */
 object ExampleData extends DataSetParam(
-  1.023*16*1e6,
+  16367600,
   4.128460*1e6, 
-  15040,
+  31408,
   16000000,
   22,
   "python/adc_sample_data.bin",
@@ -59,8 +59,8 @@ class ChannelSpec extends FlatSpec with Matchers {
  */
 class ChannelTester[T <: Data](c: TrackingChannel[T], params: DataSetParam[T]) extends DspTester(c) {
   var inFile = None: Option[FileInputStream]
-  val dll = new DLLModel(12000, 10, 1e3, 1)
-  val costas = new CostasModel(0.002, 17.0, 3.0, 0, 2) 
+  val dll = new DLLModel(6000, 3, 1e3, 1)
+  val costas = new CostasModel(0.001, 17.0, 3.0, 0, 2) 
   try { 
     inFile = Some(new FileInputStream(params.filename))
     var in: Int = 0
@@ -96,7 +96,7 @@ class ChannelTester[T <: Data](c: TrackingChannel[T], params: DataSetParam[T]) e
         if (count == 1023) {
           integrationTime += 1
         }
-        if (integrationTime == 2) {
+        if (integrationTime == 1) {
           hits += ind
           val ie = peek(c.io.ie)
           val ip = peek(c.io.ip)
@@ -115,34 +115,23 @@ class ChannelTester[T <: Data](c: TrackingChannel[T], params: DataSetParam[T]) e
           caCode = dll.update((ie.toDouble, ip.toDouble, il.toDouble), 
             (qe.toDouble, qp.toDouble, ql.toDouble), params.caNcoCodeNom)
           carrierCode = costas.update(ip.toDouble, qp.toDouble, params.carrierNcoCodeNom)
+          
           costasError += costas.phaseErr
           freqError += costas.freqErr
           dllError += dll.disOut
           integrationTime = 0
+          
           poke(c.io.dump, true)
         } else {
           poke(c.io.dump, false)
         }
         ind += 1
+        if (ind.toDouble / params.stopInd * 10 % 1 == 0) {
+          println(s"Percentage = ${(ind.toDouble / params.stopInd.toDouble *
+            100.0).toInt}")
+        }
       }
     }
-    
-    print(hits)
-    println()
-    print(ieArr)
-    println()
-    print(ipArr)
-    println()
-    print(ilArr)
-    println()
-    print(qeArr)
-    println()
-    print(qpArr)
-    println()
-    print(qlArr)
-    println()
-    print(dllError)
-    println()
 
     val dllFig = new Figure("DLL Response", 2,1)
     val iqPltD = dllFig.subplot(0)
@@ -153,6 +142,7 @@ class ChannelTester[T <: Data](c: TrackingChannel[T], params: DataSetParam[T]) e
     val errPltD = dllFig.subplot(1)
     errPltD += plot(DenseVector.rangeD(0.0, dllError.length.toDouble, 1.0), dllError)
     dllFig.refresh()
+    
     val costasFig = new Figure("Costas Response", 3,1)
     val iqPltC = costasFig.subplot(0)
     iqPltC += plot(DenseVector.range(0, ipArr.length, 1), ieArr)
@@ -164,6 +154,7 @@ class ChannelTester[T <: Data](c: TrackingChannel[T], params: DataSetParam[T]) e
     costasErrPlt += plot(DenseVector.rangeD(0.0, dllError.length.toDouble, 1.0),
       costasError)
     costasFig.refresh()
+  
   } catch {
     case e: IOException => e.printStackTrace
   } finally {
