@@ -118,10 +118,11 @@ class Des[T <: Data:Real:BinaryRepresentation](val params: DesParams[T]) extends
   // behavior of the counter
   val reg_cnt = RegInit(UInt(params.nbit_cnt.W), 0.U)
   reg_cnt := Mux(reg_cnt === (params.nSample-1).U, 0.U, reg_cnt+1.U)
+  val reg_shifter_cleared = RegInit(Bool(), false.B)
+  reg_shifter_cleared := Mux(reg_cnt === (params.nSample-1).U, false.B, Mux(io.newreq, true.B, reg_shifter_cleared))
   val reg_shifter_full = RegInit(Bool(), false.B)
-  reg_shifter_full := Mux(reg_cnt === (params.nSample-1).U, true.B, reg_shifter_full)
-
-
+//  reg_shifter_full := Mux(reg_cnt === (params.nSample-1).U, true.B, reg_shifter_full)
+  reg_shifter_full := !reg_shifter_cleared && reg_cnt === (params.nSample-1).U
 
 
   // control signal for the buffer

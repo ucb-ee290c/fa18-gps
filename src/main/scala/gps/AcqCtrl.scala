@@ -105,6 +105,8 @@ class ACtrlAOutputBundle[T <: Data](params: ACtrlParams[T]) extends Bundle {
 
   val freqNow: UInt = Output(params.pFreq.cloneType)
   val freqNext: UInt = Output(params.pFreq.cloneType)
+  val loopNow: UInt = Output(params.pLoop.cloneType)
+  val loopNext: UInt = Output(params.pLoop.cloneType)
   val cpNow: UInt = Output(params.pCodePhase.cloneType)
   val cpNext: UInt = Output(params.pCodePhase.cloneType)
   val ready = Input(Bool())
@@ -379,6 +381,8 @@ class ACtrl[T <: Data:ConvertableTo:Ring:Real:BinaryRepresentation](params: ACtr
 
   io.Aout.freqNow := reg_iFreqNow * params.freqStep.U + params.freqMin.U
   io.Aout.freqNext := iFreqNext * params.freqStep.U + params.freqMin.U
+  io.Aout.loopNow := reg_iLoopNow
+  io.Aout.loopNext := iLoopNext
   io.Aout.cpNow := reg_iCPNow
   io.Aout.cpNext := iCPNext
 

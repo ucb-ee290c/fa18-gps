@@ -132,6 +132,9 @@ extends Module {
   val stepSize2x = stepSize1x * ConvertableTo[SInt].fromInt(2)
 
 
+
+
+
   ca.io.satellite := io.in.idx_sate
   ca.io.fco := nco_CA1x.io.sin
   ca.io.fco2x := nco_CA2x.io.sin
@@ -140,11 +143,17 @@ extends Module {
   nco_CA1x.io.stepSize := stepSize1x
   nco_CA2x.io.stepSize := stepSize2x
 
+  val idle = WireInit(UInt(2.W), 0.U)
+  val reg_freqNext = RegNext(actrl.io.Aout.freqNext, 0.U)
+  val reg_loopNext = RegNext(actrl.io.Aout.loopNext, 0.U)
+
+
   // TODO: define des_out_ready and newreq here
-  val des_out_ready = false.B
-  val des_ADC_newreq = false.B
-  val des_CA_newreq = false.B
-  val des_NCO_newreq = false.B
+  val des_out_ready = ifft.io.out.sync
+  val des_ADC_newreq = reg_loopNext =/= actrl.io.Aout.loopNext
+  val des_CA_newreq = Mux(actrl.io.Tout.state === idle, true.B, false.B)
+  val des_NCO_newreq = reg_freqNext =/= actrl.io.Aout.freqNext
+
 
   des_ADC.io.in := io.in.ADC
   des_ADC.io.ready := des_out_ready

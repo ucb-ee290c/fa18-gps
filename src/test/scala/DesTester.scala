@@ -52,7 +52,7 @@ class DesTester[T <: chisel3.Data](c: Des[T], trials: Seq[DES], tolLSBs: Int = 1
 
     poke(c.io.offset, trial.offset)
     poke(c.io.ready, 1)
-    poke(c.io.newreq, 1)
+    poke(c.io.newreq, 0)
 
     // wait until input is accepted
     var cycles = 0
@@ -62,6 +62,7 @@ class DesTester[T <: chisel3.Data](c: Des[T], trials: Seq[DES], tolLSBs: Int = 1
 //      poke(c.io.ready, true)
       cycles += 1
       if (cycles >= 20 && cycles < 30) {poke(c.io.ready, 0)}
+      if (cycles == 20) {poke(c.io.newreq, 1)} else {poke(c.io.newreq, 0)}
       if (cycles >= 30) {poke(c.io.ready, 1)}
       poke(c.io.in, (cycles%17))
       peek(c.io.valid)
