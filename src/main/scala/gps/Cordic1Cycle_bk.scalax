@@ -102,9 +102,17 @@ class Cordic1Cycle[T <: Data : Real : BinaryRepresentation](val params: CordicPa
   val io = IO(IterativeCordicIO(params))
 
   // get intermediate wires
-  val xMid = Wire(Vec(params.nStages+1, params.protoXY.cloneType))  // use Seq?
-  val yMid = Wire(Vec(params.nStages+1, params.protoXY.cloneType))
-  val zMid = Wire(Vec(params.nStages+1, params.protoZ.cloneType))
+  if (params.dividing) {
+    val xyType = FixedPoint((3*params.nStages+1).W, params.nStages.BP)
+    val zType = FixedPoint((2*params.nStages+1).W, (2*params.nStages).BP)
+    val xMid = Wire(Vec(params.nStages + 1, xyType)) // use Seq?
+    val yMid = Wire(Vec(params.nStages + 1, xyType))
+    val zMid = Wire(Vec(params.nStages + 1, zType))
+  }else{
+    val xMid = Wire(Vec(params.nStages + 1, params.protoXY.cloneType)) // use Seq?
+    val yMid = Wire(Vec(params.nStages + 1, params.protoXY.cloneType))
+    val zMid = Wire(Vec(params.nStages + 1, params.protoZ.cloneType))
+  }
 
   // get constants
   val const = CordicConstants
@@ -124,16 +132,16 @@ class Cordic1Cycle[T <: Data : Real : BinaryRepresentation](val params: CordicPa
         divPstv := true.B
       }
       when(io.in.x < Ring[T].zero) {
-        xMid(0) := -io.in.x
+        xMid(0) := (-io.in.x).asTypeOf(xyType) << (params.nStages*2)
       }.otherwise{
-        xMid(0) := io.in.x
+        xMid(0) := io.in.x.asTypeOf(xyType) << (params.nStages*2)
       }
       when(io.in.y < Ring[T].zero) {
-        yMid(0) := -io.in.y
+        yMid(0) := -io.in.y.asTypeOf(xyType) << params.nStages
       }.otherwise{
-        yMid(0) := io.in.y
+        yMid(0) := io.in.y.asTypeOf(xyType) << params.nStages
       }
-      zMid(0) := io.in.z
+      zMid(0) := io.in.z.asTypeOf(zType)
     }else{
       if(params.calAtan2) {
         when((io.in.y < Ring[T].zero) && (io.in.x < Ring[T].zero)) {
@@ -202,17 +210,23 @@ class Cordic1Cycle[T <: Data : Real : BinaryRepresentation](val params: CordicPa
   }
 
   // gain correcting
-  if (params.correctGain){
-    io.out.x := gain*xMid(params.nStages)
-    io.out.y := gain*yMid(params.nStages)
-  }else {
-    io.out.x := xMid(params.nStages)
-    io.out.y := yMid(params.nStages)
-  }
-  when(divPstv){
+  if (params.dividing){
+    io.out.x := xMid(params.nStages).asTypeOf(params.protoXY.cloneType)
+    io.out.y := ((yMid(params.nStages) >> params.nStages).asTypeOf(params.protoXY.cloneType))
+    when(divPstv){
+      io.out.z := (zMid(params.nStages) >> params.nStages).asTypeOf(params.protoZ.cloneType)
+    }.otherwise {
+      io.out.z := -((zMid(params.nStages) >> params.nStages).asTypeOf(params.protoZ.cloneType))
+    }
+  }else{
+    if (params.correctGain){
+      io.out.x := gain*xMid(params.nStages)
+      io.out.y := gain*yMid(params.nStages)
+    }else {
+      io.out.x := xMid(params.nStages)
+      io.out.y := yMid(params.nStages)
+    }
     io.out.z := zMid(params.nStages)
-  }.otherwise{
-    io.out.z := -zMid(params.nStages)
   }
 
   io.xMid := xMid

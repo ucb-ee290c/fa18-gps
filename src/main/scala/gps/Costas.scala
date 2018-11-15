@@ -21,23 +21,27 @@ case class SampledCostasParams(
   cordicNStages: Int,
   // correct gain
   cordicCorrectGain: Boolean = true,
+  cordicCalAtan2: Boolean = false,
+  cordicDividing: Boolean = false,
   // fll right shift bits
   fllRightShift: Int,
   // filter coefficient bits
-  lfCoeffWidth: Int
+  // lfCoeffWidth: Int
 ) extends CostasParams[SInt] {
   val protoData = SInt(dataWidth.W)
   val protoFreq = SInt(ncoWidth.W)
   val protoPhase = SInt(ncoWidth.W)
   val protoCoeff = FixedPoint((ncoWidth+cordicNStages).W, cordicNStages.BP)
   val protoCordic = FixedCordicParams(
-        xyWidth = dataWidth+cordicNStages,
-        xyBPWidth = cordicNStages,
-        zWidth = dataWidth+cordicNStages,
-        zBPWidth = cordicNStages,
-        nStages = cordicNStages,
-        correctGain = cordicCorrectGain,
-        )
+    xyWidth = dataWidth+cordicNStages,
+    xyBPWidth = cordicNStages,
+    zWidth = dataWidth+cordicNStages,
+    zBPWidth = cordicNStages,
+    nStages = cordicNStages,
+    correctGain = cordicCorrectGain,
+    calAtan2 = cordicCalAtan2,
+    dividing = cordicDividing,
+  )
 }
 
 class lfCoeffIO[T <: Data](params: CostasParams[T]) extends Bundle {
@@ -63,6 +67,9 @@ class CostasIO[T <: Data](params: SampledCostasParams) extends Bundle {
   val xout = Output(params.protoCordic.protoXY)
   val yout = Output(params.protoCordic.protoXY)
   val zout = Output(params.protoCordic.protoZ)
+  val xMid = Output(Vec(params.cordicNStages+1, params.protoCordic.protoXY))
+  val yMid = Output(Vec(params.cordicNStages+1, params.protoCordic.protoXY))
+  val zMid = Output(Vec(params.cordicNStages+1, params.protoCordic.protoZ))
 }
 
 object CostasIO {
@@ -83,6 +90,9 @@ class costasDis(val params: SampledCostasParams) extends Module {
     val xout = Output(params.protoCordic.protoXY)
     val yout = Output(params.protoCordic.protoXY)
     val zout = Output(params.protoCordic.protoZ)
+    val xMid = Output(Vec(params.cordicNStages+1, params.protoCordic.protoXY))
+    val yMid = Output(Vec(params.cordicNStages+1, params.protoCordic.protoXY))
+    val zMid = Output(Vec(params.cordicNStages+1, params.protoCordic.protoZ))
   })
   // get cordic
   val cordic = Module(new Cordic1Cycle(params.protoCordic))
@@ -97,7 +107,7 @@ class costasDis(val params: SampledCostasParams) extends Module {
   cordic.io.in.y := io.Qp.asTypeOf(params.protoCordic.protoXY.cloneType) << params.cordicNStages
   cordic.io.in.z := 0.S.asTypeOf(params.protoCordic.protoZ)
   cordic.io.vectoring := true.B
-  cordic.io.dividing := false.B
+  // cordic.io.dividing := false.B
   // cordic output
   xOutCordic := cordic.io.out.x
   yOutCordic := cordic.io.out.y
@@ -112,6 +122,11 @@ class costasDis(val params: SampledCostasParams) extends Module {
   io.xout := xOutCordic
   io.yout := yOutCordic
   io.zout := zOutCordic
+
+  io.xMid := cordic.io.xMid
+  io.yMid := cordic.io.yMid
+  io.zMid := cordic.io.zMid
+
 }
 
 
@@ -133,6 +148,7 @@ class fllDis(val params: SampledCostasParams) extends Module {
   QpDel := io.Qp
   // fll discreminator
   fllDisMid := IpDel * io.Qp - QpDel * io.Ip
+  // use right shift replace division
   io.fllDisOut := fllDisMid >> params.fllRightShift
 }
 
@@ -203,4 +219,8 @@ class CostasLoop(val params: SampledCostasParams) extends Module {
   io.xout := costas.io.xout
   io.yout := costas.io.yout
   io.zout := costas.io.zout
+
+  io.xMid := costas.io.xMid
+  io.yMid := costas.io.yMid
+  io.zMid := costas.io.zMid
 }

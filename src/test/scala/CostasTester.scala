@@ -20,21 +20,42 @@ case class ABC(
  * DspSpec for Costas
  */
 class CostasSpec extends FlatSpec with Matchers {
-  behavior of "Costas"
 
-  val params = SampledCostasParams(
+  behavior of "Costas"
+  val params_costas = SampledCostasParams(
     dataWidth = 10,
     ncoWidth = 20,
     cordicNStages = 12,
     cordicCorrectGain = true,
+    cordicCalAtan2 = false,
+    cordicDividing = false,
     fllRightShift = 0,  // keep 0 right shift
-    lfCoeffWidth = 10,
+    // lfCoeffWidth = 10,
   )
 
   it should "Run CostasTest" in {
-    val input = ABC(ip=128, qp=128, lfcoeff0=10000, lfcoeff1=0, lfcoeff2=0, lfcoeff3=0, lfcoeff4=0,
+    val input = ABC(ip=(-128), qp=(128), lfcoeff0=10000, lfcoeff1=0, lfcoeff2=0, lfcoeff3=0, lfcoeff4=0,
       fbias=0)
-    SampledCostasTester(params, input) should be (true)
+    SampledCostasTester(params_costas, input) should be (true)
+  }
+
+
+  behavior of "Div"
+  val params_div = SampledCostasParams(
+    dataWidth = 10,
+    ncoWidth = 20,
+    cordicNStages = 10,
+    cordicCorrectGain = false,
+    cordicCalAtan2 = false,
+    cordicDividing = true,
+    fllRightShift = 0,  // keep 0 right shift
+    // lfCoeffWidth = 10,
+  )
+
+  it should "Run DivTest" in {
+    val input = ABC(ip=(-128), qp=(-128), lfcoeff0=10000, lfcoeff1=0, lfcoeff2=0, lfcoeff3=0, lfcoeff4=0,
+      fbias=0)
+    SampledCostasTester(params_div, input) should be (true)
   }
 }
 
@@ -61,6 +82,11 @@ class CostasTester[T <: chisel3.Data](dut: CostasLoop, input: ABC) extends DspTe
   peek(dut.io.xout)
   peek(dut.io.yout)
   peek(dut.io.zout)
+
+  peek(dut.io.xMid)
+  peek(dut.io.yMid)
+  peek(dut.io.zMid)
+
 
   expect(true, "always true")
   step(1)
