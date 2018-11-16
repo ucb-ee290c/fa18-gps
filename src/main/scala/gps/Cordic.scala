@@ -55,7 +55,7 @@ case class FixedCordicParams(
     }
     n
   }
-  val nStages = 20 //, xyStages.max(zStages)
+  val nStages = xyStages.max(zStages)
 }
 
 class CordicBundle[T <: Data](val params: CordicParams[T]) extends Bundle {
