@@ -39,7 +39,7 @@ trait ACtrlParams [T <: Data] {
 
 }
 
-case class IntACtrlParams (
+case class FixedACtrlParams (
                          val nLoop: Int,
                          val nFreq: Int,
                          val nSample: Int,
@@ -81,7 +81,44 @@ case class IntACtrlParams (
 }
 
 
+case class IntACtrlParams (
+                            val nLoop: Int,
+                            val nFreq: Int,
+                            val nSample: Int,
+                            val nLane: Int,
+                            val wCorrelation: Int,
+                            val wLoop: Int,
+                            val wIdxFreq: Int,
+                            val wFreq: Int,
+                            val wCodePhase: Int,
+                            val wLane: Int,
+                            val wADC: Int,
+                            val wSate: Int,
+                            val freqMin: Int,
+                            val freqStep: Int,
 
+
+                          ) extends ACtrlParams[SInt] {
+
+  val bpADC: Int = 0
+
+  val wMax: Int = 2 * (wCodePhase + wLoop + wADC)
+  val wSum: Int = wMax + wCodePhase + wIdxFreq
+  val wCyc: Int = wCodePhase - wLane + 1
+
+
+  val pIdxFreq = UInt(wIdxFreq.W)
+  val pFreq = UInt(wFreq.W)
+  val pLoop = UInt(wLoop.W)
+  val pCodePhase = UInt(wCodePhase.W)
+  val pSate = UInt(wSate.W)
+  val pADC = SInt(wADC.W)
+  val pCorrelation = SInt(wCorrelation.W)
+  val pMax = SInt(wMax.W)
+  val pSum = SInt(wSum.W)
+
+
+}
 
 
 // input interface within the acquisition loop

@@ -6,12 +6,129 @@ import chisel3.util._
 import scala.math._
 import dsptools.numbers._
 import dsptools.numbers.implicits._
+import dsptools.numbers.DspComplex
 import chisel3.experimental.FixedPoint
 import freechips.rocketchip.amba.axi4stream._
 import freechips.rocketchip.config.Parameters
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.regmapper._
 import freechips.rocketchip.tilelink._
+
+
+trait ALoopParams[T1 <: Data, T2 <: Data] {
+  val wADC: Int
+  val wCA: Int
+  val wNCOTct: Int
+  val wNCORes: Int
+  val wCorrelation: Int
+  val nSample: Int
+  val nLoop: Int
+  val nFreq: Int
+  val nLane: Int
+  val nStgFFT: Int
+  val nStgIFFT: Int
+  val nStgFFTMul: Int
+  val ACtrlParams: ACtrlParams[T2]
+  val NCOParams_ADC: NcoParams[T1]
+  val NCOParams_CA: NcoParams[T1]
+  val DesParams_ADC: DesParams[T1]
+  val DesParams_CA: DesParams[T1]
+  val DesParams_NCO: DesParams[T1]
+  val config_fft: FFTConfig[T2]
+  val config_ifft: FFTConfig[T2]
+  val FFTMulParams: FFTMulParams[T2]
+  val CA_Params: CAParams
+}
+
+case class EgALoopParams(
+                            val wADC: Int,
+                            val wCA: Int,
+                            val wNCOTct: Int,
+                            val wNCORes: Int,
+                            val nSample: Int,
+                            val nLoop: Int,
+                            val nFreq: Int,
+                            val nLane: Int,
+                            val nStgFFT: Int,
+                            val nStgIFFT: Int,
+                            val nStgFFTMul: Int,
+                          ) extends ALoopParams[SInt, FixedPoint] {
+
+  val wCorrelation = wADC + wCA + wNCORes + log2Ceil(nSample) + 1
+
+  val ACtrlParams = FixedACtrlParams (
+    nLoop = nLoop,
+    nFreq = nFreq,
+    nSample = nSample,
+    nLane = nLane,
+    wCorrelation = wCorrelation,
+    wLoop = log2Ceil(nLoop) + 1,
+    wIdxFreq = log2Ceil(nFreq) + 1,
+    wFreq = 32,
+    wCodePhase = log2Ceil(nSample) + 1,
+    wLane = log2Ceil(nLane) + 1,
+    wADC = wADC,
+    wSate = 6,
+    freqMin = 1000,
+    freqStep = 9,
+  )
+
+  val NCOParams_ADC = SIntNcoParams (
+    resolutionWidth = wNCORes,
+    truncateWidth = wNCOTct,
+    sinOut = true,
+  )
+  val NCOParams_CA = SIntNcoParams (
+    resolutionWidth = wNCORes,
+    truncateWidth = wNCOTct,
+    sinOut = true,
+  )
+
+  val DesParams_ADC = SIntDesParams(
+    width = wADC,
+    nSample = nSample,
+    nLane = nLane,
+  )
+  val DesParams_CA = SIntDesParams(
+    width = wCA,
+    nSample = nSample,
+    nLane = nLane,
+  )
+  val DesParams_NCO = SIntDesParams(
+    width = wNCOTct,
+    nSample = nSample,
+    nLane = nLane,
+  )
+  val config_fft = FFTConfig[FixedPoint](
+    genIn = DspComplex(FixedPoint((wCorrelation+8).W, 8.BP)),
+    genOut = DspComplex(FixedPoint((wCorrelation+8).W, 8.BP)),
+    n = nSample,
+    pipelineDepth = nStgFFT,
+    lanes = nLane,
+    inverse = false,
+  )
+  val config_ifft = FFTConfig[FixedPoint](
+    genIn = DspComplex(FixedPoint((wCorrelation+8).W, 8.BP)),
+    genOut = DspComplex(FixedPoint((wCorrelation+8).W, 8.BP)),
+    n = nSample,
+    pipelineDepth = nStgIFFT,
+    lanes = nLane,
+    inverse = true,
+  )
+  val FFTMulParams = FixedFFTMulParams(
+    width = wCorrelation + 8,
+    bp = 8,
+    laneCount = nLane,
+    pipeStageCount = nStgFFTMul
+  )
+  val CA_Params = CAParams(
+    fcoWidth = wNCOTct,
+    codeWidth = wCA
+  )
+
+}
+
+
 
 
 
@@ -98,11 +215,12 @@ object ALoopIO {
 
 class ALoop[T <: Data:Real:BinaryRepresentation]
   (
-    val ACtrlParams: ACtrlParams[SInt],
+    val ACtrlParams: ACtrlParams[FixedPoint],
     val NCOParams_ADC: NcoParams[SInt], val NCOParams_CA: NcoParams[SInt],
     val DesParams_ADC: DesParams[SInt], val DesParams_CA: DesParams[SInt], val DesParams_NCO: DesParams[SInt],
-    val config_fft: FFTConfig[SInt], val config_ifft: FFTConfig[SInt],
-    val CAParams: CAParams
+    val config_fft: FFTConfig[FixedPoint], val config_ifft: FFTConfig[FixedPoint],
+    val FFTMulParams: FFTMulParams[FixedPoint],
+    val CA_Params: CAParams,
   )
   ( implicit p: Parameters = null )
 extends Module {
@@ -110,8 +228,8 @@ extends Module {
   val io = IO(ALoopIO(ACtrlParams))
 
 
-  val actrl = Module(new ACtrl[SInt](ACtrlParams))
-  val ca = Module(new CA(CAParams))
+  val actrl = Module(new ACtrl[FixedPoint](ACtrlParams))
+  val ca = Module(new CA(CA_Params))
   val nco_ADC = Module(new NCO[SInt](NCOParams_ADC))
   val nco_CA1x = Module(new NCO[SInt](NCOParams_CA))
   val nco_CA2x = Module(new NCO[SInt](NCOParams_CA))
@@ -119,9 +237,10 @@ extends Module {
   val des_CA = Module(new Des[SInt](DesParams_CA))
   val des_cos = Module(new Des[SInt](DesParams_NCO))
   val des_sin = Module(new Des[SInt](DesParams_NCO))
-  val fft_ADC = Module(new FFT[SInt](config_fft))
-  val fft_CA = Module(new FFT[SInt](config_fft))
-  val ifft = Module(new FFT[SInt](config_ifft))
+  val fft_ADC = Module(new FFT[FixedPoint](config_fft))
+  val fft_CA = Module(new FFT[FixedPoint](config_fft))
+  val ifft = Module(new FFT[FixedPoint](config_ifft))
+  val fft_mul = Module(new FFTMul[FixedPoint](FFTMulParams))
 
 
   val fsample = 16367600
@@ -180,7 +299,7 @@ extends Module {
   val adc_q = des_ADC.io.out.zip(des_sin.io.out).map{ case(x: SInt, y: SInt) => x * y }
 
 
-
+  // TODO: convert type here!!!
   for (i <- 0 until DesParams_ADC.nLane) {
     fft_ADC.io.in.bits(i).real := adc_i(i)
     fft_ADC.io.in.bits(i).imag := adc_q(i)
@@ -188,7 +307,10 @@ extends Module {
     fft_CA.io.in.bits(i).imag := 0.U
   }
 
+  fft_mul.io.dataIn := fft_ADC.io.out
+  fft_mul.io.caIn := fft_CA.io.out
 
+  ifft.io.in := fft_mul.io.out
 
 
   for (i <- 0 until DesParams_ADC.nLane) {

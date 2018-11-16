@@ -21,7 +21,7 @@ trait DesParams[T <: Data] {
   val width: Int
   val nSample: Int
   val nLane: Int
-  val nbit_cnt = log2Ceil(nSample)
+  val nbit_cnt = log2Ceil(nSample) + 1
 }
 
 

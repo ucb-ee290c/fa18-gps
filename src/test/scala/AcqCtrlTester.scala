@@ -191,7 +191,7 @@ class ACtrlTester[T <: chisel3.Data](c: ACtrl[T], trials: Seq[XYZ], tolLSBs: Int
   * Convenience function for running tests
   */
 object ACtrlTester {
-  def apply(params: ACtrlParams[FixedPoint], trials: Seq[XYZ]): Boolean = {
+  def apply(params: ACtrlParams[SInt], trials: Seq[XYZ]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv", "-fimed", "1000000000000"), () => new ACtrl(params)) {
 //    dsptools.Driver.execute(() => new ACtrl(params), TestSetup.dspTesterOptions) {
       c => new ACtrlTester(c, trials)
