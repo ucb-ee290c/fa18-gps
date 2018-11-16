@@ -5,6 +5,8 @@ import chisel3.experimental.FixedPoint
 import chisel3.util.{log2Ceil, Decoupled}
 
 import dsptools.numbers._
+import scala.math._
+
 
 /**
  * Base class for CORDIC parameters
@@ -18,7 +20,11 @@ trait CordicParams[T <: Data] {
   val correctGain: Boolean
   val stagesPerCycle: Int
   val calAtan2: Boolean
-
+  val dividing: Boolean
+  val xyWidth: Int
+  val xyBPWidth: Int
+  val zWidth: Int
+  val zBPWidth: Int
   // requireIsHardware(protoXY)
   // requireIsHardware(protoZ)
 }
@@ -31,6 +37,7 @@ case class FixedCordicParams(
   correctGain: Boolean = true,
   stagesPerCycle: Int = 1,
   calAtan2: Boolean = true,
+  dividing: Boolean = true,
 ) extends CordicParams[FixedPoint] {
   val protoXY = FixedPoint(xyWidth.W, xyBPWidth.BP)
   val protoZ = FixedPoint(zWidth.W, zBPWidth.BP)
@@ -140,6 +147,7 @@ class CordicStage(params: CordicParams[FixedPoint]) extends Module {
     val vectoring = Input(Bool())
     val shift = Input(UInt())
     val romIn = Input(FixedPoint(params.nStages.W, (params.nStages-1).BP))
+//    val romLinIn = Input(FixedPoint(params.nStages.W, (params.nStages-1).BP))
     val out = Output(CordicBundle(params))
   })
   val xshift = io.in.x >> io.shift
@@ -176,8 +184,11 @@ class FixedIterativeCordic(val params: CordicParams[FixedPoint]) extends Module 
   val iter = RegInit(0.U(log2Ceil(params.nStages + 1).W))
 
   val table = CordicConstants.arctan(params.nStages)
+//  val tableLin = CordicConstants.linear(-(params.xyWidth-params.xyBPWidth),
+//    max((params.xyWidth-params.xyBPWidth), params.nStages))
   val gain = (1/CordicConstants.gain(params.nStages)).F(params.nStages.W, (params.nStages-2).BP)
   val rom = VecInit(table.map(_.F(params.nStages.W, (params.nStages-1).BP)))
+//  val romLin = VecInit(tableLin.map(_.F(params.nStages.W, (params.nStages-1).BP)))
   val regVectoring = Reg(Bool())
 
   // Make the stages and connect everything except in and out
@@ -187,6 +198,7 @@ class FixedIterativeCordic(val params: CordicParams[FixedPoint]) extends Module 
     stage.io.vectoring := regVectoring
     stage.io.shift := idx
     stage.io.romIn := rom(idx)
+//    stage.io.romLinIn := romLin(idx)
     stage
   }
   // Chain the stages together
