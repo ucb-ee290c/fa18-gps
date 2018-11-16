@@ -2,19 +2,31 @@ package gps
 
 import org.scalatest.{FlatSpec, Matchers}
 
+
 class FixedCordicSpec extends FlatSpec with Matchers {
   behavior of "FixedIterativeCordic"
 
+//  val params = FixedCordicParams(
+//    xyWidth = 19,
+//    xyBPWidth = 13,
+//    zWidth = 21,
+//    zBPWidth = 13,
+//    correctGain = true,
+//    stagesPerCycle = 1,
+//    calAtan2 = false,
+//    dividing = true,
+//  )
   val params = FixedCordicParams(
-    xyWidth = 16,
-    xyBPWidth = 13,
-    zWidth = 16,
-    zBPWidth = 13,
+    xyWidth = 20,
+    xyBPWidth = 12,
+    zWidth = 20,
+    zBPWidth = 12,
     correctGain = true,
+    // nStages = 20,
     stagesPerCycle = 1,
     calAtan2 = false,
+    dividing = true,
   )
-
   def angleMap(phi: Double): Double = {
     if (phi > math.Pi / 2)
       phi - math.Pi
@@ -28,15 +40,16 @@ class FixedCordicSpec extends FlatSpec with Matchers {
   val baseTrial = XYZ(xin=0.0, yin=0, zin=0.0, vectoring=true)
   var angles = Seq(-3.0, -2.0, -1.0, -0.0, -1.0, 2.0, 3.0)
   val trials =
-  if (params.calAtan2) {
-    angles.map { phi =>
-      baseTrial.copy(xin = math.cos(phi), yin = math.sin(phi), zout = Some(phi))
-    }
-  }else{
-    angles.map { phi =>
-      baseTrial.copy(xin = math.cos(phi), yin = math.sin(phi), zout = Some(angleMap(phi)))
-    }
-  }
+    Seq(baseTrial.copy(xin = 127, yin = 1, zout = Some(0.0)))
+//  if (params.calAtan2) {
+//    angles.map { phi =>
+//      baseTrial.copy(xin = 15*math.cos(phi), yin = 15*math.sin(phi), zout = Some(phi))
+//    }
+//  }else{
+//    angles.map { phi =>
+//      baseTrial.copy(xin = 15*math.cos(phi), yin = 15*math.sin(phi), zout = Some(angleMap(phi)))
+//    }
+//  }
   FixedCordicTester(params, trials) should be (true)
 
 //  it should "rotate with stagesPerCycle=1" in {
