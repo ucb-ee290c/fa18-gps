@@ -36,4 +36,4 @@ The early/punctual/late signals
 - punctual: SInt, bit width of codeWidth, either -1 or 1.
 - late: SInt, bit width of codeWidth, either -1 or 1
 - done: Bool, high when an entire 1023 length sequence has finished.
-- currIndex: UInt, which index of the CA code the early output is currently on
+- currIndex: UInt, whi****ch index of the CA code the early output is currently on
