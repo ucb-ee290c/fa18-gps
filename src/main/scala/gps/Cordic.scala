@@ -25,13 +25,15 @@ trait CordicParams[T <: Data] {
 
 case class FixedCordicParams(
   xyWidth: Int,
+  xyBPWidth: Int,
   zWidth: Int,
+  zBPWidth: Int,
   correctGain: Boolean = true,
   stagesPerCycle: Int = 1,
   calAtan2: Boolean = true,
 ) extends CordicParams[FixedPoint] {
-  val protoXY = FixedPoint(xyWidth.W, (xyWidth-3).BP)
-  val protoZ = FixedPoint(zWidth.W, (zWidth-3).BP)
+  val protoXY = FixedPoint(xyWidth.W, xyBPWidth.BP)
+  val protoZ = FixedPoint(zWidth.W, zBPWidth.BP)
   // number of stages needed to get LSBs of xy
   private val xyStages = xyWidth
   // number of stages needed to get LSBs of z

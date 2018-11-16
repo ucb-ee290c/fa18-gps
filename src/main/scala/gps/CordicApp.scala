@@ -55,7 +55,9 @@ object CordicApp extends App {
   }
   val defaultParams = FixedCordicParams(
     xyWidth = 12,
+    xyBPWidth = 9,
     zWidth = 12,
+    zBPWidth = 9,
     stagesPerCycle = 1,
   )
   val (chiselArgs, params) = argParse(args.toList, defaultParams)

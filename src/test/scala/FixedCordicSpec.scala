@@ -7,7 +7,9 @@ class FixedCordicSpec extends FlatSpec with Matchers {
 
   val params = FixedCordicParams(
     xyWidth = 16,
+    xyBPWidth = 13,
     zWidth = 16,
+    zBPWidth = 13,
     correctGain = true,
     stagesPerCycle = 1,
     calAtan2 = true,
