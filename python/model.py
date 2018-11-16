@@ -28,11 +28,11 @@ carrier_nco_code = round(ideal_carrier_nco_code)
 print(f"Rounding the NCO frequency to {carrier_nco_code}")
 
 #Set the integration period
-integration_period = 1
+integration_period = 5
 
 
 def main():
-    num_cycles = len(raw_data)//10
+    num_cycles = len(raw_data)//2
     print(f' Simulating for {num_cycles}')
 
     adc = ADC(np.sign(raw_data))
@@ -57,7 +57,7 @@ def main():
     intdumpQ = IntDump()
 
     # DC Gain of 2, bandwidth=10Hz, sample_rate=1kHz, discriminator=1
-    dll = DLL(12, 10, 1000, 1)
+    dll = DLL(10, 20, 1000, 1)
     # Disabling the Costas loop for now and forcing the right frequency
     costas = Costas(1,[1,1,1],1,1,1)    
 
