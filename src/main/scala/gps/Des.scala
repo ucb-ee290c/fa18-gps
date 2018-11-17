@@ -100,6 +100,7 @@ class Des[T <: Data:Real:BinaryRepresentation](val params: DesParams[T]) extends
     val offset = Input(UInt(params.nbit_cnt.W))
     val state = Output(UInt(2.W))
     val cnt_buffer = Output(UInt(params.nbit_cnt.W))
+    val isstream = Output(Bool())
     val start = Output(Bool())
     val end = Output(Bool())
   })
@@ -169,6 +170,7 @@ class Des[T <: Data:Real:BinaryRepresentation](val params: DesParams[T]) extends
 
   io.state := reg_state_buffer
   io.cnt_buffer := reg_cnt_buffer
+  io.isstream := reg_state_buffer === stream
   io.start := reg_state_buffer === stream && reg_cnt_buffer === 0.U
   io.end := reg_state_buffer === stream && reg_cnt_buffer === cnt_buffer_max
 
