@@ -55,7 +55,7 @@ case class FixedCordicParams(
     }
     n
   }
-  val nStages = xyStages.max(zStages)
+  val nStages = 24 // xyStages.max(zStages)
 }
 
 class CordicBundle[T <: Data](val params: CordicParams[T]) extends Bundle {
@@ -112,9 +112,9 @@ object TransformInput {
         xyzTransformed.x := xyz.x
       }
       when(yNeg) {
-        xyzTransformed.y := -xyz.y >> (xyz.params.xyWidth - xyz.params.xyBPWidth)
+        xyzTransformed.y := -xyz.y >> (xyz.params.xyWidth - xyz.params.xyBPWidth-1)
       }.otherwise{
-        xyzTransformed.y := xyz.y >> (xyz.params.xyWidth - xyz.params.xyBPWidth)
+        xyzTransformed.y := xyz.y >> (xyz.params.xyWidth - xyz.params.xyBPWidth-1)
       }
       xyzTransformed.z := xyz.z
     }else {
@@ -202,8 +202,8 @@ class FixedIterativeCordic(val params: CordicParams[FixedPoint]) extends Module 
   val iter = RegInit(0.U(log2Ceil(params.nStages + 1).W))
 
   val table = CordicConstants.arctan(params.nStages)
-  val tableLin = CordicConstants.linear(-(params.xyWidth-params.xyBPWidth),
-      params.xyBPWidth)
+  val tableLin = CordicConstants.linear(-(params.xyWidth-params.xyBPWidth-1),
+      max(params.xyBPWidth, (params.nStages-params.xyWidth+params.xyBPWidth)))
   println(tableLin)
   val gain = (1/CordicConstants.gain(params.nStages)).F(params.xyWidth.W, params.xyBPWidth.BP)
   val rom = VecInit(table.map(_.F(params.zWidth.W, params.zBPWidth.BP)))
