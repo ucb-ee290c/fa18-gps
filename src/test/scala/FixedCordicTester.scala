@@ -31,7 +31,7 @@ class FixedCordicTester(c: FixedIterativeCordic, trials: Seq[XYZ]) extends DspTe
       peek(c.io.out.bits.z)
       step(1)
     }
-    fixTolLSBs.withValue(3) {
+    fixTolLSBs.withValue(4) {
       trial.xout.foreach { x => expect(c.io.out.bits.x, x) }
       trial.yout.foreach { y => expect(c.io.out.bits.y, y) }
       trial.zout.foreach { z => expect(c.io.out.bits.z, z) }

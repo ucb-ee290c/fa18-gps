@@ -106,7 +106,6 @@ object TransformInput {
     val xNeg = xyz.x.isSignNegative()
     val yNeg = xyz.y.isSignNegative()
 
-//    val divNeg =
 
     val xyzTransformed = WireInit(xyz)
     if (xyz.params.dividing){
@@ -165,7 +164,6 @@ class CordicStage(params: CordicParams[FixedPoint]) extends Module {
     val vectoring = Input(Bool())
     val shift = Input(UInt())
     val romIn = Input(FixedPoint(params.zWidth.W, params.zBPWidth.BP))
-    val romLinIn = Input(FixedPoint(params.zWidth.W, params.zBPWidth.BP))
     val out = Output(CordicBundle(params))
   })
   val xshift = io.in.x >> io.shift
@@ -182,7 +180,7 @@ class CordicStage(params: CordicParams[FixedPoint]) extends Module {
     io.out.z := AddSub(!d, io.in.z, io.romIn)
   }else{
     io.out.x := io.in.x
-    io.out.z := AddSub(!d, io.in.z, io.romLinIn)
+    io.out.z := AddSub(!d, io.in.z, io.romIn)
   }
 }
 
@@ -205,13 +203,21 @@ class FixedIterativeCordic(val params: CordicParams[FixedPoint]) extends Module 
   // Counter for the current iteration
   val iter = RegInit(0.U(log2Ceil(params.nStages + 1).W))
 
-  val table = CordicConstants.arctan(params.nStages)
-  val tableLin = CordicConstants.linear(-(params.xyWidth-params.xyBPWidth-1),
-      max(params.xyBPWidth, (params.nStages-params.xyWidth+params.xyBPWidth)))
-  println(tableLin)
-  val gain = (1/CordicConstants.gain(params.nStages)).F(params.xyWidth.W, params.xyBPWidth.BP)
-  val rom = VecInit(table.map(_.F(params.zWidth.W, params.zBPWidth.BP)))
-  val romLin = VecInit(tableLin.map(_.F((params.xyWidth+2).W, params.xyBPWidth.BP)))  // may need change
+  val gain = (1 / CordicConstants.gain(params.nStages)).F(params.xyWidth.W, params.xyBPWidth.BP)
+
+  val table =
+    if (!params.dividing) {
+      CordicConstants.arctan(params.nStages)
+    }else{
+      CordicConstants.linear(-(params.xyWidth - params.xyBPWidth - 1),
+        max(params.xyBPWidth, (params.nStages - params.xyWidth + params.xyBPWidth)))
+    }
+  val rom =
+    if (!params.dividing) {
+      VecInit(table.map(_.F(params.zWidth.W, params.zBPWidth.BP)))
+    }else{
+      VecInit(table.map(_.F((params.xyWidth + 2).W, params.xyBPWidth.BP))) // may need change
+    }
   val regVectoring = Reg(Bool())
 
   // Make the stages and connect everything except in and out
@@ -221,7 +227,6 @@ class FixedIterativeCordic(val params: CordicParams[FixedPoint]) extends Module 
     stage.io.vectoring := regVectoring
     stage.io.shift := idx
     stage.io.romIn := rom(idx)
-    stage.io.romLinIn := romLin(idx)
     stage
   }
   // Chain the stages together
@@ -260,5 +265,18 @@ class FixedIterativeCordic(val params: CordicParams[FixedPoint]) extends Module 
     io.out.bits.x := xyz.x
     io.out.bits.y := xyz.y
   }
-  io.out.bits.z := xyz.z
+
+  // check negtive
+  val xNeg = io.in.bits.x.isSignNegative()
+  val yNeg = io.in.bits.y.isSignNegative()
+  val divNeg = xNeg^yNeg
+  if (params.dividing) {
+    when(divNeg) {
+      io.out.bits.z := -xyz.z
+    }.otherwise {
+      io.out.bits.z := xyz.z
+    }
+  }else{
+    io.out.bits.z := xyz.z
+  }
 }
