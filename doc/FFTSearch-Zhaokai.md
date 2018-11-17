@@ -1,10 +1,39 @@
 # Tapein 2:
 
 ## FFT Generator
-The figure below shows the complete FFT search diagram.
+The figure below shows the FFT search diagram. Two FFT blocks take DATA and C/A Code and perform FFT on these two signal. The result is multiplied in frequency domain. Then the mulitplication result is proccessed by the IFFT block.
+Basically the generators work in a way that the correct order inputs (from DATA and CA code) are processed by the FFT generator in FFT and normal input configuration. After that, the output order is not very straightforward because of the two stage topology.
+For large input points, pipelined topology is necessary to reduce the hardware cost, and the extra delay and memory for storing and reordering the bit order is non-ideal. 
+In order to support IFFT in acquisition process of GPS, the FFT generator need handle the output properly, unless it have to store the pipelined output than unsramble it. 
+So the IFFT configuration should be able to directly take the scrambled output from FFT and perform the IFFT to get the correct result with right order.
+In this way, entire searching proccess can work continuously from the input of DATA to the output result.
+
 ![FFT_Search_Diagram](pictures/fft/fft-search-diagram.png)
 
-Basically the generators work in a way that the correct order inputs (from DATA and CA code) are processed by the FFT configuration. After that, the output order is not very straightforward because of the two stage topology, it can be handled by the following code:
+### Parameters
+```scala
+  genIn: DspComplex[T],
+  genOut: DspComplex[T],
+  n: Int = 16, 
+  pipelineDepth: Int = 0,
+  lanes: Int = 8,
+  quadrature: Boolean = true,
+  inverse: Boolean = false,
+  unscrambleOut: Boolean = false,
+  unscrambleIn: Boolean = false
+ ```
+ - genIn and genOut: data type for the input and output of FFT
+ - n: number of FFT points
+ - lanes: number of input, if lanes<n, each FFT takes several cycle to get the full points it need.
+ - pipelineDepth: number of extra pipeline stage inserted to generator
+ - inverse: inverse FFT
+ - unscrambleOut: with n=lanes, it should be easy for direct form to just re-wire the output to get the right order.
+ - unscrambleIn: FFT/IFFT in DIF with scrambled input.
+
+### Support unscrambleIn option
+Because some bit unscrambling happened in the middle of two stages, the final result is not pure bit-reversed.
+It can be handled by the following code:(from ucb-art/fft)
+
 ```scala
 \\ n: total fft points
 \\ p: number of lanes
@@ -28,17 +57,19 @@ def unscramble(in: Seq[Complex], p: Int): Seq[Complex] = {
   res
 }
 ```
-But for large input points, pipelined topology is necessary to reduce the hardware cost, and the extra delay and memory for storing and reordering the bit order is non-ideal. So the IFFT configuration should be able to directly take the scrambled output from FFT and perform the IFFT to get the correct result with right order. So that entire searching proccess can work continuously from the input of DATA to the output result.
+In order to handle this scrambled bit-order input, a unscrambleIn option is added. 
 
-## Support unscrambleIn option
-In order to support IFFT in acquisition process of GPS. The FFT generator need handle the output properly, unless it have to store the pipelined output than unsramble it. The generator now support the input bits with scrambled input, which means it can directly handle the output from itself to do IFFT without any requirements for the output order.
 
-### Topology for unscrambleIn options
-The figure below shows 32 points DIF FFT operation. The twiddle factors are annotated in dashed boxes. The output bits are in bit-reverse order. With a symmetric DIF implementation the bit-reversed input can be bit-reversed again to convert back the correct order. The original FFT is two staged and the output bits are not in a pure bit-reversed order. But with proper "symmetrical" operation the bit order can still be corrected in this way.
+#### Topology for unscrambleIn options
+The figure below shows 32 points DIF FFT operation. The twiddle factors are annotated in dashed boxes.
+The output bits are in bit-reverse order. With a symmetric DIF implementation the bit-reversed input can be bit-reversed again to convert back the correct order. 
+The original FFT is two staged and the output bits are not in a pure bit-reversed order. But with proper "symmetrical" operation, the bit order can still be corrected in this way.
 
 ![32pFFT](pictures/fft/fft32p.png)
 
-The symmetrical configuration is in the figure below. The configuration with normal order input use Biplex from as the first stage and followed by direct form. And the twiddle factors for each times the direct form is in operation is shown in the colored box. The order of loading twiddle factors is simiar to bit-reverse in group. The configuration with scrambled input performs direct FFT first and output connect to Biplex FFT. The twiddle factor is mirrored. 
+The symmetrical configuration is in the figure below. The IFFT use DIF butterfly.
+The configuration with normal order input use biplex from as the first stage and followed by direct form. And the twiddle factors for each times the direct form is in operation is shown in the colored box. The order of loading twiddle factors is simiar to bit-reverse in group.
+The configuration with scrambled input performs direct FFT first and output connect to Biplex FFT. The twiddle factor is mirrored. And the biplex FFT topology is also "mirrored" inside. 
 
 ![TwiddleDetail](pictures/fft/twiddles_detail.png)
 
