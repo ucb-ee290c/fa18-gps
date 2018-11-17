@@ -40,22 +40,24 @@ case class FixedCordicParams(
   stagesPerCycle: Int = 1,
   calAtan2: Boolean = true,
   dividing: Boolean = false,
+  nStages: Int
 ) extends CordicParams[FixedPoint] {
   val protoXY = FixedPoint(xyWidth.W, xyBPWidth.BP)
   val protoZ = FixedPoint(zWidth.W, zBPWidth.BP)
-  // number of stages needed to get LSBs of xy
-  private val xyStages = xyWidth
-  // number of stages needed to get LSBs of z
-  private val zStages = {
-    val minNumber = math.pow(2.0, -(zWidth-3))
-    // number of cordic stages
-    var n = 0
-    while (breeze.numerics.tan(math.pow(2.0, -(n+1))) >= minNumber) {
-      n += 1
-    }
-    n
-  }
-  val nStages = 24 // xyStages.max(zStages)
+  // define number of stages from out side
+//  // number of stages needed to get LSBs of xy
+//  private val xyStages = xyWidth
+//  // number of stages needed to get LSBs of z
+//  private val zStages = {
+//    val minNumber = math.pow(2.0, -(zWidth-3))
+//    // number of cordic stages
+//    var n = 0
+//    while (breeze.numerics.tan(math.pow(2.0, -(n+1))) >= minNumber) {
+//      n += 1
+//    }
+//    n
+//  }
+//  val nStages = 24 // xyStages.max(zStages)
 }
 
 class CordicBundle[T <: Data](val params: CordicParams[T]) extends Bundle {
@@ -103,6 +105,8 @@ object TransformInput {
     val zSmall = xyz.z <= -piBy2
     val xNeg = xyz.x.isSignNegative()
     val yNeg = xyz.y.isSignNegative()
+
+//    val divNeg =
 
     val xyzTransformed = WireInit(xyz)
     if (xyz.params.dividing){

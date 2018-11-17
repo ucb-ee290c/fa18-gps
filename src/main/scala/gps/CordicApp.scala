@@ -54,11 +54,12 @@ object CordicApp extends App {
     }
   }
   val defaultParams = FixedCordicParams(
-    xyWidth = 12,
-    xyBPWidth = 9,
-    zWidth = 12,
-    zBPWidth = 9,
+    xyWidth = 20,
+    xyBPWidth = 12,
+    zWidth = 20,
+    zBPWidth = 12,
     stagesPerCycle = 1,
+    nStages=20,
   )
   val (chiselArgs, params) = argParse(args.toList, defaultParams)
   // Run the Chisel driver to generate a cordic
