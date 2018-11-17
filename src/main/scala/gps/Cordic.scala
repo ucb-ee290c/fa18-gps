@@ -205,6 +205,7 @@ class FixedIterativeCordic(val params: CordicParams[FixedPoint]) extends Module 
 
   val gain = (1 / CordicConstants.gain(params.nStages)).F(params.xyWidth.W, params.xyBPWidth.BP)
 
+  // get table
   val table =
     if (!params.dividing) {
       CordicConstants.arctan(params.nStages)
@@ -212,6 +213,8 @@ class FixedIterativeCordic(val params: CordicParams[FixedPoint]) extends Module 
       CordicConstants.linear(-(params.xyWidth - params.xyBPWidth - 1),
         max(params.xyBPWidth, (params.nStages - params.xyWidth + params.xyBPWidth)))
     }
+
+  // put in rom
   val rom =
     if (!params.dividing) {
       VecInit(table.map(_.F(params.zWidth.W, params.zBPWidth.BP)))
@@ -235,6 +238,7 @@ class FixedIterativeCordic(val params: CordicParams[FixedPoint]) extends Module 
       stage.io.out
   }
 
+  // FSM
   when (state === sInit && io.in.fire()) {
     state := sWork
     iter := 0.U
@@ -248,7 +252,6 @@ class FixedIterativeCordic(val params: CordicParams[FixedPoint]) extends Module 
     when (iterNext >= (params.nStages - 1).U) {
       state := sDone
     }
-
     xyz := stageOut
   }
   when (state === sDone && io.out.fire()) {

@@ -1,39 +1,48 @@
 ## Cordic Generator
 
-The Cordic block is to do Cordic related calculation, such as rotation, vectoring(atan, atan2), dividing. 
-In costas/DLL loop case, it is forced to be one-cycle, but should be fairly easy to change it to multi-cycle.
+The Cordic block is doing Cordic related calculation. In this design now, we could support 
+rotation, vectoring(atan, atan2), dividing, which we are using them in the DLL, costas and FLL discriminator. 
 
 ### Parameters
+The following are the parameters for Cordic block. 
+
  - xyWidth: x, y total width
  - xyBPWidth: x, y binary-point width
  - zWidth: z total width
  - zBPWidth: z binary width
  - nStages: # of stages
+ - stagesPerCycle: # number of stages in a cycle, need to be divisible by nStages
+ - correctGain: true to correct gain for x and y, in rotation and vectoring
+ - calAtan2: true to calculate atan2 in vectoring mode
+ - dividing: true to work in dividing mode
+ 
+To make sure the block working correctly, we need to carefully define the size of *x*, *y* and *z* 
+as well as *nStages*. The following are the suggestions:
 
-#### CAParams Class
+    First of all, for *x* and *y* with fixed-point number with total width *Width* and binary point width *BPWidth*, the 
+    integer number (absolute value) we can use without error is 2^(Width-BPWidth-2)-1. MSB bit is from sign, and MSB-1 
+    bit to avoid overflow in cordic calculation.
+    
+    In rotation and vectorting (including atan and atan2 calculation) mode: 
+        For x and y, the max integer part of input <= 2**(N-2) - 1; for z is from -pi to pi, 
+        which only needs 3 bits integers.
+        
+        We suggest that 
+            nStages <= xyWidth and zWidth.
+            zWidth - zBPWidth = 3, for atan function, zWidth - zBPWidth could even be 2.
 
-To allow some degree of parametrization, the CA block has a specific class of params that can be passed in. 
-
-```
-case class CAParams (
-  val fcoWidth: Int,
-  val codeWidth: Int
-)
-```
+    In dividing mode, we suggest that
+        x, y and z have same width.
+        The integer bits <= fixed-point bits: xyWidth-xyBPWidth <= xyBPWidth, zWidth-zBPWidth <= zBPWidth
+        nStages = max(xyWidth, zWidth)
+ 
 
 #### Inputs:
-This block accepts in a number corresponding to which satellite's code should be generated, as well as two numerically controlled oscillator
-(NCO) inputs to clock how fast each bit of the code should come out. This allows for an NCO to change the phase of the CA generation on the fly.
-The early/punctual/late signals
+The explicit inputs are: 
 
-- satellite: UInt, 6 bits
-- fco: SInt, NCO input, bits determined by fcoWidth in CAParams
-- fco2x: SInt, an NCO input at a 2x rate, same bit width as fco
+ - in(x, y, z): cordic inputs
+ - vectoring: true in vectoring mode
 
 #### Outputs:
 
-- early: SInt, bit width of codeWidth, either -1, or 1.
-- punctual: SInt, bit width of codeWidth, either -1 or 1.
-- late: SInt, bit width of codeWidth, either -1 or 1
-- done: Bool, high when an entire 1023 length sequence has finished.
-- currIndex: UInt, whi****ch index of the CA code the early output is currently on
+ - out(x, y, z): cordic outputs

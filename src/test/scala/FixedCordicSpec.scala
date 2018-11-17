@@ -6,26 +6,6 @@ import org.scalatest.{FlatSpec, Matchers}
 class FixedCordicSpec extends FlatSpec with Matchers {
   behavior of "FixedIterativeCordic"
 
-  /**
-    * ****NOTES for setting Input value:
-    * for x and y, the max input <= 2**(N-2) - 1
-    *   as the MSB is sign, and MSB-1 to avoid overflow
-    * for z at rotation/vectoring mode:
-    *   z is from -pi to pi
-    * at dividing mode:
-    *   as long as z have the same bits as x,y, fine
-
-    * ****NOTES for setting up stages:
-    * for rotation/vectoring mode:
-    *   Suggest nStages <= xyWidth and ZWidth
-    *   ZWidth-ZBPWidth = 3 is enough
-    * for dividing mode:
-    *   z should have the same bits as xy
-    *   xyWidth-xyBPWidth <= xyBPWidth
-    *   zWidth-zBPWidth <= zBPWidth
-    *   suggest nStages = max(xyWidth, zWidth)
-   */
-
 
   val params = FixedCordicParams(
     xyWidth = 20,
