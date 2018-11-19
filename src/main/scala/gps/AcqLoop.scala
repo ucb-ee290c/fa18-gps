@@ -115,6 +115,9 @@ case class EgALoopParams(
     pipelineDepth = nStgFFT,
     lanes = nLane,
     inverse = false,
+    quadrature = false,
+    unscrambleOut = false,
+    unscrambleIn = false,
   )
   val config_ifft = FFTConfig[FixedPoint](
     genIn = DspComplex(FixedPoint((wCorrelation+8).W, 8.BP)),
@@ -123,6 +126,9 @@ case class EgALoopParams(
     pipelineDepth = nStgIFFT,
     lanes = nLane,
     inverse = true,
+    quadrature = false,
+    unscrambleOut = false,
+    unscrambleIn = true,
   )
   val FFTMulParams = FixedFFTMulParams(
     width = wCorrelation + 8,
@@ -257,8 +263,8 @@ extends Module {
   val stepSizeCoeff = pow(2, params.NCOParams_ADC.resolutionWidth) / fsample
 
   // TODO: need fix here
-  val stepSize1x = actrl.io.Aout.freqNext.toSInt * ConvertableTo[SInt].fromDouble(stepSizeCoeff)
-  val stepSize2x = stepSize1x * ConvertableTo[SInt].fromInt(2)
+  val stepSize1x = actrl.io.Aout.freqNext.toUInt * ConvertableTo[UInt].fromDouble(stepSizeCoeff)
+  val stepSize2x = stepSize1x * ConvertableTo[UInt].fromInt(2)
 
 
 
@@ -327,10 +333,10 @@ extends Module {
 
   // TODO: convert type here!!!
   for (i <- 0 until params.DesParams_ADC.nLane) {
-    fft_ADC.io.in.bits(i).real := adc_i(i)
-    fft_ADC.io.in.bits(i).imag := adc_q(i)
-    fft_CA.io.in.bits(i).real := des_CA.io.out(i)
-    fft_CA.io.in.bits(i).imag := 0.U
+    fft_ADC.io.in.bits(i).real := (adc_i(i)).asTypeOf(FixedPoint(32.W, 8.BP)) << 8.U
+    fft_ADC.io.in.bits(i).imag := (adc_q(i)).asTypeOf(FixedPoint(32.W, 8.BP)) << 8.U
+    fft_CA.io.in.bits(i).real := (des_CA.io.out(i)).asTypeOf(FixedPoint(32.W, 8.BP)) << 8.U
+    fft_CA.io.in.bits(i).imag := 0.U.asTypeOf(FixedPoint(32.W, 8.BP)) << 8.U
   }
 
   fft_mul.io.dataIn := fft_ADC.io.out
