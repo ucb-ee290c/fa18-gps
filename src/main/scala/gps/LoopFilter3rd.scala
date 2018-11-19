@@ -20,6 +20,8 @@ trait LoopFilter3rdParams[T <: Data] {
   val a2: Double
   val a3: Double
   val b3: Double
+  val fDCGain: Double
+  val pDCGain: Double
 }
 
 /**
@@ -33,6 +35,8 @@ case class FixedFilter3rdParams(
   val a2: Double = 1.414,
   val a3: Double = 1.1,
   val b3: Double = 2.4,
+  val fDCGain: Double = 1,
+  val pDCGain: Double = 1,
 ) extends LoopFilter3rdParams[FixedPoint] {
   val proto = FixedPoint(width.W, BPWidth.BP)
 }
@@ -76,17 +80,17 @@ class LoopFilter3rd[T <: Data : Ring : ConvertableTo](params: LoopFilter3rdParam
   val alpha = RegInit(params.proto.cloneType, Ring[T].zero)
   val beta = RegInit(params.proto.cloneType, Ring[T].zero)
 
-  val betaWire = Mux(io.valid, (ConvertableTo[T].fromDouble(w0f) * ConvertableTo[T].fromDouble(w0f) * io.freqErr +
-      ConvertableTo[T].fromDouble(w0p) * ConvertableTo[T].fromDouble(w0p) * ConvertableTo[T].fromDouble(w0p) *
-        io.phaseErr) * io.intTime + beta,
-       Ring[T].zero)
-  val alphaWire = Mux(io.valid, (ConvertableTo[T].fromDouble(params.a2) * ConvertableTo[T].fromDouble(w0f) * io.freqErr +
-      ConvertableTo[T].fromDouble(params.a3) * ConvertableTo[T].fromDouble(w0p) * ConvertableTo[T].fromDouble(w0p) * io.phaseErr +
+  val betaWire = Mux(io.valid, (ConvertableTo[T].fromDouble(params.fDCGain*w0f*w0f) * io.freqErr +
+      ConvertableTo[T].fromDouble(params.pDCGain*w0p*w0p*w0p)*io.phaseErr) * io.intTime +
+      beta,
+      Ring[T].zero)
+  val alphaWire = Mux(io.valid, (ConvertableTo[T].fromDouble(params.fDCGain*params.a2*w0f) * io.freqErr +
+      ConvertableTo[T].fromDouble(params.pDCGain * params.a3 * w0p * w0p) * io.phaseErr +
       (betaWire + beta) * ConvertableTo[T].fromDouble(0.5)) * io.intTime + alpha,
       Ring[T].zero)
 
   when(io.valid) {
-    outReg := ConvertableTo[T].fromDouble(params.b3) * ConvertableTo[T].fromDouble(w0p) * io.phaseErr +
+    outReg := ConvertableTo[T].fromDouble(params.pDCGain*params.b3*w0p) * io.phaseErr +
       (alphaWire + alpha) * ConvertableTo[T].fromDouble(0.5)
     beta := betaWire
     alpha := alphaWire
