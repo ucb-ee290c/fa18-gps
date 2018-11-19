@@ -76,14 +76,6 @@ class LoopFilter3rd[T <: Data : Ring : ConvertableTo](params: LoopFilter3rdParam
   val alpha = RegInit(params.proto.cloneType, Ring[T].zero)
   val beta = RegInit(params.proto.cloneType, Ring[T].zero)
 
-//  val outReg = RegInit(params.proto.cloneType, Ring[T].zero)
-//  val alpha = RegInit(params.proto.cloneType, Ring[T].zero)
-//  val beta = RegInit(params.proto.cloneType, Ring[T].zero)
-
-//  val alphaWire = Wire(params.proto.cloneType)
-//  val betaWire = Wire(params.proto.cloneType)
-
-
   val betaWire = Mux(io.valid, (ConvertableTo[T].fromDouble(w0f) * ConvertableTo[T].fromDouble(w0f) * io.freqErr +
       ConvertableTo[T].fromDouble(w0p) * ConvertableTo[T].fromDouble(w0p) * ConvertableTo[T].fromDouble(w0p) *
         io.phaseErr) * io.intTime + beta,
@@ -94,19 +86,11 @@ class LoopFilter3rd[T <: Data : Ring : ConvertableTo](params: LoopFilter3rdParam
       Ring[T].zero)
 
   when(io.valid) {
-//    betaWire :=  (ConvertableTo[T].fromDouble(w0f) * ConvertableTo[T].fromDouble(w0f) * io.freqErr +
-//      ConvertableTo[T].fromDouble(w0p) * ConvertableTo[T].fromDouble(w0p) * ConvertableTo[T].fromDouble(w0p) *
-//        io.phaseErr) * io.intTime + beta
-//    alphaWire := (ConvertableTo[T].fromDouble(params.a2) * ConvertableTo[T].fromDouble(w0f) * io.freqErr +
-//      ConvertableTo[T].fromDouble(params.a3) * ConvertableTo[T].fromDouble(w0p) * ConvertableTo[T].fromDouble(w0p) * io.phaseErr +
-//      (betaWire + beta) * ConvertableTo[T].fromDouble(0.5)) * io.intTime + alpha
     outReg := ConvertableTo[T].fromDouble(params.b3) * ConvertableTo[T].fromDouble(w0p) * io.phaseErr +
       (alphaWire + alpha) * ConvertableTo[T].fromDouble(0.5)
     beta := betaWire
     alpha := alphaWire
   }.otherwise{
-//    betaWire := Ring[T].zero
-//    alphaWire := Ring[T].zero
     outReg := Ring[T].zero
   }
 

@@ -8,23 +8,23 @@ import org.scalatest.{FlatSpec, Matchers}
 
 class LoopFilter3rdTester[T <: chisel3.Data](c: LoopFilter3rd[T], freqErr: Seq[Double], phaseErr: Seq[Double],
                                              intTime: Double, output: Seq[Double]) extends DspTester(c) {
-  var counter = 0
+//  var counter = 0
   for ((ferr, (perr, out)) <- freqErr.zip(phaseErr.zip(output))) {
-    fixTolLSBs.withValue(8) {
+    fixTolLSBs.withValue(6) {
       poke(c.io.freqErr, ferr)
       poke(c.io.phaseErr, perr)
       poke(c.io.intTime, intTime)
       poke(c.io.valid, 0)
-      println(s"$counter")
-      counter = counter+1
+//      println(s"$counter")
+//      counter = counter+1
       step(1)
       poke(c.io.valid, 1)
       peek(c.io.freqErr)
       peek(c.io.phaseErr)
       step(1)
       expect(c.io.out, out)
-      println(s"$counter")
-      counter = counter+1
+//      println(s"$counter")
+//      counter = counter+1
     }
   }
 }
