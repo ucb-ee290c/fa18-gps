@@ -10,7 +10,7 @@ class LoopFilter3rdTester[T <: chisel3.Data](c: LoopFilter3rd[T], freqErr: Seq[D
                                              intTime: Double, output: Seq[Double]) extends DspTester(c) {
 //  var counter = 0
   for ((ferr, (perr, out)) <- freqErr.zip(phaseErr.zip(output))) {
-    fixTolLSBs.withValue(6) {
+    fixTolLSBs.withValue(8) {
       poke(c.io.freqErr, ferr)
       poke(c.io.phaseErr, perr)
       poke(c.io.intTime, intTime)
@@ -74,8 +74,8 @@ class LoopFilter3rdSpec extends FlatSpec with Matchers {
     val (w0f, w0p) = GetLoopFilter3rdW0s(params)
     println(w0f)
     println(w0p)
-    val freqErr = 1.0 :: List.fill(9)(0.0)
-    val phaseErr = 1.0 :: List.fill(9)(0.0)
+    val freqErr = 1.0 :: 2.0 :: List.fill(9)(0.0)
+    val phaseErr = 1.0 :: 2.0 :: List.fill(9)(0.0)
     val intTime = 0.001
     val output = calcFilter3rdOutput(freqErr, phaseErr, intTime, w0f, w0p)
     LoopFilter3rdTester(params, freqErr, phaseErr, intTime, output) should be (true)
