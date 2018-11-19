@@ -159,6 +159,7 @@ class Costas(Block):
         a2 = 1.414
         a3 = 1.1
         b3 = 2.4
+
         self.beta = (w0f**2)*T*freq_err + (w0p**3)*T*phase_err + self.beta_prev
         alpha2 = T*(a2*w0f*freq_err + a3*(w0p**2)*phase_err+0.5*(self.beta_prev + self.beta))
         self.alpha = alpha2 + self.alpha_prev
