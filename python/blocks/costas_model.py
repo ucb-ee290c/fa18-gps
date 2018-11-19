@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 from .block import Block
 
-#TODO: Finish Costas Loop class
+# TODO: Finish Costas Loop class
 class Costas(Block):
     
     def __init__(self, lf_coeff, costas_mode, freq_mode, freq_bias):
@@ -148,9 +148,9 @@ class Costas(Block):
         lf_out:
             loop filter output.
         """
-        #self._lf_sum_sum += lf_coeff[2] * phase_err + lf_coeff[4] * freq_err
-        #self._lf_sum += lf_coeff[1] * phase_err + lf_coeff[3] * freq_err + self._lf_sum_sum
-        #self._lf = lf_coeff[0] * phase_err + self._lf_sum
+        # self._lf_sum_sum += lf_coeff[2] * phase_err + lf_coeff[4] * freq_err
+        # self._lf_sum += lf_coeff[1] * phase_err + lf_coeff[3] * freq_err + self._lf_sum_sum
+        # self._lf = lf_coeff[0] * phase_err + self._lf_sum
         bnp = 17
         bnf = 3
         T = 0.001
