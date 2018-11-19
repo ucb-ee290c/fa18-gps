@@ -8,16 +8,23 @@ import org.scalatest.{FlatSpec, Matchers}
 
 class LoopFilter3rdTester[T <: chisel3.Data](c: LoopFilter3rd[T], freqErr: Seq[Double], phaseErr: Seq[Double],
                                              intTime: Double, output: Seq[Double]) extends DspTester(c) {
+  var counter = 0
   for ((ferr, (perr, out)) <- freqErr.zip(phaseErr.zip(output))) {
-    fixTolLSBs.withValue(4) {
+    fixTolLSBs.withValue(8) {
       poke(c.io.freqErr, ferr)
       poke(c.io.phaseErr, perr)
       poke(c.io.intTime, intTime)
       poke(c.io.valid, 0)
+      println(s"$counter")
+      counter = counter+1
       step(1)
       poke(c.io.valid, 1)
-      expect(c.io.out, out)
+      peek(c.io.freqErr)
+      peek(c.io.phaseErr)
       step(1)
+      expect(c.io.out, out)
+      println(s"$counter")
+      counter = counter+1
     }
   }
 }
@@ -46,7 +53,11 @@ object calcFilter3rdOutput {
       beta = betaWire
       alpha = alphaWire
       output += out
+      print("betaWire",  betaWire)
+      println("alphaWire", alphaWire)
+      println("out", out)
     }
+    println(output)
     output.toList
   }
 }
@@ -57,8 +68,8 @@ class LoopFilter3rdSpec extends FlatSpec with Matchers {
   it should "Filter" in {
     val fBandwidth = 3.0
     val pBandwidth = 17.0
-    val width = 24
-    val BPWidth = 16
+    val width = 20
+    val BPWidth = 12
     val params = new FixedFilter3rdParams(fBandwidth=fBandwidth, pBandwidth=pBandwidth, width=width, BPWidth=BPWidth)
     val (w0f, w0p) = GetLoopFilter3rdW0s(params)
     println(w0f)
