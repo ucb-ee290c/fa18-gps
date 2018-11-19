@@ -42,10 +42,7 @@ case class FixedFilter3rdParams(
 }
 
 /**
-  * Reference: Understanding GPS Ch5.5
-  * For fll loop, a second order filter
-  * H(s) = w0^2/s^2 + a2*w0/s
-  *
+  * Calculate w0s
  */
 object GetLoopFilter3rdW0s {
   def apply[T <: Data](params: LoopFilter3rdParams[T]): (Double, Double) = {
