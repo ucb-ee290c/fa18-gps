@@ -11,18 +11,18 @@ import dsptools.numbers._
 import scala.collection._
 
 trait FFTMulParams[T <: Data] {
-  val protoData: T
+  val protoData: DspComplex[T]
   val lanes: Int // How many inputs
   val pipeStages: Int // How many pipelined output
 }
 
-case class FixedFFTMulParams(
+case class complexFFTMulParams(
   width: Int,
   bp: Int,
   laneCount: Int,
   pipeStageCount: Int,
 ) extends FFTMulParams[FixedPoint] {
-  val protoData = FixedPoint(width.W, bp.BP)
+  val protoData = DspComplex(FixedPoint(width.W, bp.BP),FixedPoint(width.W, bp.BP))
   val lanes = laneCount
   val pipeStages = pipeStageCount
 }
@@ -31,9 +31,12 @@ case class FixedFFTMulParams(
   * Bundle type as IO for FIR Filter modules
   */
 class FFTMulIO[T <: chisel3.Data : Ring](params: FFTMulParams[T]) extends Bundle {
-  val dataIn = Input(ValidWithSync(Vec(params.lanes, params.protoData.cloneType)))
-  val caIn = Input(ValidWithSync(Vec(params.lanes, params.protoData.cloneType)))
-  val out = Output(ValidWithSync(Vec(params.lanes, params.protoData.cloneType)))
+//  val dataIn = Input(ValidWithSync(Vec(params.lanes, params.protoData.cloneType)))
+//  val caIn = Input(ValidWithSync(Vec(params.lanes, params.protoData.cloneType)))
+//  val out = Output(ValidWithSync(Vec(params.lanes, params.protoData.cloneType)))
+  val dataIn = Input(ValidWithSync(Vec(params.lanes, params.protoData)))
+  val caIn = Input(ValidWithSync(Vec(params.lanes, params.protoData)))
+  val out = Output(ValidWithSync(Vec(params.lanes, params.protoData)))
   //TODO: does it need extend bits?
   override def cloneType: this.type = FFTMulIO(params).asInstanceOf[this.type]
 }
