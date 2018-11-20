@@ -26,6 +26,8 @@ class SecondarySyncTester(c: SecondarySync[SInt]) extends DspTester(c) {
  * dump = Bool
  * secondarySyncAchieved = Bool
  */
+
+  //test that it will lock going from high to low
   poke(c.io.ipIntDump, 5000.S)
   poke(c.io.lockAchieved, false.B)
   poke(c.io.dump, false.B)
@@ -53,9 +55,36 @@ class SecondarySyncTester(c: SecondarySync[SInt]) extends DspTester(c) {
   step(5)
 
   expect(c.io.secondarySyncAchieved, true.B)
+  
+  //check that after losing primary lock, secondary lock is also lost
+  poke(c.io.lockAchieved, false.B)
+  step(3)
+  expect(c.io.secondarySyncAchieved, false.B)
 
+  //test that it will lock going from low to high
+  poke(c.io.ipIntDump, (-5000).S)
+  poke(c.io.lockAchieved, true.B)
+  step(5)
 
+  for (i <- 0 until 20) {
+    if (i % 5 == 0) {
+      poke(c.io.dump, true.B)
+      step(1)
+      poke(c.io.dump, false.B)
+    }
+    step(1)
+  }
 
+  expect(c.io.secondarySyncAchieved, false.B)
+
+  poke(c.io.ipIntDump, 5000.S)
+  step(1) 
+  poke(c.io.dump, true.B)
+  step(1)
+  poke(c.io.dump, false.B)
+  step(5)
+
+  expect(c.io.secondarySyncAchieved, true.B)
 }
 
 object SecondarySyncTester {

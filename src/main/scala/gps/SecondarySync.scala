@@ -31,25 +31,18 @@ class SecondarySync[T <: Data](params: SecondaryLockParams[T]) extends Module {
   val secondaryLock = 3.U(2.W)
   val state = RegInit(stall)
 
-  when (state === stall && io.lockAchieved) { //TODO add && io.dump so that the first change in the variable is not detected
+  when (!io.lockAchieved) {
+    state := stall
+  } .elsewhen (state === stall && io.lockAchieved) {
     state := firstCheck
   } .elsewhen (state === firstCheck && io.dump) {
     state := integrating
   } .elsewhen (state === integrating && io.secondarySyncAchieved) {
-    state := secondaryLock  //TODO make it change to stall when loses lock
+    state := secondaryLock
   } .elsewhen (state === secondaryLock && !io.lockAchieved) {
     state := stall
   }
   
-  //TODO use iter to output a pulse at the edges of the data bit after secondary sync has been achieved
-//  val iter = Reg(8.W) //make parameterized width based on input size
-//  
-//  when (state === integrating) {
-//    iter := iter + 1
-//  } .else {
-//    iter := 0
-//  }
-//
   val syncReg = Reg(Bool())
   val syncRegDelay = Reg(Bool())
 
@@ -83,36 +76,5 @@ class SecondarySync[T <: Data](params: SecondaryLockParams[T]) extends Module {
   } .otherwise {
     io.secondarySyncAchieved := false.B
   }
-  
-
-
-
-
-
-
-
-//  val syncCheck = RegInit(VecInit(Seq.fill(params.codeChunks)(0.S(64.W)))) //TODO fix this bitwidth 
-//  val syncBools = RegInit(VecInit(Seq.fill(params.codeChunks)(Bool())))
-//  
-//  when (state === integrating) {
-//    syncBools(iter) := true.B
-//  } .elsewhen (state === stall) {
-//    syncBools := Seq.fill(params.codeChunks)(Bool())  //TODO check if this will work
-//  }
-//
-//  for (i <- 0 until params.codeChunks) {
-//    when (state === integrating && syncBools(i) === true.B) {
-//      syncCheck(i) := syncCheck(i) + io.ipIntDump
-//    } .elsewhen (state === stall) {
-//      syncCheck(i) := 0.S
-//    }
-//  }
-//
-  //add state machine for stalling until lock, integrating, then finding bin with best integration
-  //could try both implementations (one being with the 20 integrations and the other being
-  //with integrating until it goes in the other direction)
-  
-  
-
 
 }
