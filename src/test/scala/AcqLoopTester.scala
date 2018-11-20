@@ -7,26 +7,30 @@ import chisel3._
 import chisel3.experimental.FixedPoint
 import java.nio.ByteBuffer
 import java.nio.file.{Files, Paths}
-//import scala.math.BigInt
+import scala.math._
 
 
 class ALoopSpec extends FlatSpec with Matchers {
   behavior of "ALoop"
+
+  val nHalfFreq = 4
+  val freqStep = 1000
 
   val params = EgALoopParams(
     wADC = 5,
     wCA = 3,
     wNCOTct = 5,
     wNCORes = 32,
-    nSample = 256,
+    bp = 32,
+    nSample = 32,
     nLoop = 2,
-    nFreq = 5,
-    nLane = 256,
+    nFreq = 2 * nHalfFreq + 1,
+    nLane = 8,
     nStgFFT = 0,
     nStgIFFT = 0,
     nStgFFTMul = 4,
-    freqMin = 1000,
-    freqStep = 9,
+    freqStep = freqStep,
+    freqMin = 2045950 - nHalfFreq * freqStep,
   )
   it should "ALoop" in {
     val baseTrial = ALoopTestVec(idx_sate=0)
@@ -61,7 +65,7 @@ class ALoopTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoop[T1,T2], trial
 
 
 
-  val byteArray = Files.readAllBytes(Paths.get("python/data/acqctrl_test_vec.bin"))
+  val byteArray = Files.readAllBytes(Paths.get("python/data/gioveAandB_short.bin"))
 
   for (trial <- trials) {
 
@@ -69,6 +73,7 @@ class ALoopTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoop[T1,T2], trial
     poke(c.io.in.valid, 0)
     poke(c.io.in.idx_sate, trial.idx_sate)
     poke(c.io.out.ready, 0)
+    poke(c.io.debug.sineWaveTest, 1)
 
     // wait until input is accepted
     var cycles = 0
@@ -79,17 +84,40 @@ class ALoopTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoop[T1,T2], trial
     var corr = 0.0
     var ifft_data = 0.0
     var data_ADC = 0.0
+    var data_cos = 0.0
+    var lt_p_0p5 = true
+    var st_n_0p5 = true
 
     print("trial")
-    while (cycles < 3000) {
+    while (cycles < 1000) {
 
       if (cycles == 0) {poke(c.io.in.valid, 1)}
       else {poke(c.io.in.valid, 1)}
 
       data_ADC = byteArray(cycles)
+      data_cos = math.cos(cycles * (2 * 3.1415926535897932384626 / 8))
+      lt_p_0p5 = data_cos > 0.5
+      st_n_0p5 = data_cos < -0.5
+      if (lt_p_0p5) {
+        data_ADC = 1
+      }
+      else if (st_n_0p5) {
+        data_ADC = -1
+      }
+      else {
+        data_ADC = 0
+      }
+
+//      data_ADC = (math.cos(cycles * (2 * 3.1415927 / 8)) * 8).toInt
+//      data_ADC = (math.cos(cycles * (2 * 3.1415927 / 8)) * 8).toInt
+
       poke(c.io.in.ADC, data_ADC)
 
-      cycles += 1
+      if (peek(c.io.out.valid)) {
+        peek(c.io.out.iFreqOpt)
+        peek(c.io.out.freqOpt)
+        peek(c.io.out.CPOpt)
+      }
 
 //      peek(c.io.Ain.ready)
 //      peek(c.io.Aout.valid)
@@ -105,6 +133,7 @@ class ALoopTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoop[T1,T2], trial
 
 
 
+      cycles += 1
       step(1)
 
 

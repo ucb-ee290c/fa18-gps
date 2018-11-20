@@ -38,6 +38,7 @@ object ALoopApp extends App {
   |--wCA <Int>\t\tWidth of CA
   |--wNCOTct <Int>\t\tWidth of Truncated counter in NCO
   |--wNCORes <Int>\t\tWidth of Accurate counter in NCO
+  |--bp <Int>\t\tWidth of Binary Point resolution for FFT
   |--nSample <Int>\t\tNumber of samples
   |--nLoop <Int>\t\tNumber of loops
   |--nFreq <Int>\t\tNumber of frequency to sweep
@@ -65,6 +66,7 @@ object ALoopApp extends App {
       case "--wCA" :: Int(wCA) :: tail => argParse(tail, params.copy(wCA = wCA))
       case "--wNCOTct" :: Int(wNCOTct) :: tail => argParse(tail, params.copy(wNCOTct = wNCOTct))
       case "--wNCORes" :: Int(wNCORes) :: tail => argParse(tail, params.copy(wNCORes = wNCORes))
+      case "--bp" :: Int(bp) :: tail => argParse(tail, params.copy(bp = bp))
       case "--nSample" :: Int(nSample) :: tail => argParse(tail, params.copy(nSample = nSample))
       case "--nLoop" :: Int(nLoop) :: tail => argParse(tail, params.copy(nLoop = nLoop))
       case "--nFreq" :: Int(nFreq) :: tail => argParse(tail, params.copy(nFreq = nFreq))
@@ -86,6 +88,7 @@ object ALoopApp extends App {
     wCA = 3,
     wNCOTct = 5,
     wNCORes = 32,
+    bp = 16,
     nSample = 10,
     nLoop = 2,
     nFreq = 10,

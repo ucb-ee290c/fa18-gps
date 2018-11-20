@@ -140,6 +140,7 @@ class Des[T <: Data:Real:BinaryRepresentation](val params: DesParams[T]) extends
   val buffer_input_fire = reg_state_buffer === idle && buffer_input_valid
 
 
+  // TODO: if ready and newreq, idle or stream?
   reg_state_buffer := Mux(reg_state_buffer === idle,
                           Mux(buffer_input_fire, lock, idle),
                           Mux(reg_state_buffer === lock,
