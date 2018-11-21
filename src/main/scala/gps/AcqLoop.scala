@@ -184,6 +184,7 @@ object ALoopOutputBundle {
 class ALoopDebugBundle[T1 <: Data, T2 <: Data](params: ALoopParams[T1, T2]) extends Bundle {
 
   val sineWaveTest = Input(Bool())
+  val selfCATest = Input(Bool())
 
   val FreqNow: UInt = Output(params.ACtrlParams.pFreq.cloneType)
   val iFreqNow: UInt = Output(params.ACtrlParams.pIdxFreq.cloneType)
@@ -265,22 +266,46 @@ extends Module {
 
   val fsample = 16367600
   val stepSizeCoeff = pow(2, params.NCOParams_ADC.resolutionWidth) / fsample
+  val idle = WireInit(UInt(2.W), 0.U)
+  val lock = WireInit(UInt(2.W), 1.U)
+  val stream = WireInit(UInt(2.W), 2.U)
+
+
+  // TODO: define des_out_ready and newreq here
+  val all_des_valid = (des_ADC.io.valid && des_CA.io.valid) && (des_cos.io.valid && des_sin.io.valid)
+  val all_des_locked = (des_ADC.io.state === lock && des_CA.io.state === lock) && (des_cos.io.state === lock && des_sin.io.state === lock)
+
+
+
+  val reg_before_1st_buffer = RegInit(Bool(), true.B)
+  reg_before_1st_buffer := Mux(actrl.io.Tout.state === idle, true.B, Mux(des_ADC.io.buffer_input_valid, false.B, reg_before_1st_buffer))
+
+  val reg_freq_NCO = RegInit(UInt(params.ACtrlParams.wFreq.W), 0.U)
+  reg_freq_NCO := Mux(des_ADC.io.buffer_input_valid && actrl.io.Aout.loopNow === (params.nLoop-1).U,
+                      actrl.io.Aout.freqNow + params.freqStep.U,
+                      Mux(reg_before_1st_buffer, actrl.io.Aout.freqNow, reg_freq_NCO))
+
+//  val NCO_reset = Mux(des_ADC.io.buffer_input_valid && actrl.io.Aout.loopNow === (params.nLoop-1).U,
+//                      actrl.io.Aout.freqNow + params.freqStep.U,
+//                      Mux(reg_before_1st_buffer, actrl.io.Aout.freqNow, reg_freq_NCO)) =/= reg_freq_NCO
+
+  val NCO_reset = false.B
+
 
   // TODO: need fix here
-  val stepSize1x = actrl.io.Aout.freqNext.toUInt * ConvertableTo[UInt].fromDouble(stepSizeCoeff)
+//  val stepSize1x = actrl.io.Aout.freqNext.toUInt * ConvertableTo[UInt].fromDouble(stepSizeCoeff)
+  val stepSize1x = reg_freq_NCO * ConvertableTo[UInt].fromDouble(stepSizeCoeff)
   val stepSize2x = stepSize1x * ConvertableTo[UInt].fromInt(2)
 
 
 
 
-  val idle = WireInit(UInt(2.W), 0.U)
-  val lock = WireInit(UInt(2.W), 1.U)
-  val stream = WireInit(UInt(2.W), 2.U)
+
   val reg_freqNext = RegNext(actrl.io.Aout.freqNext, 0.U)
   val reg_loopNext = RegNext(actrl.io.Aout.loopNext, 0.U)
 
 
-  val NCO_reset = reg_loopNext =/= actrl.io.Aout.loopNext
+//  val NCO_reset = reg_loopNext =/= actrl.io.Aout.loopNext
 
   ca.io.satellite := io.in.idx_sate
   ca.io.fco := nco_CA1x.io.sin
@@ -290,50 +315,53 @@ extends Module {
   nco_CA1x.io.stepSize := stepSize1x
   nco_CA2x.io.stepSize := stepSize2x
 
-  nco_ADC.reset := NCO_reset
-  nco_CA1x.reset := NCO_reset
-  nco_CA2x.reset := NCO_reset
+  nco_ADC.io.softRst := NCO_reset
+  nco_CA1x.io.softRst := NCO_reset
+  nco_CA2x.io.softRst := NCO_reset
 
 
-  // TODO: define des_out_ready and newreq here
-
-  val all_des_valid = (des_ADC.io.valid && des_CA.io.valid) && (des_cos.io.valid && des_sin.io.valid)
-  val all_des_locked = (des_ADC.io.state === lock && des_CA.io.state === lock) && (des_cos.io.state === lock && des_sin.io.state === lock)
   // TODO:
 //  val des_out_ready = ifft.io.out.sync && all_des_valid
   val before_1st_ready = RegInit(Bool(), true.B)
   before_1st_ready := Mux(actrl.io.Tout.state === idle, true.B, Mux(all_des_valid, false.B, before_1st_ready))
 
-  val des_out_ready = all_des_locked && (ifft.io.out.sync || before_1st_ready)
-  val reg_des_out_ready = RegNext(des_out_ready, false.B)
-
+//  val des_out_ready = all_des_locked && (ifft.io.out.sync || before_1st_ready)
+//  val des_out_ready = all_des_locked && ((reg_loopNext =/= actrl.io.Aout.loopNext) || (before_1st_ready))
+//  val reg_des_out_ready = RegNext(des_out_ready, false.B)
+  val reg_des_out_ready = RegInit(Bool(), true.B)
+  reg_des_out_ready := Mux((before_1st_ready ||
+                            (all_des_locked &&
+                              (reg_loopNext =/= actrl.io.Aout.loopNext ||
+                                (params.nLoop.U === 1.U && reg_freqNext =/= actrl.io.Aout.freqNext)))),
+                           true.B,
+                           Mux(des_ADC.io.end, false.B, reg_des_out_ready))
 
 
 
   val des_ADC_newreq = reg_loopNext =/= actrl.io.Aout.loopNext
   val des_CA_newreq = Mux(actrl.io.Tout.state === idle, true.B, false.B)
   val des_NCO_newreq = reg_freqNext =/= actrl.io.Aout.freqNext
+  val des_newreq = reg_loopNext =/= actrl.io.Aout.loopNext
 
 
-
-  des_ADC.io.in := io.in.ADC
+  des_ADC.io.in := Mux(io.debug.selfCATest, io.in.ADC*ca.io.punctual, io.in.ADC)
   des_ADC.io.ready := reg_des_out_ready
-  des_ADC.io.newreq := des_ADC_newreq
+  des_ADC.io.newreq := des_newreq
   des_ADC.io.offset := 0.U
 
   des_CA.io.in := Mux(io.debug.sineWaveTest, 1.S, ca.io.punctual)
   des_CA.io.ready := reg_des_out_ready
-  des_CA.io.newreq := des_CA_newreq
+  des_CA.io.newreq := des_newreq
   des_CA.io.offset := 0.U
 
   des_cos.io.in := nco_ADC.io.cos
   des_cos.io.ready := reg_des_out_ready
-  des_cos.io.newreq := des_NCO_newreq
+  des_cos.io.newreq := des_newreq
   des_cos.io.offset := 0.U
 
   des_sin.io.in := nco_ADC.io.sin
   des_sin.io.ready := reg_des_out_ready
-  des_sin.io.newreq := des_NCO_newreq
+  des_sin.io.newreq := des_newreq
   des_sin.io.offset := 0.U
 
 

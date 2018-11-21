@@ -99,7 +99,9 @@ class Des[T <: Data:Real:BinaryRepresentation](val params: DesParams[T]) extends
     val newreq = Input(Bool())
     val offset = Input(UInt(params.nbit_cnt.W))
     val state = Output(UInt(2.W))
+    val cnt_shifter = Output(UInt(params.nbit_cnt.W))
     val cnt_buffer = Output(UInt(params.nbit_cnt.W))
+    val buffer_input_valid = Output(Bool())
     val isstream = Output(Bool())
     val start = Output(Bool())
     val end = Output(Bool())
@@ -123,15 +125,16 @@ class Des[T <: Data:Real:BinaryRepresentation](val params: DesParams[T]) extends
   reg_shifter_cleared := Mux(reg_cnt === (params.nSample-1).U, false.B, Mux(io.newreq, true.B, reg_shifter_cleared))
   val reg_shifter_full = RegInit(Bool(), false.B)
 //  reg_shifter_full := Mux(reg_cnt === (params.nSample-1).U, true.B, reg_shifter_full)
-  reg_shifter_full := !reg_shifter_cleared && reg_cnt === (params.nSample-1).U
+//  reg_shifter_full := !reg_shifter_cleared //&& reg_cnt === (params.nSample-1).U
 
 
   // control signal for the buffer
-  val buffer_input_valid = (reg_cnt === io.offset) && reg_shifter_full
+  val buffer_input_valid = (reg_cnt === io.offset) && !reg_shifter_cleared
 
   val idle = WireInit(UInt(2.W), 0.U)
   val lock = WireInit(UInt(2.W), 1.U)
   val stream = WireInit(UInt(2.W), 2.U)
+//  val lock2 = WireInit(UInt(2.W), 3.U)
 
   val reg_state_buffer = RegInit(UInt(2.W), idle)
   val reg_cnt_buffer = RegInit(UInt(params.nbit_cnt.W), 0.U)
@@ -144,7 +147,7 @@ class Des[T <: Data:Real:BinaryRepresentation](val params: DesParams[T]) extends
   reg_state_buffer := Mux(reg_state_buffer === idle,
                           Mux(buffer_input_fire, lock, idle),
                           Mux(reg_state_buffer === lock,
-                              Mux(io.ready, stream, Mux(io.newreq, idle, lock)),
+                              Mux(io.newreq, idle, Mux(io.ready, stream, reg_state_buffer)),
                               Mux(stream_finished, lock, stream)
                               )
                           )
@@ -170,10 +173,12 @@ class Des[T <: Data:Real:BinaryRepresentation](val params: DesParams[T]) extends
   }
 
   io.state := reg_state_buffer
+  io.cnt_shifter := reg_cnt
   io.cnt_buffer := reg_cnt_buffer
   io.isstream := reg_state_buffer === stream
   io.start := reg_state_buffer === stream && reg_cnt_buffer === 0.U
   io.end := reg_state_buffer === stream && reg_cnt_buffer === cnt_buffer_max
+  io.buffer_input_valid := buffer_input_valid
 
   // behavior of the buffer
 //  val reg_buffer_full = RegInit(Bool(), false.B)

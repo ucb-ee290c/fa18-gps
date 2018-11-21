@@ -14,7 +14,7 @@ class ALoopSpec extends FlatSpec with Matchers {
   behavior of "ALoop"
 
   val nHalfFreq = 4
-  val freqStep = 1000
+  val freqStep = 0
 
   val params = EgALoopParams(
     wADC = 5,
@@ -74,6 +74,7 @@ class ALoopTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoop[T1,T2], trial
     poke(c.io.in.idx_sate, trial.idx_sate)
     poke(c.io.out.ready, 0)
     poke(c.io.debug.sineWaveTest, 1)
+    poke(c.io.debug.selfCATest, 0)
 
     // wait until input is accepted
     var cycles = 0
@@ -89,13 +90,13 @@ class ALoopTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoop[T1,T2], trial
     var st_n_0p5 = true
 
     print("trial")
-    while (cycles < 1000) {
+    while (cycles < 1500) {
 
       if (cycles == 0) {poke(c.io.in.valid, 1)}
       else {poke(c.io.in.valid, 1)}
 
-      data_ADC = byteArray(cycles)
-      data_cos = math.cos(cycles * (2 * 3.1415926535897932384626 / 8))
+//      data_ADC = byteArray(cycles)
+      data_cos = math.cos((cycles-1) * (2 * 3.1415926535897932384626 / 8))
       lt_p_0p5 = data_cos > 0.5
       st_n_0p5 = data_cos < -0.5
       if (lt_p_0p5) {

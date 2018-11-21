@@ -39,6 +39,7 @@ class NcoSinOutBundle[T <: Data](params: NcoParams[T]) extends Bundle {
   val truncateRegOut = Output(UInt(params.truncateWidth.W))
   val sin: T = Output(params.proto.cloneType)
   val cos: T = Output(params.proto.cloneType)
+  val softRst = Input(Bool())
 
   override def cloneType: this.type = NcoSinOutBundle(params).asInstanceOf[this.type]
 }
@@ -53,6 +54,7 @@ class NcoBundle[T <: Data](params: NcoParams[T]) extends Bundle {
   val stepSize = Input(UInt(params.resolutionWidth.W))
   val cos: T = Output(params.proto.cloneType)
   val truncateRegOut = Output(UInt(params.truncateWidth.W))
+  val softRst = Input(Bool())
 
   override def cloneType: this.type = NcoBundle(params).asInstanceOf[this.type]
 }
@@ -66,6 +68,7 @@ class NCO[T <: Data : Real](val params: NcoParams[T]) extends Module {
   val cosNCO = Module(new NCOBase(params))  
     
   cosNCO.io.stepSize := io.stepSize
+  cosNCO.io.softRst := io.softRst
   io.cos := cosNCO.io.cos
 
   io.truncateRegOut := cosNCO.io.truncateRegOut
@@ -84,7 +87,7 @@ class NCOBase[T <: Data : Real](val params: NcoParams[T]) extends Module {
     
   val cosineLUT = VecInit(NCOConstants.cosine(params.truncateWidth).map(ConvertableTo[T].fromDouble(_)))
 
-  reg := reg + io.stepSize
+  reg := Mux(io.softRst, io.stepSize, reg + io.stepSize)
   io.truncateRegOut := reg >> (params.resolutionWidth - params.truncateWidth)
   io.cos := cosineLUT(io.truncateRegOut)
 }
