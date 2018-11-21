@@ -88,11 +88,13 @@ case class EgALoopParams(
     resolutionWidth = wNCORes,
     truncateWidth = wNCOTct,
     sinOut = true,
+    highRes = true,
   )
   val NCOParams_CA = SIntNcoParams (
     resolutionWidth = wNCORes,
     truncateWidth = wNCOTct,
     sinOut = true,
+    highRes = true,
   )
 
   val DesParams_ADC = SIntDesParams(
@@ -318,6 +320,7 @@ extends Module {
   nco_ADC.io.softRst := NCO_reset
   nco_CA1x.io.softRst := NCO_reset
   nco_CA2x.io.softRst := NCO_reset
+
 
 
   // TODO:

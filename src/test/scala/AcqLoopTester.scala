@@ -14,12 +14,12 @@ class ALoopSpec extends FlatSpec with Matchers {
   behavior of "ALoop"
 
   val nHalfFreq = 4
-  val freqStep = 0
+  val freqStep = 100000
 
   val params = EgALoopParams(
-    wADC = 5,
+    wADC = 8,
     wCA = 3,
-    wNCOTct = 5,
+    wNCOTct = 8,
     wNCORes = 32,
     bp = 32,
     nSample = 32,
@@ -97,17 +97,18 @@ class ALoopTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoop[T1,T2], trial
 
 //      data_ADC = byteArray(cycles)
       data_cos = math.cos((cycles-1) * (2 * 3.1415926535897932384626 / 8))
-      lt_p_0p5 = data_cos > 0.5
-      st_n_0p5 = data_cos < -0.5
-      if (lt_p_0p5) {
-        data_ADC = 1
-      }
-      else if (st_n_0p5) {
-        data_ADC = -1
-      }
-      else {
-        data_ADC = 0
-      }
+      data_ADC = (data_cos*32).toInt
+//      lt_p_0p5 = data_cos > 0.5
+//      st_n_0p5 = data_cos < -0.5
+//      if (lt_p_0p5) {
+//        data_ADC = 1
+//      }
+//      else if (st_n_0p5) {
+//        data_ADC = -1
+//      }
+//      else {
+//        data_ADC = 0
+//      }
 
 //      data_ADC = (math.cos(cycles * (2 * 3.1415927 / 8)) * 8).toInt
 //      data_ADC = (math.cos(cycles * (2 * 3.1415927 / 8)) * 8).toInt
