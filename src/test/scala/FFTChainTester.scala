@@ -18,8 +18,8 @@ class FFTChainSpec extends FlatSpec with Matchers {
   val params = FixedFFTChainParams(
     width = 64,
     bp = 32,
-    nSample = 32,
-    nLane = 8,
+    nSample = 64,
+    nLane = 16,
     nStgFFT = 0,
     nStgIFFT = 0,
     nStgFFTMul = 4,
@@ -58,9 +58,9 @@ class FFTChainTester[T <: chisel3.Data](c: FFTChain[T], trials: Seq[FFTChainTest
 
     poke(c.io.in.valid, 0)
     poke(c.io.in.sync, 0)
-    for (i <- 0 until 8) {
+    for (i <- 0 until 16) {
 
-      poke(c.io.in.CA(i), 1)
+      poke(c.io.in.CA(i), 1.0)
       poke(c.io.in.ADC(i), 1)
       poke(c.io.in.cos(i), 1)
       poke(c.io.in.sin(i), 0)
@@ -80,7 +80,57 @@ class FFTChainTester[T <: chisel3.Data](c: FFTChain[T], trials: Seq[FFTChainTest
 //    var st_n_0p5 = true
 
     print("trial")
-    while (cycles < 1500) {
+    while (cycles < 100) {
+
+      if (cycles >= 11 && cycles <= 14) {
+        val offset = (cycles - 11) * 16
+
+        for (i <- 0 until 16) {
+
+//          poke(c.io.in.ADC(i), (math.cos((offset + i) * (2 * 3.1415927 / 32)) * 8).toInt)
+          poke(c.io.in.ADC(i), 1.0)
+          poke(c.io.in.cos(i), (math.cos((offset + i) * (2 * 3.1415927 / 32)) * 8).toDouble)
+          poke(c.io.in.sin(i), (math.sin((offset + i) * (2 * 3.1415927 / 32)) * 8).toDouble)
+          poke(c.io.in.CA(i), 1.0)
+
+        }
+        poke(c.io.in.valid, 1)
+
+        if (cycles == 14) {
+          poke(c.io.in.sync, 1)
+        }
+        else {
+          poke(c.io.in.sync, 0)
+        }
+      }
+      else if (cycles >= 51 && cycles <= 54) {
+
+        val offset = (cycles - 51) * 16
+
+        for (i <- 0 until 16) {
+
+          poke(c.io.in.ADC(i), (math.cos((offset + i) * (2 * 3.1415927 / 32)) * 8).toInt)
+//          poke(c.io.in.ADC(i), 1.0)
+          poke(c.io.in.cos(i), (math.cos((offset + i) * (2 * 3.1415927 / 32)) * 8).toDouble)
+          poke(c.io.in.sin(i), (math.sin((offset + i) * (2 * 3.1415927 / 32)) * 8).toDouble)
+          poke(c.io.in.CA(i), 1.0)
+
+        }
+        poke(c.io.in.valid, 1)
+
+        if (cycles == 14) {
+          poke(c.io.in.sync, 1)
+        }
+        else {
+          poke(c.io.in.sync, 0)
+        }
+      }
+      }
+      else {
+
+        poke(c.io.in.valid, 0)
+        poke(c.io.in.sync, 0)
+      }
 
 
       cycles += 1
