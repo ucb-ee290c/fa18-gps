@@ -46,8 +46,8 @@ case class FixedFFTChainParams(
 
 
   val config_fft = FFTConfig[FixedPoint](
-    genIn = DspComplex(FixedPoint(width.W, bp.BP)),
-    genOut = DspComplex(FixedPoint(width.W, bp.BP)),
+    genIn = DspComplex(FixedPoint(width.W, bp.BP), FixedPoint(width.W, bp.BP)),
+    genOut = DspComplex(FixedPoint(width.W, bp.BP), FixedPoint(width.W, bp.BP)),
     n = nSample,
     pipelineDepth = nStgFFT,
     lanes = nLane,
@@ -56,9 +56,11 @@ case class FixedFFTChainParams(
     unscrambleOut = false,
     unscrambleIn = false,
   )
+
   val config_ifft = FFTConfig[FixedPoint](
-    genIn = DspComplex(FixedPoint(width.W, bp.BP)),
-    genOut = DspComplex(FixedPoint(width.W, bp.BP)),
+    genIn = DspComplex(FixedPoint(width.W, bp.BP), FixedPoint(width.W, bp.BP)),
+    genOut = DspComplex(FixedPoint(width.W, bp.BP), FixedPoint(width.W, bp.BP)),
+    n = nSample,
     pipelineDepth = nStgIFFT,
     lanes = nLane,
     inverse = true,

@@ -21,7 +21,8 @@ trait ALoopParams[T1 <: Data, T2 <: Data] {
   val wNCOTct: Int
   val wNCORes: Int
   val wCorrelation: Int
-  val bp: Int
+  val wFFT: Int
+  val wFractionFFT: Int
   val nSample: Int
   val nLoop: Int
   val nFreq: Int
@@ -50,7 +51,8 @@ case class EgALoopParams(
                             val wCA: Int,
                             val wNCOTct: Int,
                             val wNCORes: Int,
-                            val bp: Int,
+                            val wFFT: Int,
+                            val wFractionFFT: Int,
                             val nSample: Int,
                             val nLoop: Int,
                             val nFreq: Int,
@@ -113,8 +115,8 @@ case class EgALoopParams(
     nLane = nLane,
   )
   val config_fft = FFTConfig[FixedPoint](
-    genIn = DspComplex(FixedPoint((wCorrelation+bp).W, bp.BP)),
-    genOut = DspComplex(FixedPoint((wCorrelation+bp).W, bp.BP)),
+    genIn = DspComplex(FixedPoint((wFFT).W, wFractionFFT.BP), FixedPoint((wFFT).W, wFractionFFT.BP)),
+    genOut = DspComplex(FixedPoint((wFFT).W, wFractionFFT.BP), FixedPoint((wFFT).W, wFractionFFT.BP)),
     n = nSample,
     pipelineDepth = nStgFFT,
     lanes = nLane,
@@ -124,8 +126,8 @@ case class EgALoopParams(
     unscrambleIn = false,
   )
   val config_ifft = FFTConfig[FixedPoint](
-    genIn = DspComplex(FixedPoint((wCorrelation+bp).W, bp.BP)),
-    genOut = DspComplex(FixedPoint((wCorrelation+bp).W, bp.BP)),
+    genIn = DspComplex(FixedPoint((wFFT).W, wFractionFFT.BP), FixedPoint((wFFT).W, wFractionFFT.BP)),
+    genOut = DspComplex(FixedPoint((wFFT).W, wFractionFFT.BP), FixedPoint((wFFT).W, wFractionFFT.BP)),
     n = nSample,
     pipelineDepth = nStgIFFT,
     lanes = nLane,
@@ -135,8 +137,8 @@ case class EgALoopParams(
     unscrambleIn = true,
   )
   val FFTMulParams = complexFFTMulParams(
-    width = wCorrelation + bp,
-    bp = bp,
+    width = wFFT,
+    bp = wFractionFFT,
     laneCount = nLane,
     pipeStageCount = nStgFFTMul
   )
@@ -386,10 +388,10 @@ extends Module {
 
   // TODO: convert type here!!!
   for (i <- 0 until params.DesParams_ADC.nLane) {
-    fft_ADC.io.in.bits(i).real := (adc_i(i)).asTypeOf(FixedPoint((32+params.bp).W, params.bp.BP)) << params.bp.U
-    fft_ADC.io.in.bits(i).imag := (adc_q(i)).asTypeOf(FixedPoint((32+params.bp).W, params.bp.BP)) << params.bp.U
-    fft_CA.io.in.bits(i).real := (des_CA.io.out(i)).asTypeOf(FixedPoint((32+params.bp).W, params.bp.BP)) << params.bp.U
-    fft_CA.io.in.bits(i).imag := 0.U.asTypeOf(FixedPoint((32+params.bp).W, params.bp.BP)) << params.bp.U
+    fft_ADC.io.in.bits(i).real := (adc_i(i)).asTypeOf(FixedPoint(params.wFFT.W, params.wFractionFFT.BP)) << params.wFractionFFT.U
+    fft_ADC.io.in.bits(i).imag := (adc_q(i)).asTypeOf(FixedPoint(params.wFFT.W, params.wFractionFFT.BP)) << params.wFractionFFT.U
+    fft_CA.io.in.bits(i).real := (des_CA.io.out(i)).asTypeOf(FixedPoint(params.wFFT.W, params.wFractionFFT.BP)) << params.wFractionFFT.U
+    fft_CA.io.in.bits(i).imag := 0.U.asTypeOf(FixedPoint(params.wFFT.W, params.wFractionFFT.BP)) << params.wFractionFFT.U
   }
 
   fft_mul.io.dataIn := fft_ADC.io.out
