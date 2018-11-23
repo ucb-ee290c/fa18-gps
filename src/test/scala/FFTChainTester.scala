@@ -19,7 +19,7 @@ class FFTChainSpec extends FlatSpec with Matchers {
     width = 32,
     bp = 16,
     nSample = 64,
-    nLane = 64,
+    nLane = 16,
     nStgFFT = 0,
     nStgIFFT = 0,
     nStgFFTMul = 4,
@@ -73,74 +73,75 @@ class FFTChainTester[T <: chisel3.Data](c: FFTChain[T], trials: Seq[FFTChainTest
     print("trial")
     while (cycles < 100) {
 
-      if (cycles == 11) {
+//      if (cycles == 11) {
+      if (cycles >= 11 && cycles <= 14) {
         val offset = (cycles - 11) * 16
 
 
-        for (i <- 0 until 64) {
+        for (i <- 0 until 16) {
 
-          poke(c.io.in.ADC(i), (math.cos((offset + i) * (2 * 3.1415927 / 32)) * 1).toDouble)
+          poke(c.io.in.ADC(i), (math.cos((offset + i) * (2 * Pi / 32)) * 1).toDouble)
 //          poke(c.io.in.ADC(i), 1.0)
 
-          poke(c.io.in.cos(i), (math.cos((offset + i) * (2 * 3.1415927 / 32)) * 1).toDouble)
-//          poke(c.io.in.sin(i), (math.sin((offset + i) * (2 * 3.1415927 / 32)) * 1).toDouble)
+          poke(c.io.in.cos(i), (math.cos((offset + i) * (2 * Pi / 32)) * 1).toDouble)
+          poke(c.io.in.sin(i), (math.sin((offset + i) * (2 * Pi / 32)) * 1).toDouble)
           poke(c.io.in.sin(i), 0.0)
           poke(c.io.in.CA(i), 1.0)
 
         }
         poke(c.io.in.valid, 1)
 
-//        if (cycles == 14) {
-//          poke(c.io.in.sync, 1)
-//        }
-//        else {
-//          poke(c.io.in.sync, 0)
-//        }
+        if (cycles == 14) {
+          poke(c.io.in.sync, 1)
+        }
+        else {
+          poke(c.io.in.sync, 0)
+        }
       }
-      else if (cycles == 41) {
+      else if (cycles >= 41 && cycles <= 44) {
 
         val offset = (cycles - 41) * 16
 
-        for (i <- 0 until 64) {
+        for (i <- 0 until 16) {
 
-//          poke(c.io.in.ADC(i), (math.cos((offset + i) * (2 * 3.1415927 / 32)) * 8).toInt)
-//          poke(c.io.in.cos(i), (math.cos((offset + i) * (2 * 3.1415927 / 32 * 1.1)) * 8).toDouble)
-//          poke(c.io.in.sin(i), (math.sin((offset + i) * (2 * 3.1415927 / 32 * 1.1)) * 8).toDouble)
-          poke(c.io.in.ADC(i), 1.0)
-          poke(c.io.in.cos(i), 1.0)
-          poke(c.io.in.sin(i), 0.0)
+          poke(c.io.in.ADC(i), (math.cos((offset + i) * (2 * Pi / 32)) * 1).toInt)
+          poke(c.io.in.cos(i), (math.cos((offset + i) * (2 * Pi / 32 * 1.001)) * 1).toDouble)
+          poke(c.io.in.sin(i), (math.sin((offset + i) * (2 * Pi / 32 * 1.001)) * 1).toDouble)
+//          poke(c.io.in.ADC(i), 1.0)
+//          poke(c.io.in.cos(i), 1.0)
+//          poke(c.io.in.sin(i), 0.0)
           poke(c.io.in.CA(i), 1.0)
 
         }
         poke(c.io.in.valid, 1)
 
-//        if (cycles == 14) {
-//          poke(c.io.in.sync, 1)
-//        }
-//        else {
-//          poke(c.io.in.sync, 0)
-//        }
+        if (cycles == 44) {
+          poke(c.io.in.sync, 1)
+        }
+        else {
+          poke(c.io.in.sync, 0)
+        }
       }
-      else if (cycles == 71) {
+      else if (cycles >= 71 && cycles <= 74) {
 
         val offset = (cycles - 71) * 16
 
         for (i <- 0 until 16) {
 
-          poke(c.io.in.ADC(i), (math.cos((offset + i) * (2 * 3.1415927 / 32)) * 8).toInt)
-          poke(c.io.in.cos(i), (math.cos((offset + i) * (2 * 3.1415927 / 32 * 0.9)) * 8).toDouble)
-          poke(c.io.in.sin(i), (math.sin((offset + i) * (2 * 3.1415927 / 32 * 0.9)) * 8).toDouble)
+          poke(c.io.in.ADC(i), (math.cos((offset + i) * (2 * Pi / 32)) * 1).toInt)
+          poke(c.io.in.cos(i), (math.cos((offset + i) * (2 * Pi / 32 * 0.999)) * 1).toDouble)
+          poke(c.io.in.sin(i), (math.sin((offset + i) * (2 * Pi / 32 * 0.999)) * 1).toDouble)
           poke(c.io.in.CA(i), 1.0)
 
         }
         poke(c.io.in.valid, 1)
 
-        //        if (cycles == 14) {
-        //          poke(c.io.in.sync, 1)
-        //        }
-        //        else {
-        //          poke(c.io.in.sync, 0)
-        //        }
+                if (cycles == 74) {
+                  poke(c.io.in.sync, 1)
+                }
+                else {
+                  poke(c.io.in.sync, 0)
+                }
       }
       else {
 
