@@ -20,8 +20,9 @@ trait ALoopParParams[T1 <: Data, T2 <: Data] {
   val wCA: Int
   val wNCOTct: Int
   val wNCORes: Int
-  val wSumReg: Int
+  val wSumIQ: Int
   val wCorr: Int
+  val wSumCorr: Int
   val wIFreq: Int
   val wFreq: Int
   val wLoop: Int
@@ -30,6 +31,7 @@ trait ALoopParParams[T1 <: Data, T2 <: Data] {
   val nLoop: Int
   val nFreq: Int
   val nCPSample: Int
+  val CPMin: Int
   val CPStep: Int
   val freqMin: Int
   val freqStep: Int
@@ -38,7 +40,8 @@ trait ALoopParParams[T1 <: Data, T2 <: Data] {
   val CA_Params: CAParams
   val pADC: T1
   val pCA: T1
-  val pSumReg: T1
+  val pSumIQ: T1
+  val pSumCorr: T1
   val pCorr: T1
   val pNCO: T1
   val pSate: UInt
@@ -55,12 +58,14 @@ case class EgALoopParParams(
                             val nSample: Int,
                             val nLoop: Int,
                             val nFreq: Int,
+                            val nCPSample: Int,
+                            val CPMin: Int,
                             val CPStep: Int,
                             val freqMin: Int,
                             val freqStep: Int,
                           ) extends ALoopParParams[SInt, FixedPoint] {
 
-  val nCPSample = (nSample / CPStep).toInt
+  require(CPMin + (nCPSample - 1) * CPStep < nSample, "The max CP can not exceed the nSample - 1")
 //  val nCPSample = nSample
 
   val wIFreq = log2Ceil(nFreq) + 1
@@ -68,13 +73,15 @@ case class EgALoopParParams(
   val wLoop = log2Ceil(nLoop) + 1
   val wCP = log2Ceil(nSample) + 1
 
-  val wSumReg = log2Ceil(nSample) + log2Ceil(nLoop) + wADC + wCA + wNCORes + 2
-  val wCorr = 2 * wSumReg + 1
+  val wSumIQ = wCP + wLoop + wADC + wCA + wNCORes + 2
+  val wCorr = 2 * wSumIQ + 1
+  val wSumCorr = wCorr + wIFreq
 
   val pADC = SInt(wADC.W)
   val pCA = SInt(wCA.W)
-  val pSumReg = SInt(wSumReg.W)
+  val pSumIQ = SInt(wSumIQ.W)
   val pCorr = SInt(wCorr.W)
+  val pSumCorr = SInt(wSumCorr.W)
   val pNCO = SInt(wNCOTct.W)
 
   val pSate = UInt(5.W)
@@ -133,6 +140,8 @@ class ALoopParOutputBundle[T1 <: Data, T2 <: Data](params: ALoopParParams[T1, T2
   val iFreqOpt: UInt = Output(params.pIFreq.cloneType)
   val freqOpt: UInt = Output(params.pFreq.cloneType)
   val CPOpt: UInt = Output(params.pCP.cloneType)
+  val max: SInt = Output(SInt(params.wCorr.W))
+  val sum: SInt = Output(SInt(params.wSumCorr.W))
   val sateFound = Output(Bool())
   val ready = Input(Bool())
   val valid = Output(Bool())
@@ -228,6 +237,7 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
 
 
   val fsample = 16367600
+  val fchip = 1023000
   val stepSizeCoeff = pow(2, params.NCOParams_ADC.resolutionWidth) / fsample
 
 
@@ -277,24 +287,25 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
 
   val NCO_reset = false.B
   val freqNow = reg_iFreqNow * params.freqStep.U + params.freqMin.U
-  val stepSize1x = freqNow * ConvertableTo[UInt].fromDouble(stepSizeCoeff)
-  val stepSize2x = stepSize1x * ConvertableTo[UInt].fromInt(2)
+  val stepSizeNCO_ADC = ConvertableTo[UInt].fromDouble(stepSizeCoeff) * freqNow
+  val stepSizeNCO_CA1x = ConvertableTo[UInt].fromDouble(stepSizeCoeff) * ConvertableTo[UInt].fromDouble(fchip)
+  val stepSizeNCO_CA2x = stepSizeNCO_CA1x * ConvertableTo[UInt].fromInt(2)
 
   ca.io.satellite := io.in.idx_sate
   ca.io.fco := nco_CA1x.io.sin
   ca.io.fco2x := nco_CA2x.io.sin
 
-  nco_ADC.io.stepSize := stepSize1x
-  nco_CA1x.io.stepSize := stepSize1x
-  nco_CA2x.io.stepSize := stepSize2x
+  nco_ADC.io.stepSize := stepSizeNCO_ADC
+  nco_CA1x.io.stepSize := stepSizeNCO_CA1x
+  nco_CA2x.io.stepSize := stepSizeNCO_CA2x
 
   nco_ADC.io.softRst := NCO_reset
   nco_CA1x.io.softRst := NCO_reset
   nco_CA2x.io.softRst := NCO_reset
 
 
-  val reg_sum_i = Reg(Vec(params.nCPSample, params.pSumReg))
-  val reg_sum_q = Reg(Vec(params.nCPSample, params.pSumReg))
+  val reg_sum_i = Reg(Vec(params.nCPSample, params.pSumIQ))
+  val reg_sum_q = Reg(Vec(params.nCPSample, params.pSumIQ))
 
   val cos = Mux(io.in.debugNCO, io.in.cos, nco_ADC.io.cos)
   val sin = Mux(io.in.debugNCO, io.in.sin, nco_ADC.io.sin)
@@ -313,8 +324,8 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
     }
   } .elsewhen(reg_cnt_loop > params.nSample.U) {
     for (i <- 0 until params.nCPSample) {
-      reg_sum_i(i) := io.in.ADC * reg_shift_CA(i * params.CPStep) * cos + reg_sum_i(i)
-      reg_sum_q(i) := io.in.ADC * reg_shift_CA(i * params.CPStep) * sin + reg_sum_q(i)
+      reg_sum_i(i) := io.in.ADC * reg_shift_CA(i * params.CPStep + params.CPMin) * cos + reg_sum_i(i)
+      reg_sum_q(i) := io.in.ADC * reg_shift_CA(i * params.CPStep + params.CPMin) * sin + reg_sum_q(i)
     }
   }
 
@@ -327,26 +338,32 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
                               reg_corrArr(i)))
   }
 
+  val sum = TreeReduce(reg_corrArr, (x:SInt, y:SInt) => x +& y)
   val max = TreeReduce(reg_corrArr, (x:SInt, y:SInt) => x.max(y))
-  val optCP =  WireInit(params.pCP, 0.U)
+  val optICP =  WireInit(params.pCP, 0.U)
   for (i <- 0 until params.nCPSample) {
     when (max === reg_corrArr(i)) {
-      optCP := i.U
+      optICP := i.U
     }
   }
 
   val reg_max = RegInit(SInt(params.wCorr.W), ConvertableTo[SInt].fromInt(0))
+  val reg_sum = RegInit(SInt(params.wSumCorr.W), ConvertableTo[SInt].fromInt(0))
   val reg_optIFreq = RegInit(UInt(params.wFreq.W), params.freqMin.U)
-  val reg_optCP = RegInit(UInt(params.wCP.W), 0.U)
+  val reg_optICP = RegInit(UInt(params.wCP.W), 0.U)
   when (reg_state === idle) {
     reg_max := 0.S
-  }. elsewhen (reg_cnt_loop === 0.U && (max > reg_max)) {
-    reg_max := max
-    reg_optCP := optCP * params.CPStep.U
-    when (reg_iFreqNow === 0.U) {
-      reg_optIFreq := (params.nFreq-1).U
-    } .otherwise {
-      reg_optIFreq := reg_iFreqNow - 1.U
+    reg_sum := 0.S
+  }. elsewhen (reg_cnt_loop === 0.U) {
+    reg_sum := reg_sum + sum
+    when (max > reg_max) {
+      reg_max := max
+      reg_optICP := optICP
+      when (reg_iFreqNow === 0.U) {
+        reg_optIFreq := (params.nFreq-1).U
+      } .otherwise {
+        reg_optIFreq := reg_iFreqNow - 1.U
+      }
     }
   }
 
@@ -354,9 +371,11 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
 
   io.out.valid := reg_acqed
   io.out.iFreqOpt := reg_optIFreq
-  io.out.CPOpt := reg_optCP
+  io.out.CPOpt := reg_optICP * params.CPStep.U + params.CPMin.U
   io.out.freqOpt := reg_optIFreq * params.freqStep.U + params.freqMin.U
-  io.out.sateFound := true.B
+  io.out.max := reg_max
+  io.out.sum := reg_sum
+  io.out.sateFound := reg_max * ConvertableTo[SInt].fromDouble(params.nFreq*params.nCPSample/6) > reg_sum
   io.in.ready := reg_state === idle
 
 
