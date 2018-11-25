@@ -16,10 +16,6 @@ import scala.math._
  * These are type generic
  */
 trait CordicParams[T <: Data] {
-  val xyWidth: Int
-  val xyBPWidth: Int
-  val zWidth: Int
-  val zBPWidth: Int
   val protoXY: T
   val protoZ: T
   val nStages: Int
@@ -115,9 +111,9 @@ object TransformInput {
         xyzTransformed.x := xyz.x
       }
       when(yNeg) {
-        xyzTransformed.y := -xyz.y >> (xyz.params.xyWidth - xyz.params.xyBPWidth-1)
+        xyzTransformed.y := -xyz.y 
       }.otherwise{
-        xyzTransformed.y := xyz.y >> (xyz.params.xyWidth - xyz.params.xyBPWidth-1)
+        xyzTransformed.y := xyz.y 
       }
       xyzTransformed.z := xyz.z
     }else {
@@ -184,11 +180,16 @@ class CordicStage[T <: Data : Real : BinaryRepresentation](params: CordicParams[
   }
 }
 
+
+/*
+ * IF IN DIVIDING MODE, |io.xyz.y| < 2*|io.xyz.x|!!!!!
+ */ 
 class FixedIterativeCordic[T <: Data : Real : BinaryRepresentation](val params: CordicParams[T]) extends Module {
   require(params.nStages > 0)
   require(params.stagesPerCycle > 0)
   require(params.nStages >= params.stagesPerCycle)
   require(params.nStages % params.stagesPerCycle == 0, "nStages must be multiple of stagesPerCycles")
+
 
   val io = IO(IterativeCordicIO(params))
 
@@ -209,9 +210,8 @@ class FixedIterativeCordic[T <: Data : Real : BinaryRepresentation](val params: 
   val table =
     if (!params.dividing) {
       CordicConstants.arctan(params.nStages)
-    }else{
-      CordicConstants.linear(-(params.xyWidth - params.xyBPWidth - 1),
-        max(params.xyBPWidth, (params.nStages - params.xyWidth + params.xyBPWidth)))
+    } else{
+      CordicConstants.linear(params.nStages)
     }
 
   // put in rom

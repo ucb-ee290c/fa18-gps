@@ -8,9 +8,9 @@ class FixedCordicSpec extends FlatSpec with Matchers {
 
 
   val params = FixedCordicParams(
-    xyWidth = 20,
+    xyWidth = 32,
     xyBPWidth = 12,
-    zWidth = 20,
+    zWidth = 32,
     zBPWidth = 12,
     correctGain = true,
     nStages = 20,
@@ -30,7 +30,7 @@ class FixedCordicSpec extends FlatSpec with Matchers {
   }
 
   val baseTrial = ABC(xin = 0.0, yin = 0.0, zin = 0.0, vectoring = true)
-  var yin = Seq(1, 2, 4, 8, 16, 31, 64, 127)
+  var yin = Seq(1, 2, 4, 8, 16, 31, 57)
   var angles = Seq(-3.0, -2.0, -1.0, -0.0, -1.0, 2.0, 3.0)
 
   val dividingTrials =
