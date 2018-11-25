@@ -65,7 +65,12 @@ case class EgALoopParParams(
                             val freqStep: Int,
                           ) extends ALoopParParams[SInt, FixedPoint] {
 
-  require(CPMin + (nCPSample - 1) * CPStep < nSample, "The max CP can not exceed the nSample - 1")
+  require(CPMin + (nCPSample - 1) * CPStep < nSample, s"The max CP can not exceed the nSample - 1, " +
+                                                      s"CPMin = $CPMin, nCPSample = $nCPSample, " +
+                                                      s"CPStep = $CPStep, nSample = $nSample")
+  println(s"The max CP can not exceed the nSample - 1, " +
+          s"CPMin = $CPMin, nCPSample = $nCPSample, " +
+          s"CPStep = $CPStep, nSample = $nSample")
 //  val nCPSample = nSample
 
   val wIFreq = log2Ceil(nFreq) + 1
@@ -311,7 +316,7 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
   val sin = Mux(io.in.debugNCO, io.in.sin, nco_ADC.io.sin)
 
   when (reg_state === idle) {
-    for (i <- 0 until params.nCPSample-1) {
+    for (i <- 0 until params.nCPSample) {
       reg_sum_i(i) := ConvertableTo[T1].fromInt(0)
       reg_sum_q(i) := ConvertableTo[T1].fromInt(0)
     }
@@ -322,7 +327,7 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
       reg_sum_i(i) := ConvertableTo[T1].fromInt(0)
       reg_sum_q(i) := ConvertableTo[T1].fromInt(0)
     }
-  } .elsewhen(reg_cnt_loop > params.nSample.U) {
+  } .elsewhen(reg_cnt_loop >= params.nSample.U) {
     for (i <- 0 until params.nCPSample) {
       reg_sum_i(i) := io.in.ADC * reg_shift_CA(i * params.CPStep + params.CPMin) * cos + reg_sum_i(i)
       reg_sum_q(i) := io.in.ADC * reg_shift_CA(i * params.CPStep + params.CPMin) * sin + reg_sum_q(i)

@@ -26,7 +26,7 @@ class ALoopParSpec extends FlatSpec with Matchers {
     wCA = 4,
     wNCOTct = 4,
     wNCORes = 32,
-    nSample = 64,
+    nSample = nSample,
     nLoop = 4,
     nFreq = 2 * nHalfFreq + 1,
     nCPSample = nCPSample,
