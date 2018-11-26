@@ -27,6 +27,17 @@ trait CordicParams[T <: Data] {
   // requireIsHardware(protoZ)
 }
 
+case class RealCordicParams(
+  nStages:Int = 30,
+  correctGain: Boolean = true,
+  stagesPerCycle: Int = 1,
+  dividing: Boolean = false,
+  calAtan2: Boolean = false,
+) extends CordicParams[DspReal] {
+  val protoXY = DspReal()
+  val protoZ = DspReal()
+}
+
 case class FixedCordicParams(
   xyWidth: Int,
   xyBPWidth: Int,

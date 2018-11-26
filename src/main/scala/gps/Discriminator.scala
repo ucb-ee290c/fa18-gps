@@ -12,29 +12,38 @@ trait AllDiscParams [T <: Data] {
   val dllDisc : DiscParams[T]
 }
 
+
 case class ExampleAllDiscParams(
 ) extends AllDiscParams[FixedPoint] {
-  val phaseDisc = FixedDiscParams(32, 32)
-  val freqDisc = FixedDiscParams(32, 32)
-  val dllDisc = FixedDiscParams(32, 32)
+  val phaseDisc = FixedDiscParams()
+  val freqDisc = FixedDiscParams()
+  val dllDisc = FixedDiscParams()
 }
 
 // Discriminator code 
 trait DiscParams [T <: Data]{
-  val inWidth: Int
-  val outWidth: Int
   val cordicParams: CordicParams[T]
   val protoIn : T
   val protoOut: T
 }
 
+case class RealDiscParams(
+  inWidth: Int = 32,
+  outWidth: Int = 32,
+  cordicParams: CordicParams[DspReal] = RealCordicParams(),
+) extends DiscParams[DspReal] {
+  val protoIn = DspReal()
+  val protoOut = DspReal()
+}
 case class FixedDiscParams(
-  val inWidth: Int,
-  val outWidth: Int,
+  val inWidth: Int = 32,
+  val inBP: Int = 12, 
+  val outWidth: Int = 32,
+  val outBP: Int = 12
 ) extends DiscParams[FixedPoint] {
-  val cordicParams = FixedCordicParams(xyWidth = inWidth, xyBPWidth = 2, zWidth=outWidth, zBPWidth= 2, nStages=2) 
-  val protoIn = FixedPoint(inWidth.W, 8.BP)
-  val protoOut = FixedPoint(outWidth.W, 8.BP)
+  val cordicParams = FixedCordicParams(xyWidth = inWidth, xyBPWidth = inBP, zWidth=outWidth, zBPWidth= outBP, nStages=2) 
+  val protoIn = FixedPoint(inWidth.W, inBP.BP)
+  val protoOut = FixedPoint(outWidth.W, outBP.BP)
 }
 
 class CostasDiscInputBundle[T <: Data](params: DiscParams[T]) extends Bundle { 

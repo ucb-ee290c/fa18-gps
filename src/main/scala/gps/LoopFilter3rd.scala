@@ -15,8 +15,6 @@ trait LoopFilter3rdParams[T <: Data] {
   val proto: T
   val fBandwidth: Double
   val pBandwidth: Double
-  val width: Int
-  val BPWidth: Int
   val a2: Double
   val a3: Double
   val b3: Double
