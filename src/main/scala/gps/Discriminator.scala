@@ -175,8 +175,8 @@ object DllDiscInputBundle {
 }
 
 class DllDiscBundle[T <: Data](params: DiscParams[T]) extends Bundle {
-  val in = Flipped(Decoupled(new DllDiscInputBundle(params)))
-  val out = Decoupled(new DiscOutputBundle(params))
+  val in = Flipped(Decoupled(DllDiscInputBundle(params)))
+  val out = Decoupled(DiscOutputBundle(params))
 
   override def cloneType: this.type = DllDiscBundle(params).asInstanceOf[this.type]
 } 
@@ -193,16 +193,19 @@ class DllDiscriminator[T <: Data : Real : BinaryRepresentation](val params: Disc
 
   val cordicDLL = Module(new FixedIterativeCordic(params.cordicParams))
     
-  cordicDLL.io.in.bits.x := (e - l)
-  cordicDLL.io.in.bits.y := (e + l) 
+  cordicDLL.io.vectoring := true.B
+  cordicDLL.io.in.bits.x := (e + l)
+  cordicDLL.io.in.bits.y := (e - l) 
   cordicDLL.io.in.bits.z := ConvertableTo[T].fromDouble(0)
-  cordicDLL.io.in.valid := true.B
+  cordicDLL.io.in.valid := io.in.valid
+  io.in.ready := cordicDLL.io.in.ready
 
   when (e === Ring[T].zero || l === Ring[T].zero) {
-    io.out := Ring[T].zero
+    io.out.bits.output := Ring[T].zero
   } .otherwise {
-    io.out := -cordicDLL.io.out.bits.z  
+    io.out.bits.output := ConvertableTo[T].fromDouble(0.5) * cordicDLL.io.out.bits.z  
   }
+  cordicDLL.io.out.ready := io.out.ready
   io.out.valid := cordicDLL.io.out.valid
 }
 

@@ -222,14 +222,14 @@ class DllDiscSpec extends FlatSpec with Matchers {
     val protoIn = DspReal()
     val protoOut = DspReal() 
   } 
-  it should "atan" in {
+  it should "divide e and l" in {
     val ie = Seq(1, 2, 3, 4, -5.0, 6.0, -7.0, 8.0, -9.0, 10.0)
     val ip = Seq(442, 5, 43, 2, 523.0, 65, 23, 12, 90, 22)
     val il = Seq(3.0, 7, 12, 1001, 1023, 1005, 1024, 672, 666, 777)
     val qe = Seq(2, 4, 601, 4, 4, 4, 4, 6, 9, -20.0)
     val qp = Seq(7, 12, 13, 239, -777, -80, 3, -120, 0, 0.0)
     val ql = Seq(-72, 12, -590, -7, 60, 3, -100, -120, 0.0, -1000)
-    val dll = new DLLModel(6000, 3, 1e3, 1)
+    val dll = new DLLModel(6000, 3, 1e3, 2)
     val iInt = ie.zip(ip.zip(il))
     val qInt = qe.zip(qp.zip(ql))
     def f2[A,B,C](t: (A,(B,C))) = (t._1, t._2._1, t._2._2)

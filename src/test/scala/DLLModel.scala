@@ -19,6 +19,8 @@ class DLLModel(dcGain: Double, bandwidth: Double, sampleRate: Double, discrimina
     var e = sqrt(pow(ie, 2) + pow(qe, 2))
     var l = sqrt(pow(il, 2) + pow(ql, 2))
 
+    println(e)
+    println(l)
     if (e == 0 || l == 0) {
       0
     } else {
@@ -29,6 +31,9 @@ class DLLModel(dcGain: Double, bandwidth: Double, sampleRate: Double, discrimina
   def discriminator2(ie: Double, il: Double, qe: Double, ql: Double): Double = {
     var e = pow(ie, 2) + pow(qe, 2)
     var l = pow(il, 2) + pow(ql, 2)
+      
+    println(e)
+    println(l)
     
     if (e == 0 || l == 0) {
       0
