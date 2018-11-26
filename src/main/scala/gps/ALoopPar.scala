@@ -35,6 +35,8 @@ trait ALoopParParams[T1 <: Data, T2 <: Data] {
   val CPStep: Int
   val freqMin: Int
   val freqStep: Int
+  val fsample: Int
+  val fchip: Int
   val NCOParams_ADC: NcoParams[T1]
   val NCOParams_CA: NcoParams[T1]
   val CA_Params: CAParams
@@ -63,6 +65,8 @@ case class EgALoopParParams(
                             val CPStep: Int,
                             val freqMin: Int,
                             val freqStep: Int,
+                            val fsample: Int,
+                            val fchip: Int
                           ) extends ALoopParParams[SInt, FixedPoint] {
 
   require(CPMin + (nCPSample - 1) * CPStep < nSample, s"The max CP can not exceed the nSample - 1, " +
@@ -71,6 +75,7 @@ case class EgALoopParParams(
   println(s"The max CP can not exceed the nSample - 1, " +
           s"CPMin = $CPMin, nCPSample = $nCPSample, " +
           s"CPStep = $CPStep, nSample = $nSample")
+  println(s"freqMin = $freqMin")
 //  val nCPSample = nSample
 
   val wIFreq = log2Ceil(nFreq) + 1
@@ -241,42 +246,54 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
 
 
 
-  val fsample = 16367600
-  val fchip = 1023000
-  val stepSizeCoeff = pow(2, params.NCOParams_ADC.resolutionWidth) / fsample
+
 
 
   val idle = WireInit(UInt(2.W), 0.U)
   val acqing = WireInit(UInt(2.W), 1.U)
   val acqed = WireInit(UInt(2.W), 2.U)
+  val preparing = WireInit(UInt(2.W), 3.U)
   val iFreqMax = WireInit(params.pIFreq, (params.nFreq-1).U)
 
   // 1 cycle for all the loop of 1 freqquency
-  val cnt_loop_max = WireInit(UInt((params.wLoop+params.wCP+1).W), ((params.nLoop+1)*params.nSample-1).U)
+
+  val cnt_loop_max = WireInit(UInt((params.wLoop+params.wCP+1).W), (params.nLoop*params.nSample-1).U)
   val cnt_begin_int = WireInit(UInt((params.wLoop+params.wCP+1).W), (params.nSample).U)
 
 
   val reg_cnt_loop = RegInit(UInt((params.wLoop+params.wCP+1).W), 0.U)
   val reg_state = RegInit(UInt(2.W), idle)
+  val reg_ca_ready = RegInit(Bool(), false.B)
 
   val reg_iFreqNow = RegInit(params.pIFreq, 0.U)
-  reg_iFreqNow := Mux((reg_state === idle || reg_state === acqed), 0.U,
-                   Mux(reg_cnt_loop === cnt_loop_max,
-                       Mux(reg_iFreqNow === iFreqMax, 0.U, reg_iFreqNow+1.U),
-                     reg_iFreqNow))
-
-  reg_cnt_loop := Mux((reg_state === idle || reg_state === acqed), 0.U,
-                      Mux(reg_cnt_loop === cnt_loop_max, 0.U, reg_cnt_loop+1.U))
+  reg_iFreqNow := Mux(reg_state =/= acqing,
+                      0.U,
+                      Mux(reg_cnt_loop === cnt_loop_max,
+                          Mux(reg_iFreqNow === iFreqMax, 0.U, reg_iFreqNow+1.U),
+                          reg_iFreqNow))
 
 
 
-  reg_state := Mux(reg_state === idle,
-                   Mux(io.in.valid, acqing, idle),
-                   Mux(reg_state === acqing,
-                       Mux(reg_cnt_loop === cnt_loop_max && reg_iFreqNow === iFreqMax, acqed, acqing),
-                       Mux(io.out.ready, idle, acqed)
-                   )
-                  )
+  reg_cnt_loop := Mux((reg_state === idle || reg_state === acqed),
+                      0.U,
+                      Mux(reg_state === preparing,
+                          Mux(reg_cnt_loop === (params.nSample-1).U, 0.U, reg_cnt_loop+1.U),
+                          Mux(reg_cnt_loop === cnt_loop_max, 0.U, reg_cnt_loop+1.U)
+                          )
+                      )
+
+
+  when (reg_state === idle) {
+    reg_state := Mux(io.in.valid, preparing, idle)
+  } .elsewhen (reg_state === preparing) {
+    reg_state := Mux(reg_cnt_loop === (params.nSample-1).U, acqing, preparing)
+  } .elsewhen (reg_state === acqing) {
+    reg_state := Mux(reg_cnt_loop === cnt_loop_max && reg_iFreqNow === iFreqMax, acqed, acqing)
+  } .otherwise {
+    Mux(io.out.ready, idle, acqed)
+  }
+
+
 
 
 
@@ -285,15 +302,28 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
   for (i <- 0 until params.nSample-1) {
     reg_shift_CA(i) := reg_shift_CA(i+1)
   }
-  reg_shift_CA(params.nSample-1) := Mux(io.in.debugCA, io.in.CA, ca.io.punctual.asTypeOf(params.pCA))
+  reg_shift_CA(params.nSample-1) := Mux(io.in.debugCA,
+                                        io.in.CA,
+                                        Mux(reg_state === preparing,
+                                            ca.io.punctual.asTypeOf(params.pCA),
+                                            reg_shift_CA(0)
+                                            )
+                                        )
 
 
 
+  val fsample = params.fsample
+  val fchip = params.fchip
+  val extrashift = 16
+  val stepSizeCoeff = pow(2, params.NCOParams_ADC.resolutionWidth+extrashift) / fsample
 
+//  val NCO_reset = reg_cnt_loop === 0.U
   val NCO_reset = false.B
   val freqNow = reg_iFreqNow * params.freqStep.U + params.freqMin.U
-  val stepSizeNCO_ADC = ConvertableTo[UInt].fromDouble(stepSizeCoeff) * freqNow
-  val stepSizeNCO_CA1x = ConvertableTo[UInt].fromDouble(stepSizeCoeff) * ConvertableTo[UInt].fromDouble(fchip)
+
+
+  val stepSizeNCO_ADC = (ConvertableTo[UInt].fromDouble(stepSizeCoeff) * freqNow) >> extrashift
+  val stepSizeNCO_CA1x = (ConvertableTo[UInt].fromDouble(stepSizeCoeff) * ConvertableTo[UInt].fromDouble(fchip)) >> extrashift
   val stepSizeNCO_CA2x = stepSizeNCO_CA1x * ConvertableTo[UInt].fromInt(2)
 
   ca.io.satellite := io.in.idx_sate
@@ -315,39 +345,36 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
   val cos = Mux(io.in.debugNCO, io.in.cos, nco_ADC.io.cos)
   val sin = Mux(io.in.debugNCO, io.in.sin, nco_ADC.io.sin)
 
-  when (reg_state === idle) {
+  when (reg_state === idle || reg_state === preparing) {
     for (i <- 0 until params.nCPSample) {
       reg_sum_i(i) := ConvertableTo[T1].fromInt(0)
       reg_sum_q(i) := ConvertableTo[T1].fromInt(0)
     }
-  } .elsewhen(reg_cnt_loop === cnt_loop_max) {
+  } .elsewhen(reg_cnt_loop === 0.U) {
     for (i <- 0 until params.nCPSample) {
-//      reg_sum_i(i) := io.in.ADC * reg_shift_CA(i * params.CPStep) * nco_ADC.io.cos
-//      reg_sum_q(i) := io.in.ADC * reg_shift_CA(i * params.CPStep) * nco_ADC.io.sin
-      reg_sum_i(i) := ConvertableTo[T1].fromInt(0)
-      reg_sum_q(i) := ConvertableTo[T1].fromInt(0)
+      reg_sum_i(i) := io.in.ADC * reg_shift_CA(i * params.CPStep + params.CPMin) * cos
+      reg_sum_q(i) := io.in.ADC * reg_shift_CA(i * params.CPStep + params.CPMin) * sin
+//      reg_sum_i(i) := ConvertableTo[T1].fromInt(0)
+//      reg_sum_q(i) := ConvertableTo[T1].fromInt(0)
     }
-  } .elsewhen(reg_cnt_loop >= params.nSample.U) {
+  } .elsewhen(reg_state === acqing) {
     for (i <- 0 until params.nCPSample) {
       reg_sum_i(i) := io.in.ADC * reg_shift_CA(i * params.CPStep + params.CPMin) * cos + reg_sum_i(i)
       reg_sum_q(i) := io.in.ADC * reg_shift_CA(i * params.CPStep + params.CPMin) * sin + reg_sum_q(i)
     }
   }
 
-  val reg_corrArr = Reg(Vec(params.nCPSample, params.pCorr))
+  val corrArr = Wire(Vec(params.nCPSample, params.pCorr))
 //  val reg_corrArr = Reg(Vec(params.nCPSample, SInt(params.wCorr.W)))
   for (i <- 0 until params.nCPSample) {
-    reg_corrArr(i) := Mux(reg_state === idle, ConvertableTo[T1].fromInt(0),
-                          Mux(reg_cnt_loop === cnt_loop_max,
-                              reg_sum_i(i) * reg_sum_i(i) + reg_sum_q(i) * reg_sum_q(i),
-                              reg_corrArr(i)))
+    corrArr(i) := reg_sum_i(i) * reg_sum_i(i) + reg_sum_q(i) * reg_sum_q(i)
   }
 
-  val sum = TreeReduce(reg_corrArr, (x:SInt, y:SInt) => x +& y)
-  val max = TreeReduce(reg_corrArr, (x:SInt, y:SInt) => x.max(y))
+  val sum = TreeReduce(corrArr, (x:SInt, y:SInt) => x +& y)
+  val max = TreeReduce(corrArr, (x:SInt, y:SInt) => x.max(y))
   val optICP =  WireInit(params.pCP, 0.U)
   for (i <- 0 until params.nCPSample) {
-    when (max === reg_corrArr(i)) {
+    when (max === corrArr(i)) {
       optICP := i.U
     }
   }
@@ -356,11 +383,16 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
   val reg_sum = RegInit(SInt(params.wSumCorr.W), ConvertableTo[SInt].fromInt(0))
   val reg_optIFreq = RegInit(UInt(params.wFreq.W), params.freqMin.U)
   val reg_optICP = RegInit(UInt(params.wCP.W), 0.U)
-  when (reg_state === idle) {
+
+  val reg_acqed = RegNext(reg_state === acqed, idle)
+
+  when (reg_state === idle || reg_state === preparing) {
     reg_max := 0.S
     reg_sum := 0.S
   }. elsewhen (reg_cnt_loop === 0.U) {
-    reg_sum := reg_sum + sum
+    when (reg_acqed === false.B) {
+      reg_sum := reg_sum + sum
+    }
     when (max > reg_max) {
       reg_max := max
       reg_optICP := optICP
@@ -372,7 +404,6 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
     }
   }
 
-  val reg_acqed = RegNext(reg_state === acqed, idle)
 
   io.out.valid := reg_acqed
   io.out.iFreqOpt := reg_optIFreq

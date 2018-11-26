@@ -13,30 +13,30 @@ import scala.math._
 class ALoopParSpec extends FlatSpec with Matchers {
   behavior of "ALoopPar"
 
-  val nHalfFreq = 0
+  val nHalfFreq = 2
   val freqStep = 500
   val fsample = 16367600
-  val fcarrier = 4128460
+  val fcarrier = 4091900
   val fchip = 1023000
-  val nSample = 16368
-  val CPStep = 211
-  val CPMin = 61
-  val nCPSample = ((nSample - CPMin) / CPStep).toInt + 1
+  val nSample = 256
+  val CPStep = 16
+  val CPMin = 0
+  val nCPSample = ((nSample - CPMin - 1) / CPStep).toInt + 1
 //  val nCPSample = 20
 
   val params = EgALoopParParams(
     wADC = 4,
     wCA = 4,
-    wNCOTct = 4,
+    wNCOTct = 6,
     wNCORes = 32,
     nSample = nSample,
-    nLoop = 1,
+    nLoop = 8,
     nFreq = 2 * nHalfFreq + 1,
     nCPSample = nCPSample,
     CPMin = CPMin,
     CPStep = CPStep,
-    freqMin = fcarrier - nHalfFreq * freqStep,
     freqStep = freqStep,
+    freqMin = fcarrier - nHalfFreq * freqStep,
     fsample = fsample,
     fchip = fchip,
   )
@@ -81,7 +81,7 @@ class ALoopParTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoopPar[T1,T2],
     poke(c.io.in.valid, 0)
     poke(c.io.in.idx_sate, trial.idx_sate)
     poke(c.io.out.ready, 0)
-    poke(c.io.in.debugCA, 0)
+    poke(c.io.in.debugCA, 1)
     poke(c.io.in.debugNCO, 0)
 
     // wait until input is accepted
@@ -89,13 +89,13 @@ class ALoopParTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoopPar[T1,T2],
 
 
     print("trial")
-    while (cycles < 35000) {
+    while (cycles < 12500) {
 
       if (cycles == 1) {poke(c.io.in.valid, 1)}
       else {poke(c.io.in.valid, 0)}
 
 
-      val data_ADC = math.cos((2 * Pi) * (cycles) / 32) * 4
+      val data_ADC = math.cos((2 * Pi) * (cycles) / 4) * 4
       val data_CA_pre = math.cos((2 * Pi) * (cycles-10) / 32) * 4
       var data_CA = 0.0
       if (data_CA_pre > 0.0) {
@@ -110,8 +110,8 @@ class ALoopParTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoopPar[T1,T2],
 
       val data_ADC_real = byteArray(cycles).toInt
 
-      poke(c.io.in.ADC, data_ADC_real)
-      poke(c.io.in.CA, data_CA)
+      poke(c.io.in.ADC, data_ADC)
+      poke(c.io.in.CA, 1)
       poke(c.io.in.cos, data_cos)
       poke(c.io.in.sin, data_sin)
 
