@@ -48,25 +48,19 @@ object CostasDiscInputBundle {
   def apply[T <: Data](params: DiscParams[T]): CostasDiscInputBundle[T] = new CostasDiscInputBundle(params)
 }
 
-class CostasDiscOutputBundle[T <: Data](params: DiscParams[T]) extends Bundle { 
+class DiscOutputBundle[T <: Data](params: DiscParams[T]) extends Bundle { 
   val output = params.protoOut.cloneType  
 
-  override def cloneType: this.type = CostasDiscOutputBundle(params).asInstanceOf[this.type]
+  override def cloneType: this.type = DiscOutputBundle(params).asInstanceOf[this.type]
 } 
 
-object CostasDiscOutputBundle {
-  def apply[T <: Data](params: DiscParams[T]): CostasDiscOutputBundle[T] = new CostasDiscOutputBundle(params)
+object DiscOutputBundle {
+  def apply[T <: Data](params: DiscParams[T]): DiscOutputBundle[T] = new DiscOutputBundle(params)
 }
 
 class CostasDiscBundle[T <: Data](params: DiscParams[T]) extends Bundle { 
-  val in = Flipped(Decoupled(new CostasDiscInputBundle(params)))
-  val out = Decoupled(new CostasDiscOutputBundle(params))
-  val ipsCurrOut = Output(params.protoIn.cloneType)
-  val qpsCurrOut = Output(params.protoIn.cloneType)
-  val ipsPrevOut = Output(params.protoIn.cloneType)
-  val qpsPrevOut = Output(params.protoIn.cloneType)
-  val dotOut = Output(params.protoIn.cloneType)
-  val crossOut = Output(params.protoIn.cloneType)
+  val in = Flipped(Decoupled(CostasDiscInputBundle(params)))
+  val out = Decoupled(DiscOutputBundle(params))
     
   override def cloneType: this.type = CostasDiscBundle(params).asInstanceOf[this.type]
 } 
@@ -162,15 +156,9 @@ class FreqDiscriminator[T <: Data : Real : BinaryRepresentation](val params: Dis
   outputReg := Mux(freqUpdate === 0.U, outputReg, cordicCostas.io.out.bits.z)
   io.out.bits.output := outputReg
 
-  io.ipsCurrOut := ipsCurr
-  io.qpsCurrOut := qpsCurr 
-  io.ipsPrevOut := ipsPrev
-  io.qpsPrevOut := qpsPrev 
-  io.dotOut := dot
-  io.crossOut := cross
 }
 
-class DllDiscBundle[T <: Data](params: DiscParams[T]) extends Bundle {
+class DllDiscInputBundle[T <: Data](params: DiscParams[T]) extends Bundle {
   val ipsE: T = Input(params.protoIn.cloneType)
   val qpsE: T = Input(params.protoIn.cloneType)
 
@@ -178,8 +166,17 @@ class DllDiscBundle[T <: Data](params: DiscParams[T]) extends Bundle {
   val qpsL: T = Input(params.protoIn.cloneType)
 
   // FIXME: Incorrect output width. What should it be?
-  val out = Output(params.protoOut.cloneType)  
-  val outValid = Output(Bool())
+
+  override def cloneType: this.type = DllDiscInputBundle(params).asInstanceOf[this.type]
+} 
+
+object DllDiscInputBundle {
+  def apply[T <: Data](params:DiscParams[T]): DllDiscInputBundle[T] = new DllDiscInputBundle(params)
+}
+
+class DllDiscBundle[T <: Data](params: DiscParams[T]) extends Bundle {
+  val in = Flipped(Decoupled(new DllDiscInputBundle(params)))
+  val out = Decoupled(new DiscOutputBundle(params))
 
   override def cloneType: this.type = DllDiscBundle(params).asInstanceOf[this.type]
 } 
@@ -191,8 +188,8 @@ object DllDiscBundle {
 class DllDiscriminator[T <: Data : Real : BinaryRepresentation](val params: DiscParams[T]) extends Module {
   val io = IO(DllDiscBundle(params))
 
-  val e = io.ipsE*io.ipsE + io.qpsE*io.qpsE
-  val l = io.ipsL*io.ipsL + io.qpsL*io.qpsL
+  val e = io.in.bits.ipsE*io.in.bits.ipsE + io.in.bits.qpsE*io.in.bits.qpsE
+  val l = io.in.bits.ipsL*io.in.bits.ipsL + io.in.bits.qpsL*io.in.bits.qpsL
 
   val cordicDLL = Module(new FixedIterativeCordic(params.cordicParams))
     
@@ -206,6 +203,6 @@ class DllDiscriminator[T <: Data : Real : BinaryRepresentation](val params: Disc
   } .otherwise {
     io.out := -cordicDLL.io.out.bits.z  
   }
-  io.outValid := cordicDLL.io.out.valid
+  io.out.valid := cordicDLL.io.out.valid
 }
 

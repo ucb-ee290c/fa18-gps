@@ -75,10 +75,10 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
   phaseDisc.io.in.bits.qps := io.qp
   freqDisc.io.in.bits.ips := io.ip
   freqDisc.io.in.bits.qps := io.qp
-  dllDisc.io.ipsE := io.ie
-  dllDisc.io.qpsE := io.qe
-  dllDisc.io.ipsL := io.il
-  dllDisc.io.qpsL := io.ql
+  dllDisc.io.in.bits.ipsE := io.ie
+  dllDisc.io.in.bits.qpsE := io.qe
+  dllDisc.io.in.bits.ipsL := io.il
+  dllDisc.io.in.bits.qpsL := io.ql
 
   val phaseErr = phaseDisc.io.out   
   val freqErr = freqDisc.io.out
@@ -114,12 +114,12 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
   val dllErrReg = Reg(SInt(discParams.dllDisc.outWidth.W))
   val dllErr = dllDisc.io.out
   
-  when (dllDisc.io.outValid) {
+  when (dllDisc.io.out.valid) {
     dllErrReg := dllErr 
   }
 
   lfDLL.io.in := dllErrReg
-  lfDLL.io.valid := dllDisc.io.outValid
+  lfDLL.io.valid := dllDisc.io.out.valid
 
   io.dllErrRegOut := dllErrReg
    
