@@ -40,6 +40,8 @@ class CostasModel (intTime: Double, pllBW: Double, fllBw: Double, mode: Int, fre
     val cross = ips1 * qps2 - ips2 * qps1
     val dot = ips1 * ips2 + qps1 * qps2
 
+    println(dot)
+    println(cross)
     freqMode match {
       case 0 => cross
       case 1 => cross * signum(dot) 

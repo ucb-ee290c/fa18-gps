@@ -61,7 +61,13 @@ object CostasDiscOutputBundle {
 class CostasDiscBundle[T <: Data](params: DiscParams[T]) extends Bundle { 
   val in = Flipped(Decoupled(new CostasDiscInputBundle(params)))
   val out = Decoupled(new CostasDiscOutputBundle(params))
-
+  val ipsCurrOut = Output(params.protoIn.cloneType)
+  val qpsCurrOut = Output(params.protoIn.cloneType)
+  val ipsPrevOut = Output(params.protoIn.cloneType)
+  val qpsPrevOut = Output(params.protoIn.cloneType)
+  val dotOut = Output(params.protoIn.cloneType)
+  val crossOut = Output(params.protoIn.cloneType)
+    
   override def cloneType: this.type = CostasDiscBundle(params).asInstanceOf[this.type]
 } 
 
@@ -91,24 +97,77 @@ class PhaseDiscriminator[T <: Data : Real : BinaryRepresentation](val params: Di
 class FreqDiscriminator[T <: Data : Real : BinaryRepresentation](val params: DiscParams[T]) extends Module {
   val io = IO(new CostasDiscBundle(params))
 
+  val s_init :: s_alg :: s_done :: nil = Enum(3)
+  val state = RegInit(s_init) 
+
+  val ipsCurr = RegInit(params.protoIn.cloneType, Ring[T].zero)
+  val qpsCurr = RegInit(params.protoIn.cloneType, Ring[T].zero)
+
   val ipsPrev = RegInit(params.protoIn.cloneType, Ring[T].zero)
   val qpsPrev = RegInit(params.protoIn.cloneType, Ring[T].zero)
 
+  val outputReg = RegInit(params.protoOut.cloneType, Ring[T].zero)
   // FIXME: Later use ONE cordic for both phase and freq Discriminator
   val cordicCostas = Module(new FixedIterativeCordic(params.cordicParams))
-  
-  val dot = io.in.bits.ips * qpsPrev - ipsPrev * io.in.bits.qps
-  val cross = io.in.bits.ips * ipsPrev + io.in.bits.qps * qpsPrev
+ 
+  val freqUpdate = RegInit(UInt(1.W), 0.U)
+ 
+  val cross = ipsCurr * qpsPrev - ipsPrev * qpsCurr
+  val dot = ipsCurr * ipsPrev + qpsCurr * qpsPrev
 
+  cordicCostas.io.vectoring := true.B
+  cordicCostas.io.out.ready := true.B
+  cordicCostas.io.in.valid := false.B
+
+  freqUpdate := freqUpdate
+  ipsCurr := ipsCurr
+  qpsCurr := qpsCurr
+  ipsPrev := ipsPrev
+  qpsPrev := qpsPrev
+
+  when (state === s_init) {
+    io.in.ready := true.B
+    io.out.valid := false.B
+
+    when (io.in.fire()) {
+      state := s_alg
+    
+      ipsCurr := io.in.bits.ips
+      qpsCurr := io.in.bits.qps 
+    } .otherwise {
+      state := s_init
+    }
+  } .elsewhen (state === s_alg) {
+    io.in.ready := false.B
+    io.out.valid := false.B   
+
+    cordicCostas.io.in.valid := true.B
+    
+    when (cordicCostas.io.out.fire()) {
+      state := s_done
+    }  
+  } .otherwise {
+    io.in.ready := false.B
+    io.out.valid := true.B
+    ipsPrev := ipsCurr
+    qpsPrev := qpsCurr
+    state := s_init
+    freqUpdate := freqUpdate + 1
+  }
   cordicCostas.io.in.bits.x := dot
   cordicCostas.io.in.bits.y := cross
-  cordicCostas.io.in.valid := io.in.valid
-  io.in.ready := cordicCostas.io.in.ready
+  cordicCostas.io.in.bits.z := ConvertableTo[T].fromDouble(0.0)
 
   // TODO: Compensate for the 1/timeStep later
-  io.out.bits.output := cordicCostas.io.out.bits.z 
-  io.out.valid := cordicCostas.io.out.valid
-  cordicCostas.io.out.ready := io.out.ready
+  outputReg := Mux(freqUpdate === 0.U, outputReg, cordicCostas.io.out.bits.z)
+  io.out.bits.output := outputReg
+
+  io.ipsCurrOut := ipsCurr
+  io.qpsCurrOut := qpsCurr 
+  io.ipsPrevOut := ipsPrev
+  io.qpsPrevOut := qpsPrev 
+  io.dotOut := dot
+  io.crossOut := cross
 }
 
 class DllDiscBundle[T <: Data](params: DiscParams[T]) extends Bundle {
