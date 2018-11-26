@@ -53,7 +53,7 @@ class PhaseDiscSpec extends FlatSpec with Matchers {
   val realCordicParams = new CordicParams[DspReal] {
     val protoXY = DspReal()
     val protoZ = DspReal()
-    val nStages = 20
+    val nStages = 30
     val correctGain = true
     val stagesPerCycle = 1
     val calAtan2 = false
