@@ -37,13 +37,31 @@ case class FixedDiscParams(
   val protoOut = FixedPoint(outWidth.W, 8.BP)
 }
 
-class CostasDiscBundle[T <: Data](params: DiscParams[T]) extends Bundle { 
-  val ips: T = Input(params.protoIn.cloneType)
-  val qps: T = Input(params.protoIn.cloneType)
+class CostasDiscInputBundle[T <: Data](params: DiscParams[T]) extends Bundle { 
+  val ips: T = params.protoIn.cloneType
+  val qps: T = params.protoIn.cloneType
+  
+  override def cloneType: this.type = CostasDiscInputBundle(params).asInstanceOf[this.type]
+} 
 
-  // FIXME: Incorrect output width. What should it be?
-  val out = Output(params.protoOut.cloneType)  
-  val outValid = Output(Bool())
+object CostasDiscInputBundle {
+  def apply[T <: Data](params: DiscParams[T]): CostasDiscInputBundle[T] = new CostasDiscInputBundle(params)
+}
+
+class CostasDiscOutputBundle[T <: Data](params: DiscParams[T]) extends Bundle { 
+  val output = params.protoOut.cloneType  
+
+  override def cloneType: this.type = CostasDiscOutputBundle(params).asInstanceOf[this.type]
+} 
+
+object CostasDiscOutputBundle {
+  def apply[T <: Data](params: DiscParams[T]): CostasDiscOutputBundle[T] = new CostasDiscOutputBundle(params)
+}
+
+class CostasDiscBundle[T <: Data](params: DiscParams[T]) extends Bundle { 
+  val in = Flipped(Decoupled(new CostasDiscInputBundle(params)))
+  val out = Decoupled(new CostasDiscOutputBundle(params))
+
   override def cloneType: this.type = CostasDiscBundle(params).asInstanceOf[this.type]
 } 
 
@@ -55,18 +73,19 @@ class PhaseDiscriminator[T <: Data : Real : BinaryRepresentation](val params: Di
   val io = IO(CostasDiscBundle(params))
 
   val cordicCostas = Module(new FixedIterativeCordic(params.cordicParams))
-  when(io.ips >= Ring[T].zero) {
-    cordicCostas.io.in.bits.x := io.ips
-    cordicCostas.io.in.bits.y := io.qps
-  } .otherwise {
-    cordicCostas.io.in.bits.x := -io.ips
-    cordicCostas.io.in.bits.y := -io.qps
-  }
-  cordicCostas.io.in.valid := true.B
-  
-  io.out := cordicCostas.io.out.bits.z    
-  io.outValid := cordicCostas.io.out.fire
 
+  cordicCostas.io.in.bits.z := ConvertableTo[T].fromDouble(0.0)
+  cordicCostas.io.vectoring := true.B
+
+  cordicCostas.io.in.bits.x := io.in.bits.ips
+  cordicCostas.io.in.bits.y := io.in.bits.qps
+
+  cordicCostas.io.in.valid := io.in.valid
+  io.in.ready := cordicCostas.io.in.ready
+  
+  io.out.bits.output := cordicCostas.io.out.bits.z    
+  io.out.valid := cordicCostas.io.out.valid
+  cordicCostas.io.out.ready := io.out.ready
 }
 
 class FreqDiscriminator[T <: Data : Real : BinaryRepresentation](val params: DiscParams[T]) extends Module {
@@ -78,16 +97,18 @@ class FreqDiscriminator[T <: Data : Real : BinaryRepresentation](val params: Dis
   // FIXME: Later use ONE cordic for both phase and freq Discriminator
   val cordicCostas = Module(new FixedIterativeCordic(params.cordicParams))
   
-  val dot = io.ips * qpsPrev - ipsPrev * io.qps
-  val cross = io.ips * ipsPrev + io.qps * qpsPrev
+  val dot = io.in.bits.ips * qpsPrev - ipsPrev * io.in.bits.qps
+  val cross = io.in.bits.ips * ipsPrev + io.in.bits.qps * qpsPrev
 
   cordicCostas.io.in.bits.x := dot
   cordicCostas.io.in.bits.y := cross
-  cordicCostas.io.in.valid := true.B
-  // TODO: Compensate for the 1/timeStep later
-  io.out := cordicCostas.io.out.bits.z 
-  io.outValid := cordicCostas.io.out.valid
+  cordicCostas.io.in.valid := io.in.valid
+  io.in.ready := cordicCostas.io.in.ready
 
+  // TODO: Compensate for the 1/timeStep later
+  io.out.bits.output := cordicCostas.io.out.bits.z 
+  io.out.valid := cordicCostas.io.out.valid
+  cordicCostas.io.out.ready := io.out.ready
 }
 
 class DllDiscBundle[T <: Data](params: DiscParams[T]) extends Bundle {

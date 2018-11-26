@@ -71,10 +71,10 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
   var freqUpdate = false
   
   // Costas Loop  
-  phaseDisc.io.ips := io.ip 
-  phaseDisc.io.qps := io.qp
-  freqDisc.io.ips := io.ip
-  freqDisc.io.qps := io.qp
+  phaseDisc.io.in.bits.ips := io.ip 
+  phaseDisc.io.in.bits.qps := io.qp
+  freqDisc.io.in.bits.ips := io.ip
+  freqDisc.io.in.bits.qps := io.qp
   dllDisc.io.ipsE := io.ie
   dllDisc.io.qpsE := io.qe
   dllDisc.io.ipsL := io.il
@@ -83,11 +83,11 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
   val phaseErr = phaseDisc.io.out   
   val freqErr = freqDisc.io.out
 
-  when (phaseDisc.io.outValid) {
+  when (phaseDisc.io.out.valid) {
     phaseErrReg := phaseErr
   }
 
-  when (freqDisc.io.outValid) {
+  when (freqDisc.io.out.valid) {
     if (freqUpdate) {
       freqErrReg := freqErr
       freqUpdate = false
@@ -98,7 +98,7 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
 
   lfCostas.io.freqErr := freqErrReg
   lfCostas.io.phaseErr := phaseErrReg
-  lfCostas.io.valid := freqDisc.io.outValid && phaseDisc.io.outValid
+  lfCostas.io.valid := freqDisc.io.out.valid && phaseDisc.io.out.valid
   lfCostas.io.intTime := io.intTime
 
   val codeCoeff = ConvertableTo[T].fromDouble(1/((2*math.Pi) * (16*1023*1e3) * (math.pow(2, 30) - 1)))   

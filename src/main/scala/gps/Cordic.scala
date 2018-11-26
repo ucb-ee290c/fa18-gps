@@ -158,7 +158,7 @@ class CordicStage[T <: Data : Real : BinaryRepresentation](params: CordicParams[
   val io = IO(new Bundle {
     val in = Input(CordicBundle(params))
     val vectoring = Input(Bool())
-    val shift = Input(UInt())
+    val shift = Input(UInt(params.nStages.U.getWidth.W))
     val romIn = Input(params.protoXY.cloneType)
     val out = Output(CordicBundle(params))
   })
