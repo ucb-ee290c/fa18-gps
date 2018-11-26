@@ -13,16 +13,16 @@ import scala.math._
 class ALoopParSpec extends FlatSpec with Matchers {
   behavior of "ALoopPar"
 
-  val nHalfFreq = 0
+  val nHalfFreq = 20
   val freqStep = 500
   val fsample = 16367600
   val fcarrier = 4128460
   val fchip = 1023000
   val nSample = 16368
-  val CPStep = 211
-  val CPMin = 61
-  val nCPSample = ((nSample - CPMin) / CPStep).toInt + 1
-//  val nCPSample = 20
+  val CPStep = 8
+  val CPMin = 0
+  val nCPSample = ((nSample - CPMin - 1) / CPStep).toInt + 1
+//  val nCPSample = 40
 
   val params = EgALoopParParams(
     wADC = 4,
@@ -42,7 +42,7 @@ class ALoopParSpec extends FlatSpec with Matchers {
   )
   it should "ALoop" in {
     val baseTrial = ALoopParTestVec(idx_sate=0)
-    val idx_sate = Seq(22)
+    val idx_sate = Seq(3)
     val trials = idx_sate.map { idx_sate => baseTrial.copy(idx_sate = idx_sate) }
     ALoopParTester(params, trials) should be (true)
   }
@@ -89,7 +89,7 @@ class ALoopParTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoopPar[T1,T2],
 
 
     print("trial")
-    while (cycles < 35000) {
+    while (cycles < 800000) {
 
       if (cycles == 1) {poke(c.io.in.valid, 1)}
       else {poke(c.io.in.valid, 0)}
