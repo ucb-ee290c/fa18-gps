@@ -58,8 +58,6 @@ class DLLModel(dcGain: Double, bandwidth: Double, sampleRate: Double, discrimina
     } else if (disNum == 2) {
       disOut = discriminator2(I_sample._1, I_sample._3, Q_sample._1, Q_sample._3)
     }   
-    println("dll")
-    println(disOut)
     var lfOut = loopFilter(disOut)
     
     lfOut + freqBias
@@ -75,8 +73,6 @@ class DLLModel(dcGain: Double, bandwidth: Double, sampleRate: Double, discrimina
     } else if (disNum == 2) {
       disOut = discriminator2(I_sample._1, I_sample._3, Q_sample._1, Q_sample._3)
     }   
-    println("dll")
-    println(disOut)
     var lfOut = loopFilter(disOut)
     
     lfOut.toInt + freqBias.toInt

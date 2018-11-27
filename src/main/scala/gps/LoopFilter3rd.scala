@@ -75,14 +75,12 @@ class LoopFilter3rd[T <: Data : Ring : ConvertableTo](params: LoopFilter3rdParam
   val alpha = RegInit(params.proto.cloneType, Ring[T].zero)
   val beta = RegInit(params.proto.cloneType, Ring[T].zero)
 
-  val betaWire = Mux(io.valid, (ConvertableTo[T].fromDouble(params.fDCGain*w0f*w0f) * io.freqErr +
+  val betaWire = (ConvertableTo[T].fromDouble(params.fDCGain*w0f*w0f) * io.freqErr +
       ConvertableTo[T].fromDouble(params.pDCGain*w0p*w0p*w0p)*io.phaseErr) * io.intTime +
-      beta,
-      Ring[T].zero)
-  val alphaWire = Mux(io.valid, (ConvertableTo[T].fromDouble(params.fDCGain*params.a2*w0f) * io.freqErr +
+      beta
+  val alphaWire = (ConvertableTo[T].fromDouble(params.fDCGain*params.a2*w0f) * io.freqErr +
       ConvertableTo[T].fromDouble(params.pDCGain * params.a3 * w0p * w0p) * io.phaseErr +
-      (betaWire + beta) * ConvertableTo[T].fromDouble(0.5)) * io.intTime + alpha,
-      Ring[T].zero)
+      (betaWire + beta) * ConvertableTo[T].fromDouble(0.5)) * io.intTime + alpha
 
   when(io.valid) {
     io.out := ConvertableTo[T].fromDouble(params.pDCGain*params.b3*w0p) * io.phaseErr +

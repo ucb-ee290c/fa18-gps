@@ -69,9 +69,6 @@ class CostasModel (intTime: Double, pllBW: Double, fllBw: Double, mode: Int, fre
     } else {
       freqUpdate = true
     }
-    println("phase")
-    println(phaseErr)
-    println(freqErr)
     loopFilter()
     var delta_freq = lf/(2*Pi)
     var code = delta_freq / (16*1023*1e3) * (pow(2, 30) - 1) 
@@ -88,9 +85,6 @@ class CostasModel (intTime: Double, pllBW: Double, fllBw: Double, mode: Int, fre
     } else {
       freqUpdate = true
     }
-    println("phase")
-    println(phaseErr)
-    println(freqErr)
     loopFilter()
     var delta_freq = lf/(2*Pi)
     var code = delta_freq / (16*1023*1e3) * (pow(2, 30) - 1) 
