@@ -85,14 +85,13 @@ class LoopFilter3rd[T <: Data : Ring : ConvertableTo](params: LoopFilter3rdParam
       Ring[T].zero)
 
   when(io.valid) {
-    outReg := ConvertableTo[T].fromDouble(params.pDCGain*params.b3*w0p) * io.phaseErr +
+    io.out := ConvertableTo[T].fromDouble(params.pDCGain*params.b3*w0p) * io.phaseErr +
       (alphaWire + alpha) * ConvertableTo[T].fromDouble(0.5)
+    outReg := io.out
     beta := betaWire
     alpha := alphaWire
   }.otherwise{
-    outReg := Ring[T].zero
+    io.out := Ring[T].zero
   }
-
-  io.out := outReg
 
 }
