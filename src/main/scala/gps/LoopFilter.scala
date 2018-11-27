@@ -26,6 +26,7 @@ case class FixedFilterParams(
   val bandwidth: Double,
   val sampleRate: Double,
 ) extends LoopFilterParams[FixedPoint] {
+  //FIXME: Fixed point widths hardcoded
   val proto = FixedPoint(20.W, 16.BP)
 }
 
