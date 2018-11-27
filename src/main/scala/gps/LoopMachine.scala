@@ -60,7 +60,6 @@ class LoopOutputBundle[T <: Data](params: LoopParams[T]) extends Bundle {
   val dllErrRegOut = params.protoOut.cloneType 
   val phaseErrRegOut = params.protoOut.cloneType
   val freqErrRegOut = params.protoOut.cloneType 
-  val dllUpdate = Bool()
 
   override def cloneType: this.type = LoopOutputBundle(params).asInstanceOf[this.type]
 }
@@ -108,9 +107,6 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](
   val lfDllOut = Reg(loopParams.protoOut.cloneType)
   val lfCostasOut = Reg(loopParams.protoOut.cloneType)
 
-  // Debugging purposes
-  io.out.bits.dllUpdate := dllRegUpdate
-  
   // Costas Loop  
   lfCostas.io.intTime := ConvertableTo[T].fromDouble(loopParams.intTime)
   phaseDisc.io.in.bits.ips := io.in.bits.ip 

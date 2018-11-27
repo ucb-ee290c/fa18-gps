@@ -30,7 +30,6 @@ class LoopMachineTester[T <: chisel3.Data](c: LoopMachine[T], ie: Seq[Double], i
       peek(c.io.out.bits.phaseErrRegOut)
       peek(c.io.out.bits.freqErrRegOut)
       peek(c.io.out.bits.dllErrRegOut)
-      peek(c.io.out.bits.dllUpdate)
       step(1)
     }
 

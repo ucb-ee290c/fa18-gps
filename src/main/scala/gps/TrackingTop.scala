@@ -11,7 +11,7 @@ case class TrackingTopParams(
   sampleRate: Double,  // Sample rate of the input data
   inBP: Int,
   ncoBP: Int
-) extends TrackingChannelParams[SInt, FixedPoint] {
+) extends TrackingChannelParams[SInt, FixedPoint] with LoopParams[FixedPoint] {
   // Width of the Integrators
   // 0.02 is the maximum integration time, sizing things to prevent overflow,
   // +1 for signed
@@ -29,6 +29,13 @@ case class TrackingTopParams(
   val lfParamsCostas = FixedFilter3rdParams(width = 20, bPWidth = 16)   
   // TODO Is there a way we can generate this? 
   val lfParamsDLL = FixedFilterParams(6000, 5, 1) 
+  val phaseDisc = FixedDiscParams(
+    inWidth = (integWidth + inBP), 
+    inBP = inBP, 
+    outWidth = (ncoWidth + ncoBP), 
+    outBP = ncoBP)
+  val freqDisc = phaseDisc.copy(calAtan2=true)
+  val dllDisc = phaseDisc.copy(dividing=true)
   
   // Tracking Channel stuff
   // Carrier NCO is ncoWidth wide count, adcWidth out and has a sin output
@@ -47,3 +54,8 @@ case class TrackingTopParams(
   val phaseLockParams = LockDetectParams(FixedPoint(20.W, 12.BP), -0.26, 0.26,100)
 }
 
+class TrackingTop(params: TrackingTopParams) extends Module {
+  val io = IO(new Bundle{
+    val adcIn = Input(SInt(params.adcWidth.W))
+  })
+}
