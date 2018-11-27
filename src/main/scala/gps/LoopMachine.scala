@@ -24,7 +24,7 @@ case class ExampleLoopParams(
   //FIXME: widths may not be correct for costas loop filter 
   val protoIn = FixedPoint(inWidth.W, inBP.BP)
   val protoOut = FixedPoint(ncoWidth.W, ncoBP.BP)
-  val lfParamsCostas = FixedFilter3rdParams(width = 20, BPWidth = 16)   
+  val lfParamsCostas = FixedFilter3rdParams(width = 20, bPWidth = 16)   
   val lfParamsDLL = FixedFilterParams(6000, 5, 1) 
 } 
 
@@ -68,7 +68,6 @@ class LoopBundle[T <: Data](params: LoopParams[T], discParams: AllDiscParams[T])
 
   override def cloneType: this.type = LoopBundle(params, discParams).asInstanceOf[this.type]
 }
-
 object LoopBundle {
   def apply[T <: Data](params:LoopParams[T], discParams:AllDiscParams[T]): LoopBundle[T] = new LoopBundle(params, discParams)
 }
@@ -217,7 +216,6 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
 
 
   // DLL
-  
   when (dllDisc.io.out.fire()) {
     dllErrReg := dllErr 
     dllRegUpdate := true.B
@@ -230,7 +228,5 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
    
   io.out.bits.codeNco := lfDllOut + io.in.bits.dllFreqBias
   io.out.bits.code2xNco := 2*io.out.bits.codeNco
-    
-    
 } 
 

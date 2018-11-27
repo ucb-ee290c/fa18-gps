@@ -15,9 +15,9 @@ trait LoopFilter3rdParams[T <: Data] {
   val proto: T
   val fBandwidth: Double
   val pBandwidth: Double
-  val a2: Double
-  val a3: Double
-  val b3: Double
+  val a2: Double = 1.414
+  val a3: Double = 1.1
+  val b3: Double = 2.4
   val fDCGain: Double
   val pDCGain: Double
 }
@@ -26,17 +26,14 @@ trait LoopFilter3rdParams[T <: Data] {
  * Loop Filter Parameters for a Fixed Point output
  */
 case class FixedFilter3rdParams(
-  val fBandwidth: Double = 3.0,
-  val pBandwidth: Double = 17.0,
   val width: Int,
-  val BPWidth: Int,
-  val a2: Double = 1.414,
-  val a3: Double = 1.1,
-  val b3: Double = 2.4,
+  val bPWidth: Int,
+  val fBandwidth: Double = 3, 
+  val pBandwidth: Double = 17, 
   val fDCGain: Double = 1,
-  val pDCGain: Double = 1,
+  val pDCGain: Double = 1, 
 ) extends LoopFilter3rdParams[FixedPoint] {
-  val proto = FixedPoint(width.W, BPWidth.BP)
+  val proto = FixedPoint(width.W, bPWidth.BP)
 }
 
 /**

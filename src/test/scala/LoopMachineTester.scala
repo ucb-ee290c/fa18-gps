@@ -75,9 +75,6 @@ class LoopMachineSpec extends FlatSpec with Matchers {
     val proto = DspReal()
     val fBandwidth = 3.0
     val pBandwidth = 17.0
-    val a2 = 1.414
-    val a3 = 1.1
-    val b3 = 2.4
     val fDCGain = 1.0
     val pDCGain = 1.0 
   }
