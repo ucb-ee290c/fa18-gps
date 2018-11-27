@@ -12,6 +12,9 @@ trait LoopParams[T <: Data] {
   val lfParamsCostas: LoopFilter3rdParams[T]
   val lfParamsDLL: LoopFilterParams[T]
   val intTime: Double
+  val freqDisc: DiscParams[T]
+  val phaseDisc: DiscParams[T]
+  val dllDisc: DiscParams[T]
 }
 
 case class ExampleLoopParams(
@@ -26,6 +29,9 @@ case class ExampleLoopParams(
   val protoOut = FixedPoint(ncoWidth.W, ncoBP.BP)
   val lfParamsCostas = FixedFilter3rdParams(width = 20, bPWidth = 16)   
   val lfParamsDLL = FixedFilterParams(6000, 5, 1) 
+  val freqDisc = FixedDiscParams(inWidth, inBP, ncoWidth, ncoBP, calAtan2=true)
+  val phaseDisc = FixedDiscParams(inWidth, inBP, ncoWidth, ncoBP)
+  val dllDisc =  FixedDiscParams(inWidth, inBP, ncoWidth, ncoBP, dividing=true)
 } 
 
 class LoopInputBundle[T <: Data](params: LoopParams[T], discParams: AllDiscParams[T]) extends Bundle {

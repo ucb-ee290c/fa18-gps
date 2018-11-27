@@ -11,7 +11,7 @@ case class TrackingTopParams(
   sampleRate: Double,  // Sample rate of the input data
   inBP: Int,
   ncoBP: Int
-) extends TrackingChannelParams[SInt, FixedPoint] with LoopParams[FixedPoint] {
+) extends TrackingChannelParams[SInt, FixedPoint] {
   // Width of the Integrators
   // 0.02 is the maximum integration time, sizing things to prevent overflow,
   // +1 for signed
@@ -47,6 +47,3 @@ case class TrackingTopParams(
   val phaseLockParams = LockDetectParams(FixedPoint(20.W, 12.BP), -0.26, 0.26,100)
 }
 
-class TrackingTop(params: TracingTopParams) extends Module {
-
-}

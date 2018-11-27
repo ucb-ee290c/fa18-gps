@@ -92,6 +92,9 @@ class LoopMachineSpec extends FlatSpec with Matchers {
     val intTime = 0.001
     val lfParamsCostas = realLfParamsCostas
     val lfParamsDLL = realLfParamsDLL
+    val phaseDisc = realDiscParams
+    val freqDisc = realDiscParams.copy(cordicParams=realCordicParams.copy(calAtan2 = true))
+    val dllDisc = realDiscParams.copy(cordicParams=realCordicParams.copy(dividing = true))
   }
   
   it should "converge all loops" in {
