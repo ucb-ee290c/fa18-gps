@@ -48,6 +48,23 @@ class DLLModel(dcGain: Double, bandwidth: Double, sampleRate: Double, discrimina
     y
   } 
 
+  def updateDouble(
+    I_sample: (Double, Double, Double), 
+    Q_sample: (Double, Double, Double), 
+    freqBias: Double,
+  ) : Double = {
+    if (disNum == 1) {
+      disOut = discriminator1(I_sample._1, I_sample._3, Q_sample._1, Q_sample._3)
+    } else if (disNum == 2) {
+      disOut = discriminator2(I_sample._1, I_sample._3, Q_sample._1, Q_sample._3)
+    }   
+    println("dll")
+    println(disOut)
+    var lfOut = loopFilter(disOut)
+    
+    lfOut + freqBias
+  }
+
   def update(
     I_sample: (Double, Double, Double), 
     Q_sample: (Double, Double, Double), 
@@ -58,6 +75,8 @@ class DLLModel(dcGain: Double, bandwidth: Double, sampleRate: Double, discrimina
     } else if (disNum == 2) {
       disOut = discriminator2(I_sample._1, I_sample._3, Q_sample._1, Q_sample._3)
     }   
+    println("dll")
+    println(disOut)
     var lfOut = loopFilter(disOut)
     
     lfOut.toInt + freqBias.toInt
