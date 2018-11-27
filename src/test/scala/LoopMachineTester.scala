@@ -7,9 +7,11 @@ import dsptools.numbers._
 import scala.collection.mutable.ListBuffer
 import org.scalatest.{FlatSpec, Matchers}
 
-class LoopMachineTester[T <: chisel3.Data](c: LoopMachine[T], ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Int, Int)]) extends DspTester(c){
+class LoopMachineTester[T <: chisel3.Data](c: LoopMachine[T], ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Double, Double)]) extends DspTester(c){
   poke(c.io.out.ready, 1)
   poke(c.io.in.valid, 1)
+  poke(c.io.in.bits.costasFreqBias, 0.0)
+  poke(c.io.in.bits.dllFreqBias, 0.0)
 
   var i = 0
   for (i <- 0 until ie.size) {
@@ -25,6 +27,10 @@ class LoopMachineTester[T <: chisel3.Data](c: LoopMachine[T], ie: Seq[Double], i
     }
 
     while (!peek(c.io.out.valid)) {
+      peek(c.io.out.bits.phaseErrRegOut)
+      peek(c.io.out.bits.freqErrRegOut)
+      peek(c.io.out.bits.dllErrRegOut)
+      peek(c.io.out.bits.dllUpdate)
       step(1)
     }
 
@@ -37,7 +43,7 @@ class LoopMachineTester[T <: chisel3.Data](c: LoopMachine[T], ie: Seq[Double], i
 } 
 
 object FixedLoopMachineTester {
-  def apply(loopParams: ExampleLoopParams, discParams: ExampleAllDiscParams, ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Int, Int)]): Boolean = {
+  def apply(loopParams: ExampleLoopParams, discParams: ExampleAllDiscParams, ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Double, Double)]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), 
       () => new LoopMachine(loopParams, discParams)) {
       c => new LoopMachineTester(c, ie, ip, il, qe, qp, ql, output)
@@ -46,7 +52,7 @@ object FixedLoopMachineTester {
 }
 
 object RealLoopMachineTester {
-  def apply(loopParams: LoopParams[dsptools.numbers.DspReal], discParams: AllDiscParams[dsptools.numbers.DspReal], ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Int, Int)]): Boolean = {
+  def apply(loopParams: LoopParams[dsptools.numbers.DspReal], discParams: AllDiscParams[dsptools.numbers.DspReal], ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Double, Double)]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv"), 
       () => new LoopMachine(loopParams, discParams)) {
       c => new LoopMachineTester(c, ie, ip, il, qe, qp, ql, output)
@@ -79,8 +85,8 @@ class LoopMachineSpec extends FlatSpec with Matchers {
   val realLfParamsDLL = new LoopFilterParams[DspReal] {
     val proto = DspReal()
     val dcGain = 6000.0
-    val bandwidth = 5.0
-    val sampleRate = 1.0
+    val bandwidth = 3.0
+    val sampleRate = 1e3
   }
   val realLoopParams = new LoopParams[DspReal] {
     val protoIn = DspReal()
@@ -108,8 +114,8 @@ class LoopMachineSpec extends FlatSpec with Matchers {
     val iIntFlat = iInt.map(f2(_))
     val qIntFlat = qInt.map(f2(_))
 
-    val dllOut = iIntFlat.zip(qIntFlat).map((a: ((Double, Double, Double), (Double, Double, Double))) => {dll.update(a._1, a._2, 0)})
-    val costasOut = ip.zip(qp).map((a: (Double, Double)) => {costas.update(a._1, a._2, 0)})
+    val dllOut = iIntFlat.zip(qIntFlat).map((a: ((Double, Double, Double), (Double, Double, Double))) => {dll.updateDouble(a._1, a._2, 0)})
+    val costasOut = ip.zip(qp).map((a: (Double, Double)) => {costas.updateDouble(a._1, a._2, 0)})
 
     val out = dllOut.zip(costasOut)
     RealLoopMachineTester(realLoopParams, realAllDiscParams, ie, ip, il, qe, qp, ql, out) should be (true)

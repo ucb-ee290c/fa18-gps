@@ -28,7 +28,7 @@ trait CordicParams[T <: Data] {
 }
 
 case class RealCordicParams(
-  nStages:Int = 30,
+  nStages:Int = 50,
   correctGain: Boolean = true,
   stagesPerCycle: Int = 1,
   dividing: Boolean = false,

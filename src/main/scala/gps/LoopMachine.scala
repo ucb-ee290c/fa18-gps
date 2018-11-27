@@ -53,6 +53,7 @@ class LoopOutputBundle[T <: Data](params: LoopParams[T], discParams: AllDiscPara
   val dllErrRegOut = params.protoOut.cloneType 
   val phaseErrRegOut = params.protoOut.cloneType
   val freqErrRegOut = params.protoOut.cloneType 
+  val dllUpdate = Bool()
 
   override def cloneType: this.type = LoopOutputBundle(params, discParams).asInstanceOf[this.type]
 }
@@ -84,7 +85,7 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
   val phaseDisc = Module(new PhaseDiscriminator(discParams.phaseDisc))
   val dllDisc = Module(new DllDiscriminator(discParams.dllDisc)) 
 
-  val s_init :: s_alg :: s_done :: nil = Enum(3)
+  val s_init :: s_cordic :: s_lf :: s_done :: nil = Enum(4)
   val state = RegInit(s_init) 
 
   val phaseRegUpdate = RegInit(false.B)
@@ -95,7 +96,11 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
   val freqErrReg = Reg(loopParams.protoOut.cloneType)
   val dllErrReg = Reg(loopParams.protoOut.cloneType)
 
-  var freqUpdate = false
+  val lfDllOut = Reg(loopParams.protoOut.cloneType)
+  val lfCostasOut = Reg(loopParams.protoOut.cloneType)
+
+  // Debugging purposes
+  io.out.bits.dllUpdate := dllRegUpdate
   
   // Costas Loop  
   lfCostas.io.intTime := ConvertableTo[T].fromDouble(loopParams.intTime)
@@ -108,17 +113,26 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
   dllDisc.io.in.bits.ipsL := io.in.bits.il
   dllDisc.io.in.bits.qpsL := io.in.bits.ql
 
-  val phaseErr = phaseDisc.io.out.bits.output   
-  val freqErr = freqDisc.io.out.bits.output
+  val phaseErr = -phaseDisc.io.out.bits.output   
+  val freqErr = ConvertableTo[T].fromDouble(1/loopParams.intTime) * freqDisc.io.out.bits.output
   val dllErr = dllDisc.io.out.bits.output
 
   phaseErrReg := phaseErrReg
   freqErrReg := freqErrReg
   dllErrReg := dllErrReg
 
-  phaseDisc.io.in.valid := false.B
-  freqDisc.io.in.valid := false.B
-  dllDisc.io.in.valid := false.B
+  val dllDiscInValid = RegInit(false.B)
+  val phaseDiscInValid = RegInit(false.B)
+  val freqDiscInValid = RegInit(false.B)
+
+  phaseDisc.io.in.valid := phaseDiscInValid
+  freqDisc.io.in.valid := freqDiscInValid
+  dllDisc.io.in.valid := dllDiscInValid
+
+  phaseDiscInValid := phaseDiscInValid
+  freqDiscInValid := freqDiscInValid
+  dllDiscInValid := dllDiscInValid 
+
   phaseDisc.io.out.ready := false.B
   freqDisc.io.out.ready := false.B
   dllDisc.io.out.ready := false.B
@@ -127,6 +141,10 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
   freqRegUpdate := freqRegUpdate
   dllRegUpdate := dllRegUpdate
 
+  lfCostas.io.valid := false.B
+  lfDLL.io.valid := false.B
+  lfDllOut := lfDllOut
+  lfCostasOut := lfCostasOut
 
   when (state === s_init) {
     io.in.ready := true.B
@@ -134,24 +152,36 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
     state := s_init
 
     when (io.in.fire()) {
-      state := s_alg
+      state := s_cordic
+
+      phaseDiscInValid := true.B
+      freqDiscInValid := true.B
+      dllDiscInValid := true.B
     }
-  } .elsewhen (state === s_alg) {
+  } .elsewhen (state === s_cordic) {
     io.in.ready := false.B
     io.out.valid := false.B
-    state := s_alg
+    state := s_cordic
     
-    phaseDisc.io.in.valid := true.B
-    freqDisc.io.in.valid := true.B
-    dllDisc.io.in.valid := true.B
 
     phaseDisc.io.out.ready := true.B
     freqDisc.io.out.ready := true.B
     dllDisc.io.out.ready := true.B
 
     when (phaseRegUpdate && freqRegUpdate && dllRegUpdate) {
-      state := s_done
+      state := s_lf
     }
+  } .elsewhen (state === s_lf) {
+    io.in.ready := false.B
+    io.out.valid := false.B
+    state := s_done
+
+    lfCostas.io.valid := true.B
+    lfDLL.io.valid := true.B
+    
+    lfDllOut := lfDLL.io.out
+    lfCostasOut := lfCostas.io.out
+
   } .otherwise {
     io.in.ready := false.B
     io.out.valid := true.B
@@ -166,24 +196,24 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
   when (phaseDisc.io.out.fire()) {
     phaseErrReg := phaseErr
     phaseRegUpdate := true.B
+    phaseDiscInValid := false.B
   }
 
   when (freqDisc.io.out.fire()) {
     freqErrReg := freqErr
     freqRegUpdate := true.B
+    freqDiscInValid := false.B
   }
 
   lfCostas.io.freqErr := freqErrReg
   lfCostas.io.phaseErr := phaseErrReg
-  lfCostas.io.valid := phaseRegUpdate && freqRegUpdate
 
-  val codeCoeff = ConvertableTo[T].fromDouble(1/((2*math.Pi) * (16*1023*1e3) * (math.pow(2, 30) - 1) * loopParams.intTime)) 
+  val codeCoeff = ConvertableTo[T].fromDouble(1/((2*math.Pi) * (16*1023*1e3)) * (math.pow(2, 30) - 1)) 
   
   io.out.bits.phaseErrRegOut := phaseErrReg
   io.out.bits.freqErrRegOut := freqErrReg
 
-  io.out.bits.codeNco := lfCostas.io.out * codeCoeff + io.in.bits.costasFreqBias 
-  io.out.bits.code2xNco := 2*io.out.bits.codeNco
+  io.out.bits.carrierNco := lfCostasOut * codeCoeff + io.in.bits.costasFreqBias 
 
 
   // DLL
@@ -191,14 +221,15 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
   when (dllDisc.io.out.fire()) {
     dllErrReg := dllErr 
     dllRegUpdate := true.B
+    dllDiscInValid := false.B
   }
 
   lfDLL.io.in := dllErrReg
-  lfDLL.io.valid := dllRegUpdate
 
   io.out.bits.dllErrRegOut := dllErrReg
    
-  io.out.bits.carrierNco := lfDLL.io.out + io.in.bits.dllFreqBias
+  io.out.bits.codeNco := lfDllOut + io.in.bits.dllFreqBias
+  io.out.bits.code2xNco := 2*io.out.bits.codeNco
     
     
 } 
