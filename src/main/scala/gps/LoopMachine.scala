@@ -34,7 +34,7 @@ case class ExampleLoopParams(
   val dllDisc =  FixedDiscParams(inWidth, inBP, ncoWidth, ncoBP, dividing=true)
 } 
 
-class LoopInputBundle[T <: Data](params: LoopParams[T], discParams: AllDiscParams[T]) extends Bundle {
+class LoopInputBundle[T <: Data](params: LoopParams[T]) extends Bundle {
   val ie: T = params.protoIn.cloneType
   val ip: T = params.protoIn.cloneType
   val il: T = params.protoIn.cloneType 
@@ -45,14 +45,15 @@ class LoopInputBundle[T <: Data](params: LoopParams[T], discParams: AllDiscParam
   val costasFreqBias: T = params.lfParamsCostas.proto.cloneType
   val dllFreqBias: T = params.lfParamsDLL.proto.cloneType
 
-  override def cloneType: this.type = LoopInputBundle(params, discParams).asInstanceOf[this.type]
+  override def cloneType: this.type = LoopInputBundle(params).asInstanceOf[this.type]
 }
 
 object LoopInputBundle {
-  def apply[T <: Data](params:LoopParams[T], discParams:AllDiscParams[T]): LoopInputBundle[T] = new LoopInputBundle(params, discParams)
+  def apply[T <: Data](params:LoopParams[T]): LoopInputBundle[T] = 
+    new LoopInputBundle(params)
 }
 
-class LoopOutputBundle[T <: Data](params: LoopParams[T], discParams: AllDiscParams[T]) extends Bundle {
+class LoopOutputBundle[T <: Data](params: LoopParams[T]) extends Bundle {
   val codeNco = params.protoOut.cloneType
   val code2xNco = params.protoOut.cloneType
   val carrierNco = params.protoOut.cloneType
@@ -61,34 +62,37 @@ class LoopOutputBundle[T <: Data](params: LoopParams[T], discParams: AllDiscPara
   val freqErrRegOut = params.protoOut.cloneType 
   val dllUpdate = Bool()
 
-  override def cloneType: this.type = LoopOutputBundle(params, discParams).asInstanceOf[this.type]
+  override def cloneType: this.type = LoopOutputBundle(params).asInstanceOf[this.type]
 }
 
 object LoopOutputBundle {
-  def apply[T <: Data](params:LoopParams[T], discParams:AllDiscParams[T]): LoopOutputBundle[T] = new LoopOutputBundle(params, discParams)
+  def apply[T <: Data](params: LoopParams[T]): LoopOutputBundle[T] = 
+    new LoopOutputBundle(params)
 }
 
-class LoopBundle[T <: Data](params: LoopParams[T], discParams: AllDiscParams[T]) extends Bundle {
-  val in = Flipped(Decoupled(LoopInputBundle(params, discParams)))
-  val out = Decoupled(LoopOutputBundle(params, discParams))
+class LoopBundle[T <: Data](params: LoopParams[T]) extends Bundle {
+  val in = Flipped(Decoupled(LoopInputBundle(params)))
+  val out = Decoupled(LoopOutputBundle(params))
 
-  override def cloneType: this.type = LoopBundle(params, discParams).asInstanceOf[this.type]
+  override def cloneType: this.type = LoopBundle(params).asInstanceOf[this.type]
 }
 object LoopBundle {
-  def apply[T <: Data](params:LoopParams[T], discParams:AllDiscParams[T]): LoopBundle[T] = new LoopBundle(params, discParams)
+  def apply[T <: Data](params:LoopParams[T]): LoopBundle[T] = new LoopBundle(params)
 }
 
-class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopParams[T], val discParams: AllDiscParams[T]) extends Module {
-  val io = IO(LoopBundle(loopParams, discParams))
+class LoopMachine[T <: Data : Real : BinaryRepresentation](
+  val loopParams: LoopParams[T], 
+) extends Module {
+  val io = IO(LoopBundle(loopParams))
    
   //FIXME: Fix inputs to the loop filter
   val lfCostas = Module(new LoopFilter3rd(loopParams.lfParamsCostas))
   val lfDLL = Module(new LoopFilter(loopParams.lfParamsDLL))
 
   // Discriminator Setup  
-  val freqDisc = Module(new FreqDiscriminator(discParams.freqDisc))
-  val phaseDisc = Module(new PhaseDiscriminator(discParams.phaseDisc))
-  val dllDisc = Module(new DllDiscriminator(discParams.dllDisc)) 
+  val freqDisc = Module(new FreqDiscriminator(loopParams.freqDisc))
+  val phaseDisc = Module(new PhaseDiscriminator(loopParams.phaseDisc))
+  val dllDisc = Module(new DllDiscriminator(loopParams.dllDisc)) 
 
   val s_init :: s_cordic :: s_lf :: s_done :: nil = Enum(4)
   val state = RegInit(s_init) 

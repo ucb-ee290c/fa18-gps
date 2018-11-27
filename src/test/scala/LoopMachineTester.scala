@@ -45,7 +45,7 @@ class LoopMachineTester[T <: chisel3.Data](c: LoopMachine[T], ie: Seq[Double], i
 object FixedLoopMachineTester {
   def apply(loopParams: ExampleLoopParams, discParams: ExampleAllDiscParams, ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Double, Double)]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), 
-      () => new LoopMachine(loopParams, discParams)) {
+      () => new LoopMachine(loopParams)) {
       c => new LoopMachineTester(c, ie, ip, il, qe, qp, ql, output)
     }
   } 
@@ -54,7 +54,7 @@ object FixedLoopMachineTester {
 object RealLoopMachineTester {
   def apply(loopParams: LoopParams[dsptools.numbers.DspReal], discParams: AllDiscParams[dsptools.numbers.DspReal], ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Double, Double)]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv"), 
-      () => new LoopMachine(loopParams, discParams)) {
+      () => new LoopMachine(loopParams)) {
       c => new LoopMachineTester(c, ie, ip, il, qe, qp, ql, output)
     }
   } 
@@ -66,6 +66,7 @@ class LoopMachineSpec extends FlatSpec with Matchers {
 
   val realDiscParams = RealDiscParams(cordicParams = realCordicParams)
 
+  // TODO Figure out if this is still being used
   val realAllDiscParams = new AllDiscParams[DspReal] {
     val phaseDisc = realDiscParams
     val freqDisc = realDiscParams.copy(cordicParams=realCordicParams.copy(calAtan2 = true))
