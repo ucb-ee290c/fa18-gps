@@ -15,12 +15,12 @@ class LoopMachineTester[T <: chisel3.Data](c: LoopMachine[T], ie: Seq[Double], i
 
   var i = 0
   for (i <- 0 until ie.size) {
-    poke(c.io.in.bits.ie, ie(i))
-    poke(c.io.in.bits.ip, ip(i))
-    poke(c.io.in.bits.il, il(i))
-    poke(c.io.in.bits.qe, qe(i))
-    poke(c.io.in.bits.qp, qp(i))
-    poke(c.io.in.bits.ql, ql(i))
+    poke(c.io.in.bits.epl.ie, ie(i))
+    poke(c.io.in.bits.epl.ip, ip(i))
+    poke(c.io.in.bits.epl.il, il(i))
+    poke(c.io.in.bits.epl.qe, qe(i))
+    poke(c.io.in.bits.epl.qp, qp(i))
+    poke(c.io.in.bits.epl.ql, ql(i))
 
     while (!peek(c.io.in.ready)) {
       step(1)

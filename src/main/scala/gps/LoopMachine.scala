@@ -34,23 +34,22 @@ case class ExampleLoopParams(
   val dllDisc =  FixedDiscParams(inWidth, inBP, ncoWidth, ncoBP, dividing=true)
 } 
 
-class LoopInputBundle[T <: Data](params: LoopParams[T]) extends Bundle {
-  val ie: T = params.protoIn.cloneType
-  val ip: T = params.protoIn.cloneType
-  val il: T = params.protoIn.cloneType 
-  val qe: T = params.protoIn.cloneType
-  val qp: T = params.protoIn.cloneType
-  val ql: T = params.protoIn.cloneType 
-  // FIXME: type for freqBias may not be correct
-  val costasFreqBias: T = params.lfParamsCostas.proto.cloneType
-  val dllFreqBias: T = params.lfParamsDLL.proto.cloneType
+class LoopInputBundle[T <: Data](protoIn: T, protoOut: T) extends Bundle {
+  val epl = EPLBundle(protoIn)
+//  val ie: T = protoIn.cloneType
+//  val ip: T = protoIn.cloneType
+//  val il: T = protoIn.cloneType 
+//  val qe: T = protoIn.cloneType
+//  val qp: T = protoIn.cloneType
+//  val ql: T = protoIn.cloneType 
+  val costasFreqBias: T = protoOut.cloneType
+  val dllFreqBias: T = protoOut.cloneType
 
-  override def cloneType: this.type = LoopInputBundle(params).asInstanceOf[this.type]
+  override def cloneType: this.type = LoopInputBundle(protoIn, protoOut).asInstanceOf[this.type]
 }
-
 object LoopInputBundle {
-  def apply[T <: Data](params:LoopParams[T]): LoopInputBundle[T] = 
-    new LoopInputBundle(params)
+  def apply[T <: Data](protoIn: T, protoOut: T): LoopInputBundle[T] = 
+    new LoopInputBundle(protoIn, protoOut)
 }
 
 class LoopOutputBundle[T <: Data](params: LoopParams[T]) extends Bundle {
@@ -70,7 +69,7 @@ object LoopOutputBundle {
 }
 
 class LoopBundle[T <: Data](params: LoopParams[T]) extends Bundle {
-  val in = Flipped(Decoupled(LoopInputBundle(params)))
+  val in = Flipped(Decoupled(LoopInputBundle(params.protoIn, params.protoOut)))
   val out = Decoupled(LoopOutputBundle(params))
 
   override def cloneType: this.type = LoopBundle(params).asInstanceOf[this.type]
@@ -109,14 +108,14 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](
 
   // Costas Loop  
   lfCostas.io.intTime := ConvertableTo[T].fromDouble(loopParams.intTime)
-  phaseDisc.io.in.bits.ips := io.in.bits.ip 
-  phaseDisc.io.in.bits.qps := io.in.bits.qp
-  freqDisc.io.in.bits.ips := io.in.bits.ip
-  freqDisc.io.in.bits.qps := io.in.bits.qp
-  dllDisc.io.in.bits.ipsE := io.in.bits.ie
-  dllDisc.io.in.bits.qpsE := io.in.bits.qe
-  dllDisc.io.in.bits.ipsL := io.in.bits.il
-  dllDisc.io.in.bits.qpsL := io.in.bits.ql
+  phaseDisc.io.in.bits.ips := io.in.bits.epl.ip 
+  phaseDisc.io.in.bits.qps := io.in.bits.epl.qp
+  freqDisc.io.in.bits.ips := io.in.bits.epl.ip
+  freqDisc.io.in.bits.qps := io.in.bits.epl.qp
+  dllDisc.io.in.bits.ipsE := io.in.bits.epl.ie
+  dllDisc.io.in.bits.qpsE := io.in.bits.epl.qe
+  dllDisc.io.in.bits.ipsL := io.in.bits.epl.il
+  dllDisc.io.in.bits.qpsL := io.in.bits.epl.ql
 
   val phaseErr = -phaseDisc.io.out.bits.output   
   val freqErr = ConvertableTo[T].fromDouble(1/loopParams.intTime) * freqDisc.io.out.bits.output

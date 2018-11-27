@@ -35,16 +35,26 @@ case class ExampleTrackingChannelParams() extends
   val phaseLockParams = LockDetectParams(FixedPoint(20.W, 12.BP), -0.26, 0.26,100)
 }
 
+class EPLBundle[T <: Data](protoIn: T) extends Bundle {
+  val ie: T = protoIn.cloneType
+  val ip: T = protoIn.cloneType
+  val il: T = protoIn.cloneType 
+  val qe: T = protoIn.cloneType
+  val qp: T = protoIn.cloneType
+  val ql: T = protoIn.cloneType 
+
+  override def cloneType: this.type = EPLBundle(protoIn).asInstanceOf[this.type]
+}
+object EPLBundle {
+  def apply[T <: Data](protoIn: T): EPLBundle[T] = 
+    new EPLBundle(protoIn)
+}
+
 class TrackingChannelIO[T <: Data,V <: Data](params: TrackingChannelParams[T, V]) extends Bundle {
   val adcSample = Input(SInt(params.adcWidth.W))
   val svNumber = Input(UInt(6.W)) //fixed width due to number of satellites
   val dump = Input(Bool())
-  val ie = Output(SInt(32.W))
-  val ip = Output(SInt(32.W))
-  val il = Output(SInt(32.W))
-  val qe = Output(SInt(32.W))
-  val qp = Output(SInt(32.W))
-  val ql = Output(SInt(32.W))
+  val toLoop = Output(EPLBundle(SInt(32.W)))
   val dllIn = Input(UInt(32.W))
   val costasIn = Input(UInt(32.W))
   val caIndex = Output(UInt(32.W))
@@ -94,7 +104,7 @@ class TrackingChannel[T <: Data : Real, V <: Data : Real](
   val intDumpIE = Module(new IntDump[T](params.intParams))
   intDumpIE.io.in := multIE.io.out
   intDumpIE.io.dump := io.dump
-  io.ie := intDumpIE.io.integ
+  io.toLoop.ie := intDumpIE.io.integ
 
   val multIP = Module(new Mul[T](params.mulParams))
   multIP.io.in1 := multI.io.out
@@ -102,7 +112,7 @@ class TrackingChannel[T <: Data : Real, V <: Data : Real](
   val intDumpIP = Module(new IntDump[T](params.intParams))
   intDumpIP.io.in := multIP.io.out
   intDumpIP.io.dump := io.dump
-  io.ip := intDumpIP.io.integ
+  io.toLoop.ip := intDumpIP.io.integ
 
   val multIL = Module(new Mul[T](params.mulParams))
   multIL.io.in1 := multI.io.out
@@ -110,7 +120,7 @@ class TrackingChannel[T <: Data : Real, V <: Data : Real](
   val intDumpIL = Module(new IntDump[T](params.intParams))
   intDumpIL.io.in := multIL.io.out
   intDumpIL.io.dump := io.dump
-  io.il := intDumpIL.io.integ
+  io.toLoop.il := intDumpIL.io.integ
 
   val multQE = Module(new Mul[T](params.mulParams))
   multQE.io.in1 := multQ.io.out
@@ -118,7 +128,7 @@ class TrackingChannel[T <: Data : Real, V <: Data : Real](
   val intDumpQE = Module(new IntDump[T](params.intParams))
   intDumpQE.io.in := multQE.io.out
   intDumpQE.io.dump := io.dump
-  io.qe := intDumpQE.io.integ
+  io.toLoop.qe := intDumpQE.io.integ
 
   val multQP = Module(new Mul[T](params.mulParams))
   multQP.io.in1 := multQ.io.out
@@ -126,7 +136,7 @@ class TrackingChannel[T <: Data : Real, V <: Data : Real](
   val intDumpQP = Module(new IntDump[T](params.intParams))
   intDumpQP.io.in := multQP.io.out
   intDumpQP.io.dump := io.dump
-  io.qp := intDumpQP.io.integ
+  io.toLoop.qp := intDumpQP.io.integ
 
   val multQL = Module(new Mul[T](params.mulParams))
   multQL.io.in1 := multQ.io.out
@@ -134,7 +144,7 @@ class TrackingChannel[T <: Data : Real, V <: Data : Real](
   val intDumpQL = Module(new IntDump[T](params.intParams))
   intDumpQL.io.in := multQL.io.out
   intDumpQL.io.dump := io.dump
-  io.ql := intDumpQL.io.integ
+  io.toLoop.ql := intDumpQL.io.integ
 
   val lockDetector = Module(new LockDetector(params.phaseLockParams))
   io.lock := lockDetector.io.lock

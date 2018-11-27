@@ -103,12 +103,12 @@ class ChannelTester[T <: Data, V <: Data](
         }
         if (integrationTime == 1) {
           hits += ind
-          val ie = peek(c.io.ie)
-          val ip = peek(c.io.ip)
-          val il = peek(c.io.il)
-          val qe = peek(c.io.qe)
-          val qp = peek(c.io.qp)
-          val ql = peek(c.io.ql)
+          val ie = peek(c.io.toLoop.ie)
+          val ip = peek(c.io.toLoop.ip)
+          val il = peek(c.io.toLoop.il)
+          val qe = peek(c.io.toLoop.qe)
+          val qp = peek(c.io.toLoop.qp)
+          val ql = peek(c.io.toLoop.ql)
 
           ieArr += ie
           ipArr += ip

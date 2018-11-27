@@ -17,7 +17,7 @@ case class TrackingTopParams(
   // +1 for signed
   val integWidth = log2Ceil(pow(2, adcWidth - 1).toInt*(sampleRate * 0.02).toInt) + 1
   // TODO Can we come up with some logical reasoning for this? 
-  val ncoWidth = 30
+  val ncoWidth = 20
  
   // Loop Filters and discriminator parameters
   // FIXME this should take a list of integration times and generate LUTs for
@@ -58,4 +58,7 @@ class TrackingTop(params: TrackingTopParams) extends Module {
   val io = IO(new Bundle{
     val adcIn = Input(SInt(params.adcWidth.W))
   })
+  val trackingChannel = Module(new TrackingChannel(params))
+  val loopFilters = Module(new LoopMachine(params))
+  loopFilters.io.in.bits.epl := trackingChannel.io.toLoop
 }
