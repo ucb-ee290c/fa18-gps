@@ -16,6 +16,18 @@ case class PacketizerParams (
 
 class ExtractedParamsBundle extends Bundle {
   val subframe_id = UInt(3.W)
+
+  // from subframe 1
+  val week_number = UInt(10.W)
+  val sv_accuracy = UInt(4.W)
+  val sv_health = UInt(6.W)
+  val iodc = UInt(10.W)
+  val t_gd = SInt(8.W)
+  val a_f2 = SInt(8.W)
+  val a_f1 = SInt(16.W)
+  val a_f0 = SInt(22.W)
+
+  // from subframe 2
   val iode = UInt(8.W)
   val c_rs = SInt(16.W)
   val delta_n = SInt(16.W)
@@ -25,6 +37,8 @@ class ExtractedParamsBundle extends Bundle {
   val c_us = SInt(16.W)
   val sqrt_a = UInt(32.W)
   val t_oe = UInt(16.W)
+
+  // from subframe 3
   val c_ic = SInt(16.W)
   val omega_0 = SInt(32.W)
   val c_is = SInt(16.W)
@@ -88,9 +102,18 @@ class Parser (
   val currentBit = RegInit(0.U(log2Ceil(params.wordLength).W))
   val currentWord = RegInit(0.U(log2Ceil(params.subframeLength).W))
   val completeSubframe = RegInit(Vec(Seq.fill(10)(0.U(params.wordLength.W))))
+  val inverted = RegInit(false.B)
+  val correctedBit = Wire(UInt(1.W))
   val sIdle :: sRecording :: sDone :: Nil = Enum(3)
 
-  fifoNext := (fifo << 1) + io.iIn.asUInt()
+  when(inverted) {
+    correctedBit := !io.iIn
+  } .otherwise {
+    correctedBit := io.iIn
+  }
+  correctedBit := io.iIn
+
+  fifoNext := (fifo << 1) + correctedBit.asUInt()
   io.dStarOut := dStar
   io.subframeValid := (state === 2.U)
   io.dataOut := completeSubframe
@@ -103,17 +126,22 @@ class Parser (
   switch (state) {
     is(sIdle) {
       when (io.validIn) {
-        when (params.preamble === fifoNext) {
+        when (params.preamble === fifoNext || ~params.preamble === ~fifoNext) {
           state := sRecording
           subframe(0) := Cat(0.U((params.wordLength - params.preambleLength).W), fifoNext)
           currentWord := 0.U
           currentBit := (params.preambleLength).U
+
+          inverted := false.B
+          when (!params.preamble === !fifoNext) {
+            inverted := true.B
+          }
         }
       }
     }
     is (sRecording) {
       when (io.validIn) {
-        subframe(currentWord) := (subframe(currentWord) << 1) + io.iIn
+        subframe(currentWord) := (subframe(currentWord) << 1) + correctedBit
         when (currentBit === (params.wordLength - 1).U) {
           when (currentWord === (params.subframeLength - 1).U) {
             state := sDone
@@ -121,7 +149,7 @@ class Parser (
             for (w <- 0 until params.subframeLength - 1) {
               completeSubframe(w) := subframe(w)
             }
-            completeSubframe(params.subframeLength - 1) := (subframe(params.subframeLength - 1) << 1) + io.iIn
+            completeSubframe(params.subframeLength - 1) := (subframe(params.subframeLength - 1) << 1) + correctedBit
           } .otherwise {
             currentBit := 0.U
             currentWord := currentWord + 1.U
@@ -193,6 +221,16 @@ class ParamExtractor (
     val extractedValues = Output(new ExtractedParamsBundle)
   })
   io.extractedValues.subframe_id := io.subframe(1)(10, 8)
+
+  // From subframe 1
+  io.extractedValues.week_number := io.subframe(2)(29, 20)
+  io.extractedValues.sv_accuracy := io.subframe(2)(17, 14)
+  io.extractedValues.sv_health := io.subframe(2)(13, 8)
+  io.extractedValues.iodc := Cat(io.subframe(2)(7, 6), io.subframe(7)(29, 22))
+  io.extractedValues.t_gd := io.subframe(6)(13, 6).asSInt
+  io.extractedValues.a_f2 := io.subframe(8)(29, 22).asSInt
+  io.extractedValues.a_f1 := io.subframe(8)(21, 6).asSInt
+  io.extractedValues.a_f0 := io.subframe(9)(29, 8).asSInt
 
   // From subframe 2
   io.extractedValues.iode := io.subframe(2)(29, 22)
