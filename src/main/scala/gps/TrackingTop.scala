@@ -9,13 +9,13 @@ import scala.math.pow
 case class TrackingTopParams(
   adcWidth: Int,       // Width of the ADC Input
   sampleRate: Double,  // Sample rate of the input data
-  inBP: Int,
+  intBP: Int,
   ncoBP: Int
-) extends TrackingChannelParams[SInt, FixedPoint] with LoopParams[FixedPoint] {
+) extends TrackingChannelParams[SInt] with LoopParams[FixedPoint] {
   // Width of the Integrators
   // 0.02 is the maximum integration time, sizing things to prevent overflow,
   // +1 for signed
-  val integWidth = log2Ceil(pow(2, adcWidth - 1).toInt*(sampleRate * 0.02).toInt) + 1
+  val intWidth = log2Ceil(pow(2, adcWidth - 1).toInt*(sampleRate * 0.02).toInt) + 1
   // TODO Can we come up with some logical reasoning for this? 
   val ncoWidth = 20
  
@@ -24,14 +24,14 @@ case class TrackingTopParams(
   // loop parameter values
   val intTime = 0.001
   // FIXME: widths may not be correct for costas loop filter 
-  val protoIn = FixedPoint((integWidth + inBP).W, inBP.BP)
+  val protoIn = FixedPoint((intWidth + intBP).W, intBP.BP)
   val protoOut = FixedPoint((ncoWidth + ncoBP).W, ncoBP.BP)
   val lfParamsCostas = FixedFilter3rdParams(width = 20, bPWidth = 16)   
   // TODO Is there a way we can generate this? 
   val lfParamsDLL = FixedFilterParams(6000, 5, 1) 
   val phaseDisc = FixedDiscParams(
-    inWidth = (integWidth + inBP), 
-    inBP = inBP, 
+    inWidth = (intWidth + intBP), 
+    inBP = intBP, 
     outWidth = (ncoWidth + ncoBP), 
     outBP = ncoBP)
   val freqDisc = phaseDisc.copy(calAtan2=true)
@@ -50,15 +50,79 @@ case class TrackingTopParams(
   val mulParams = SampledMulParams(adcWidth)
   // Int Params 
   val intParams = SampledIntDumpParams(adcWidth, (sampleRate * 0.02).toInt)
-  // Phase Lock Detector Params Limit set to +-15deg
-  val phaseLockParams = LockDetectParams(FixedPoint(20.W, 12.BP), -0.26, 0.26,100)
+  // Phase Lock Detector Params Limit set to +-30deg
+  val phaseLockParams = LockDetectParams(FixedPoint(20.W, 12.BP), -0.54, 0.54,100)
 }
 
 class TrackingTop(params: TrackingTopParams) extends Module {
   val io = IO(new Bundle{
     val adcIn = Input(SInt(params.adcWidth.W))
+    val epl = Output(EPLBundle(SInt(params.intWidth.W)))
+    val dllErr = Output(params.protoOut)
+    val freqErr = Output(params.protoOut)
+    val phaseErr = Output(params.protoOut)
+    val svNumber = Input(UInt(6.W))
+    val carrierNcoBias = Input(params.protoOut)
+    val codeNcoBias = Input(params.protoOut)
+    val dump = Output(Bool())
   })
   val trackingChannel = Module(new TrackingChannel(params))
+  trackingChannel.io.adcSample := io.adcIn
+  trackingChannel.io.svNumber := io.svNumber
+  
+  val eplReg = Reg(EPLBundle(SInt(params.intWidth.W)))
+  io.epl := eplReg
   val loopFilters = Module(new LoopMachine(params))
-  loopFilters.io.in.bits.epl := trackingChannel.io.toLoop
+  loopFilters.io.in.bits.epl.ie := eplReg.ie.asFixed
+  loopFilters.io.in.bits.epl.ip := eplReg.ip.asFixed
+  loopFilters.io.in.bits.epl.il := eplReg.il.asFixed
+  loopFilters.io.in.bits.epl.qe := eplReg.qe.asFixed
+  loopFilters.io.in.bits.epl.qp := eplReg.qp.asFixed
+  loopFilters.io.in.bits.epl.ql := eplReg.ql.asFixed
+  loopFilters.io.in.bits.costasFreqBias := io.carrierNcoBias
+  loopFilters.io.in.bits.dllFreqBias := io.codeNcoBias
+ 
+  val loopValues = Reg(LoopOutputBundle(params)) 
+  val stagedValues = Reg(LoopOutputBundle(params)) 
+  trackingChannel.io.dllIn := loopValues.codeNco.asUInt
+  trackingChannel.io.costasIn := loopValues.carrierNco.asUInt
+  trackingChannel.io.dump := false.B
+  io.dllErr := loopValues.dllErrOut
+  io.freqErr := loopValues.freqErrOut
+  io.phaseErr := loopValues.phaseErrOut
+
+  val state = Reg(UInt(2.W))
+  val sIdle :: sUpdate :: sWait :: Nil = Enum(3)
+
+  when (trackingChannel.io.caIndex === 1023.U) {
+    loopValues := stagedValues
+    eplReg := trackingChannel.io.toLoop
+    io.dump := true.B
+    trackingChannel.io.dump := false.B
+  }.otherwise {
+    loopValues := loopValues
+    eplReg := eplReg
+    io.dump := false.B
+  }
+
+  state := state
+  loopFilters.io.in.valid := false.B
+  loopFilters.io.out.ready := false.B
+  stagedValues := stagedValues
+  when (state === sIdle) {
+    when (trackingChannel.io.caIndex === 1023.U) {
+      state := sUpdate
+    }
+  }.elsewhen (state === sUpdate) {
+    loopFilters.io.in.valid := true.B
+    when (loopFilters.io.in.fire()) {
+      state := sWait
+    }
+  }.elsewhen (state === sWait) {
+    loopFilters.io.out.ready := true.B
+    when (loopFilters.io.out.fire()) {
+      stagedValues := loopFilters.io.out.bits
+      state := sIdle
+    }
+  }
 }

@@ -36,12 +36,6 @@ case class ExampleLoopParams(
 
 class LoopInputBundle[T <: Data](protoIn: T, protoOut: T) extends Bundle {
   val epl = EPLBundle(protoIn)
-//  val ie: T = protoIn.cloneType
-//  val ip: T = protoIn.cloneType
-//  val il: T = protoIn.cloneType 
-//  val qe: T = protoIn.cloneType
-//  val qp: T = protoIn.cloneType
-//  val ql: T = protoIn.cloneType 
   val costasFreqBias: T = protoOut.cloneType
   val dllFreqBias: T = protoOut.cloneType
 
@@ -54,11 +48,10 @@ object LoopInputBundle {
 
 class LoopOutputBundle[T <: Data](params: LoopParams[T]) extends Bundle {
   val codeNco = params.protoOut.cloneType
-  val code2xNco = params.protoOut.cloneType
   val carrierNco = params.protoOut.cloneType
-  val dllErrRegOut = params.protoOut.cloneType 
-  val phaseErrRegOut = params.protoOut.cloneType
-  val freqErrRegOut = params.protoOut.cloneType 
+  val dllErrOut = params.protoOut.cloneType 
+  val phaseErrOut = params.protoOut.cloneType
+  val freqErrOut = params.protoOut.cloneType 
 
   override def cloneType: this.type = LoopOutputBundle(params).asInstanceOf[this.type]
 }
@@ -214,8 +207,8 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](
 
   val codeCoeff = ConvertableTo[T].fromDouble(1/((2*math.Pi) * (16*1023*1e3)) * (math.pow(2, 30) - 1)) 
   
-  io.out.bits.phaseErrRegOut := phaseErrReg
-  io.out.bits.freqErrRegOut := freqErrReg
+  io.out.bits.phaseErrOut := phaseErrReg
+  io.out.bits.freqErrOut := freqErrReg
 
   io.out.bits.carrierNco := lfCostasOut * codeCoeff + io.in.bits.costasFreqBias 
 
@@ -229,9 +222,8 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](
 
   lfDLL.io.in := dllErrReg
 
-  io.out.bits.dllErrRegOut := dllErrReg
+  io.out.bits.dllErrOut := dllErrReg
    
   io.out.bits.codeNco := lfDllOut + io.in.bits.dllFreqBias
-  io.out.bits.code2xNco := 2*io.out.bits.codeNco
 } 
 
