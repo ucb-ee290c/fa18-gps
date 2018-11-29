@@ -16,9 +16,9 @@ class FFTChainSpec extends FlatSpec with Matchers {
 
 
   val params = FixedFFTChainParams(
-    width = 32,
-    bp = 16,
-    nSample = 64,
+    width = 40,
+    bp = 20,
+    nSample = 256,
     nLane = 16,
     nStgFFT = 0,
     nStgIFFT = 0,
@@ -61,7 +61,7 @@ class FFTChainTester[T <: chisel3.Data](c: FFTChain[T], trials: Seq[FFTChainTest
     for (i <- 0 until 16) {
 
       poke(c.io.in.CA(i), 1.0)
-      poke(c.io.in.ADC(i), 1)
+      poke(c.io.in.ADC(i), 0)
       poke(c.io.in.cos(i), 1)
       poke(c.io.in.sin(i), 0)
     }
@@ -71,89 +71,89 @@ class FFTChainTester[T <: chisel3.Data](c: FFTChain[T], trials: Seq[FFTChainTest
 
 
     print("trial")
-    while (cycles < 100) {
+    updatableDspVerbose.withValue(false) {
+      while (cycles < 200) {
 
-//      if (cycles == 11) {
-      if (cycles >= 11 && cycles <= 14) {
-        val offset = (cycles - 11) * 16
+        //      if (cycles == 11) {
+        if (cycles >= 11 && cycles <= 26) {
+          val offset = (cycles - 11) * 16
 
 
-        for (i <- 0 until 16) {
+          for (i <- 0 until 16) {
 
-          poke(c.io.in.ADC(i), (math.cos((offset + i) * (2 * Pi / 32)) * 1).toDouble)
-//          poke(c.io.in.ADC(i), 1.0)
+            poke(c.io.in.ADC(i), (math.cos((offset + i) * (2 * Pi / 32)) * 1).toDouble)
+            poke(c.io.in.cos(i), (math.cos((offset + i) * (2 * Pi / 32)) * 1).toDouble)
+            poke(c.io.in.sin(i), (math.sin((offset + i) * (2 * Pi / 32)) * 1).toDouble)
+            //          poke(c.io.in.sin(i), 0.0)
+            poke(c.io.in.CA(i), 1.0)
 
-          poke(c.io.in.cos(i), (math.cos((offset + i) * (2 * Pi / 32)) * 1).toDouble)
-          poke(c.io.in.sin(i), (math.sin((offset + i) * (2 * Pi / 32)) * 1).toDouble)
-          poke(c.io.in.sin(i), 0.0)
-          poke(c.io.in.CA(i), 1.0)
+          }
+          poke(c.io.in.valid, 1)
 
+          if (cycles == 26) {
+            poke(c.io.in.sync, 1)
+          }
+          else {
+            poke(c.io.in.sync, 0)
+          }
         }
-        poke(c.io.in.valid, 1)
+        else if (cycles >= 41 && cycles <= 56) {
 
-        if (cycles == 14) {
-          poke(c.io.in.sync, 1)
+          val offset = (cycles - 41) * 16
+
+          for (i <- 0 until 16) {
+
+            poke(c.io.in.ADC(i), (math.cos((offset + i) * (2 * Pi / 32)) * 1).toDouble)
+            poke(c.io.in.cos(i), (math.cos((offset + i) * (2 * Pi / 32 * 1)) * 1.03).toDouble)
+            poke(c.io.in.sin(i), (math.sin((offset + i) * (2 * Pi / 32 * 1)) * 1.03).toDouble)
+            //          poke(c.io.in.ADC(i), 1.0)
+            //          poke(c.io.in.cos(i), 1.0)
+            //          poke(c.io.in.sin(i), 0.0)
+            poke(c.io.in.CA(i), 1.0)
+
+          }
+          poke(c.io.in.valid, 1)
+
+          if (cycles == 56) {
+            poke(c.io.in.sync, 1)
+          }
+          else {
+            poke(c.io.in.sync, 0)
+          }
+        }
+        else if (cycles >= 71 && cycles <= 86) {
+
+          val offset = (cycles - 71) * 16
+
+          for (i <- 0 until 16) {
+
+            poke(c.io.in.ADC(i), (math.cos((offset + i) * (2 * Pi / 32)) * 1).toDouble)
+            poke(c.io.in.cos(i), (math.cos((offset + i) * (2 * Pi / 32 * 1.06)) * 1).toDouble)
+            poke(c.io.in.sin(i), (math.sin((offset + i) * (2 * Pi / 32 * 1.06)) * 1).toDouble)
+            poke(c.io.in.CA(i), 1.0)
+
+          }
+          poke(c.io.in.valid, 1)
+
+          if (cycles == 86) {
+            poke(c.io.in.sync, 1)
+          }
+          else {
+            poke(c.io.in.sync, 0)
+          }
         }
         else {
+
+          poke(c.io.in.valid, 0)
           poke(c.io.in.sync, 0)
         }
+
+
+        cycles += 1
+        step(1)
+
+
       }
-      else if (cycles >= 41 && cycles <= 44) {
-
-        val offset = (cycles - 41) * 16
-
-        for (i <- 0 until 16) {
-
-          poke(c.io.in.ADC(i), (math.cos((offset + i) * (2 * Pi / 32)) * 1).toInt)
-          poke(c.io.in.cos(i), (math.cos((offset + i) * (2 * Pi / 32 * 1.001)) * 1).toDouble)
-          poke(c.io.in.sin(i), (math.sin((offset + i) * (2 * Pi / 32 * 1.001)) * 1).toDouble)
-//          poke(c.io.in.ADC(i), 1.0)
-//          poke(c.io.in.cos(i), 1.0)
-//          poke(c.io.in.sin(i), 0.0)
-          poke(c.io.in.CA(i), 1.0)
-
-        }
-        poke(c.io.in.valid, 1)
-
-        if (cycles == 44) {
-          poke(c.io.in.sync, 1)
-        }
-        else {
-          poke(c.io.in.sync, 0)
-        }
-      }
-      else if (cycles >= 71 && cycles <= 74) {
-
-        val offset = (cycles - 71) * 16
-
-        for (i <- 0 until 16) {
-
-          poke(c.io.in.ADC(i), (math.cos((offset + i) * (2 * Pi / 32)) * 1).toInt)
-          poke(c.io.in.cos(i), (math.cos((offset + i) * (2 * Pi / 32 * 0.999)) * 1).toDouble)
-          poke(c.io.in.sin(i), (math.sin((offset + i) * (2 * Pi / 32 * 0.999)) * 1).toDouble)
-          poke(c.io.in.CA(i), 1.0)
-
-        }
-        poke(c.io.in.valid, 1)
-
-                if (cycles == 74) {
-                  poke(c.io.in.sync, 1)
-                }
-                else {
-                  poke(c.io.in.sync, 0)
-                }
-      }
-      else {
-
-        poke(c.io.in.valid, 0)
-        poke(c.io.in.sync, 0)
-      }
-
-
-      cycles += 1
-      step(1)
-
-
     }
 
 

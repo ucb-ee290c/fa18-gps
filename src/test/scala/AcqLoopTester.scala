@@ -91,55 +91,60 @@ class ALoopTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoop[T1,T2], trial
     var st_n_0p5 = true
 
     print("trial")
-    while (cycles < 1500) {
+    updatableDspVerbose.withValue(false) {
+      while (cycles < 1500) {
 
-      if (cycles == 0) {poke(c.io.in.valid, 1)}
-      else {poke(c.io.in.valid, 1)}
+        if (cycles == 0) {
+          poke(c.io.in.valid, 1)
+        }
+        else {
+          poke(c.io.in.valid, 1)
+        }
 
-//      data_ADC = byteArray(cycles)
-      data_cos = math.cos((cycles-1) * (2 * 3.1415926535897932384626 / 8))
-      data_ADC = (data_cos*32).toInt
-//      lt_p_0p5 = data_cos > 0.5
-//      st_n_0p5 = data_cos < -0.5
-//      if (lt_p_0p5) {
-//        data_ADC = 1
-//      }
-//      else if (st_n_0p5) {
-//        data_ADC = -1
-//      }
-//      else {
-//        data_ADC = 0
-//      }
+        //      data_ADC = byteArray(cycles)
+        data_cos = math.cos((cycles - 1) * (2 * 3.1415926535897932384626 / 8))
+        data_ADC = (data_cos * 32).toInt
+        //      lt_p_0p5 = data_cos > 0.5
+        //      st_n_0p5 = data_cos < -0.5
+        //      if (lt_p_0p5) {
+        //        data_ADC = 1
+        //      }
+        //      else if (st_n_0p5) {
+        //        data_ADC = -1
+        //      }
+        //      else {
+        //        data_ADC = 0
+        //      }
 
-//      data_ADC = (math.cos(cycles * (2 * 3.1415927 / 8)) * 8).toInt
-//      data_ADC = (math.cos(cycles * (2 * 3.1415927 / 8)) * 8).toInt
+        //      data_ADC = (math.cos(cycles * (2 * 3.1415927 / 8)) * 8).toInt
+        //      data_ADC = (math.cos(cycles * (2 * 3.1415927 / 8)) * 8).toInt
 
-      poke(c.io.in.ADC, data_ADC)
+        poke(c.io.in.ADC, data_ADC)
 
-      if (peek(c.io.out.valid)) {
-        peek(c.io.out.iFreqOpt)
-        peek(c.io.out.freqOpt)
-        peek(c.io.out.CPOpt)
+        if (peek(c.io.out.valid)) {
+          peek(c.io.out.iFreqOpt)
+          peek(c.io.out.freqOpt)
+          peek(c.io.out.CPOpt)
+        }
+
+        //      peek(c.io.Ain.ready)
+        //      peek(c.io.Aout.valid)
+        //      peek(c.io.Tin.ready)
+        //      peek(c.io.Tout.valid)
+        //      peek(c.io.Ain.Correlation)
+        //      peek(c.io.Aout.freqNow)
+        //      peek(c.io.Aout.freqNext)
+        //      peek(c.io.Aout.cpNow)
+        //      peek(c.io.Aout.cpNext)
+        //      peek(c.io.Tout.freqOpt)
+        //      peek(c.io.Tout.CPOpt)
+
+
+        cycles += 1
+        step(1)
+
+
       }
-
-//      peek(c.io.Ain.ready)
-//      peek(c.io.Aout.valid)
-//      peek(c.io.Tin.ready)
-//      peek(c.io.Tout.valid)
-//      peek(c.io.Ain.Correlation)
-//      peek(c.io.Aout.freqNow)
-//      peek(c.io.Aout.freqNext)
-//      peek(c.io.Aout.cpNow)
-//      peek(c.io.Aout.cpNext)
-//      peek(c.io.Tout.freqOpt)
-//      peek(c.io.Tout.CPOpt)
-
-
-
-      cycles += 1
-      step(1)
-
-
     }
 
 

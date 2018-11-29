@@ -89,45 +89,51 @@ class ALoopParTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoopPar[T1,T2],
 
 
     print("trial")
-    while (cycles < 35000) {
+    updatableDspVerbose.withValue(false) {
+      while (cycles < 35000) {
 
-      if (cycles == 1) {poke(c.io.in.valid, 1)}
-      else {poke(c.io.in.valid, 0)}
+        if (cycles == 1) {
+          poke(c.io.in.valid, 1)
+        }
+        else {
+          poke(c.io.in.valid, 0)
+        }
 
 
-      val data_ADC = math.cos((2 * Pi) * (cycles) / 32) * 4
-      val data_CA_pre = math.cos((2 * Pi) * (cycles-10) / 32) * 4
-      var data_CA = 0.0
-      if (data_CA_pre > 0.0) {
-        data_CA = 1.0
+        val data_ADC = math.cos((2 * Pi) * (cycles) / 32) * 4
+        val data_CA_pre = math.cos((2 * Pi) * (cycles - 10) / 32) * 4
+        var data_CA = 0.0
+        if (data_CA_pre > 0.0) {
+          data_CA = 1.0
+        }
+        else {
+          data_CA = -1.0
+        }
+        //      val data_CA = 1.0
+        val data_cos = 1.0
+        val data_sin = 0.0
+
+        val temp = 0
+        val data_ADC_real = byteArray(cycles + temp * 16368).toInt
+
+        poke(c.io.in.ADC, data_ADC_real)
+        poke(c.io.in.CA, data_CA)
+        poke(c.io.in.cos, data_cos)
+        poke(c.io.in.sin, data_sin)
+
+        if (peek(c.io.out.valid)) {
+          peek(c.io.out.freqOpt)
+          peek(c.io.out.CPOpt)
+          peek(c.io.out.sateFound)
+          peek(c.io.out.max)
+          peek(c.io.out.sum)
+        }
+
+        cycles += 1
+        step(1)
+
+
       }
-      else {
-        data_CA = -1.0
-      }
-//      val data_CA = 1.0
-      val data_cos = 1.0
-      val data_sin = 0.0
-
-      val temp=0
-      val data_ADC_real = byteArray(cycles+temp*16368).toInt
-
-      poke(c.io.in.ADC, data_ADC_real)
-      poke(c.io.in.CA, data_CA)
-      poke(c.io.in.cos, data_cos)
-      poke(c.io.in.sin, data_sin)
-
-      if (peek(c.io.out.valid)) {
-        peek(c.io.out.freqOpt)
-        peek(c.io.out.CPOpt)
-        peek(c.io.out.sateFound)
-        peek(c.io.out.max)
-        peek(c.io.out.sum)
-      }
-
-      cycles += 1
-      step(1)
-
-
     }
 
 
