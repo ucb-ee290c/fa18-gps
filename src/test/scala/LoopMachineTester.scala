@@ -10,8 +10,6 @@ import org.scalatest.{FlatSpec, Matchers}
 class LoopMachineTester[T <: chisel3.Data](c: LoopMachine[T], ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Double, Double)]) extends DspTester(c){
   poke(c.io.out.ready, 1)
   poke(c.io.in.valid, 1)
-  poke(c.io.in.bits.costasFreqBias, 0.0)
-  poke(c.io.in.bits.dllFreqBias, 0.0)
 
   var i = 0
   for (i <- 0 until ie.size) {

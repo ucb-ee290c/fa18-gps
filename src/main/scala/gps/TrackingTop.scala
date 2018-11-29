@@ -62,8 +62,8 @@ class TrackingTop(params: TrackingTopParams) extends Module {
     val freqErr = Output(params.protoOut)
     val phaseErr = Output(params.protoOut)
     val svNumber = Input(UInt(6.W))
-    val carrierNcoBias = Input(params.protoOut)
-    val codeNcoBias = Input(params.protoOut)
+    val carrierNcoBias = Input(UInt(params.ncoWidth))
+    val codeNcoBias = Input(UInt(params.ncoWidth))
     val dump = Output(Bool())
   })
   val trackingChannel = Module(new TrackingChannel(params))
@@ -79,13 +79,11 @@ class TrackingTop(params: TrackingTopParams) extends Module {
   loopFilters.io.in.bits.epl.qe := eplReg.qe.asFixed
   loopFilters.io.in.bits.epl.qp := eplReg.qp.asFixed
   loopFilters.io.in.bits.epl.ql := eplReg.ql.asFixed
-  loopFilters.io.in.bits.costasFreqBias := io.carrierNcoBias
-  loopFilters.io.in.bits.dllFreqBias := io.codeNcoBias
  
   val loopValues = Reg(LoopOutputBundle(params)) 
   val stagedValues = Reg(LoopOutputBundle(params)) 
-  trackingChannel.io.dllIn := loopValues.codeNco.asUInt
-  trackingChannel.io.costasIn := loopValues.carrierNco.asUInt
+  trackingChannel.io.dllIn := loopValues.codeNco.asUInt + io.carrierNcoBias.asUInt
+  trackingChannel.io.costasIn := loopValues.carrierNco.asUInt + io.codeNcoBias
   trackingChannel.io.dump := false.B
   io.dllErr := loopValues.dllErrOut
   io.freqErr := loopValues.freqErrOut

@@ -34,10 +34,9 @@ case class ExampleLoopParams(
   val dllDisc =  FixedDiscParams(inWidth, inBP, ncoWidth, ncoBP, dividing=true)
 } 
 
+// TODO Remove this
 class LoopInputBundle[T <: Data](protoIn: T, protoOut: T) extends Bundle {
   val epl = EPLBundle(protoIn)
-  val costasFreqBias: T = protoOut.cloneType
-  val dllFreqBias: T = protoOut.cloneType
 
   override def cloneType: this.type = LoopInputBundle(protoIn, protoOut).asInstanceOf[this.type]
 }
@@ -210,7 +209,7 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](
   io.out.bits.phaseErrOut := phaseErrReg
   io.out.bits.freqErrOut := freqErrReg
 
-  io.out.bits.carrierNco := lfCostasOut * codeCoeff + io.in.bits.costasFreqBias 
+  io.out.bits.carrierNco := lfCostasOut * codeCoeff
 
 
   // DLL
@@ -224,6 +223,6 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](
 
   io.out.bits.dllErrOut := dllErrReg
    
-  io.out.bits.codeNco := lfDllOut + io.in.bits.dllFreqBias
+  io.out.bits.codeNco := lfDllOut
 } 
 
