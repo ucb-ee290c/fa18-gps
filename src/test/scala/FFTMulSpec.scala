@@ -70,13 +70,15 @@ class FFTMulTester[T <: chisel3.Data](c: FFTMul[T], trials: Seq[TEST], lanes: In
     idealRes.zipWithIndex.zip(trial.dataIn.zip(trial.caIn)).foreach{case((_, r),(d, c)) => idealRes.update(r, d * c)}
 
     val retval = new scala.collection.mutable.Queue[Complex]()
-    while (!peek(c.io.out.sync)){
-      trial.dataIn.zip(c.io.dataIn.bits).foreach { case (sig, port) => poke(port, sig) }
-      trial.caIn.zip(c.io.caIn.bits).foreach { case (sig, port) => poke(port, sig) }
-      poke(c.io.dataIn.valid, true)
-      poke(c.io.caIn.valid, true)
-      c.io.out.bits.foreach(x => retval += peek(x))
-      step(1)
+    updatableDspVerbose.withValue(false) {
+      while (!peek(c.io.out.sync)) {
+        trial.dataIn.zip(c.io.dataIn.bits).foreach { case (sig, port) => poke(port, sig) }
+        trial.caIn.zip(c.io.caIn.bits).foreach { case (sig, port) => poke(port, sig) }
+        poke(c.io.dataIn.valid, true)
+        poke(c.io.caIn.valid, true)
+        c.io.out.bits.foreach(x => retval += peek(x))
+        step(1)
+      }
     }
     compareOutputComplex(retval, idealRes, epsilon = 1e-2)
 
