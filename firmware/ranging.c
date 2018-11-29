@@ -8,7 +8,7 @@ void extract_params(int sat_offset, struct rcv_params* params) {
     if (reg_read32(sat_offset + SUBFRAME_VALID)) {
       switch (reg_read32(sat_offset + SUBFRAME_ID)) {
         case 1:
-          if ((state == 0) && (reg_read32(sat_offset + SUBFRAME_PARITY))) {
+          if ((state == 0) && (reg_read32(sat_offset + SUBFRAME_PARITY) == (1 << 10) - 1)) { // SUBFRAME_PARITY should be 10 ones
             params->week_number = (float) reg_read32(sat_offset + WEEK_NUMBER);
             params->sv_accuracy = (float) reg_read32(sat_offset + SV_ACCURACY);
             params->sv_health = (float) reg_read32(sat_offset + SV_HEALTH);
@@ -21,7 +21,7 @@ void extract_params(int sat_offset, struct rcv_params* params) {
           }
           break;
         case 2:
-          if ((state == 1) && (reg_read32(sat_offset + SUBFRAME_PARITY))) {
+          if ((state == 1) && (reg_read32(sat_offset + SUBFRAME_PARITY) == (1 << 10) - 1)) { // SUBFRAME_PARITY should be 10 ones
             params->iode = (float) reg_read32(sat_offset + IODE);
             params->c_rs = ((float) ((int32_t) reg_read32(sat_offset + C_RS))) / ((float) (1 << 5));
             params->delta_n = ((float) ((int32_t) reg_read32(sat_offset + DELTA_N))) / ((float) ((int64_t) 1 << 43));
@@ -35,7 +35,7 @@ void extract_params(int sat_offset, struct rcv_params* params) {
           }
           break;
         case 3:
-          if ((state == 2) && (reg_read32(sat_offset + SUBFRAME_PARITY))) {
+          if ((state == 2) && (reg_read32(sat_offset + SUBFRAME_PARITY) == (1 << 10) - 1)) { // SUBFRAME_PARITY should be 10 ones
             params->c_ic = ((float) ((int32_t) reg_read32(sat_offset + C_IC))) / ((float) (1 << 29));
             params->omega_0 = ((float) ((int32_t) reg_read32(sat_offset + OMEGA_0))) / ((float) (1 << 31));
             params->c_is = ((float) ((int32_t) reg_read32(sat_offset + C_IS))) / ((float) (1 << 29));
