@@ -319,9 +319,9 @@ extends Module {
   nco_CA1x.io.stepSize := stepSize1x
   nco_CA2x.io.stepSize := stepSize2x
 
-  nco_ADC.io.softRst := NCO_reset
-  nco_CA1x.io.softRst := NCO_reset
-  nco_CA2x.io.softRst := NCO_reset
+//  nco_ADC.io.softRst := NCO_reset
+//  nco_CA1x.io.softRst := NCO_reset
+//  nco_CA2x.io.softRst := NCO_reset
 
 
 

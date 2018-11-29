@@ -334,9 +334,9 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
   nco_CA1x.io.stepSize := stepSizeNCO_CA1x
   nco_CA2x.io.stepSize := stepSizeNCO_CA2x
 
-  nco_ADC.io.softRst := NCO_reset
-  nco_CA1x.io.softRst := NCO_reset
-  nco_CA2x.io.softRst := NCO_reset
+//  nco_ADC.io.softRst := NCO_reset
+//  nco_CA1x.io.softRst := NCO_reset
+//  nco_CA2x.io.softRst := NCO_reset
 
 
   val reg_sum_i = Reg(Vec(params.nCPSample, params.pSumIQ))

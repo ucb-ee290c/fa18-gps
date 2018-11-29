@@ -13,16 +13,16 @@ import scala.math._
 class ALoopParSpec extends FlatSpec with Matchers {
   behavior of "ALoopPar"
 
-  val nHalfFreq = 20
+  val nHalfFreq = 0
   val freqStep = 500
   val fsample = 16367600
   val fcarrier = 4128460
   val fchip = 1023000
   val nSample = 16368
-  val CPStep = 8
-  val CPMin = 0
-  val nCPSample = ((nSample - CPMin - 1) / CPStep).toInt + 1
-//  val nCPSample = 40
+  val CPStep = 1
+  val CPMin = 1320
+//  val nCPSample = ((nSample - CPMin - 1) / CPStep).toInt + 1
+  val nCPSample = 40
 
   val params = EgALoopParParams(
     wADC = 4,
@@ -42,7 +42,7 @@ class ALoopParSpec extends FlatSpec with Matchers {
   )
   it should "ALoop" in {
     val baseTrial = ALoopParTestVec(idx_sate=0)
-    val idx_sate = Seq(3)
+    val idx_sate = Seq(22)
     val trials = idx_sate.map { idx_sate => baseTrial.copy(idx_sate = idx_sate) }
     ALoopParTester(params, trials) should be (true)
   }
@@ -89,7 +89,7 @@ class ALoopParTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoopPar[T1,T2],
 
 
     print("trial")
-    while (cycles < 800000) {
+    while (cycles < 35000) {
 
       if (cycles == 1) {poke(c.io.in.valid, 1)}
       else {poke(c.io.in.valid, 0)}
@@ -108,7 +108,8 @@ class ALoopParTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoopPar[T1,T2],
       val data_cos = 1.0
       val data_sin = 0.0
 
-      val data_ADC_real = byteArray(cycles).toInt
+      val temp=0
+      val data_ADC_real = byteArray(cycles+temp*16368).toInt
 
       poke(c.io.in.ADC, data_ADC_real)
       poke(c.io.in.CA, data_CA)
@@ -140,7 +141,8 @@ class ALoopParTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoopPar[T1,T2],
   */
 object ALoopParTester {
   def apply(params: ALoopParParams[SInt, FixedPoint], trials: Seq[ALoopParTestVec]): Boolean = {
-    chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv", "-fimed", "1000000000000"), ()
+//    chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv", "-fimed", "1000000000000"), ()
+      chisel3.iotesters.Driver.execute(Array("-tbn", "treadle", "-fiwv", "-fimed", "1000000000000"), ()
     => new ALoopPar[SInt, FixedPoint](params)) {
 //    dsptools.Driver.execute(() => new ACtrl(params), TestSetup.dspTesterOptions) {
       c => new ALoopParTester(c, trials)
