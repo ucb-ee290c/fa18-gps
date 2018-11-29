@@ -29,7 +29,7 @@ class DLLModel(dcGain: Double, bandwidth: Double, sampleRate: Double, discrimina
   def discriminator2(ie: Double, il: Double, qe: Double, ql: Double): Double = {
     var e = pow(ie, 2) + pow(qe, 2)
     var l = pow(il, 2) + pow(ql, 2)
-    
+      
     if (e == 0 || l == 0) {
       0
     } else {
@@ -47,6 +47,21 @@ class DLLModel(dcGain: Double, bandwidth: Double, sampleRate: Double, discrimina
     prevY = y
     y
   } 
+
+  def updateDouble(
+    I_sample: (Double, Double, Double), 
+    Q_sample: (Double, Double, Double), 
+    freqBias: Double,
+  ) : Double = {
+    if (disNum == 1) {
+      disOut = discriminator1(I_sample._1, I_sample._3, Q_sample._1, Q_sample._3)
+    } else if (disNum == 2) {
+      disOut = discriminator2(I_sample._1, I_sample._3, Q_sample._1, Q_sample._3)
+    }   
+    var lfOut = loopFilter(disOut)
+    
+    lfOut + freqBias
+  }
 
   def update(
     I_sample: (Double, Double, Double), 
