@@ -135,7 +135,7 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genIn: DspComplex[T], ge
   val genTwiddleReal = genTwiddle.real
   val genTwiddleImag = genTwiddle.imag
 
-  println("[--DEBUG--]Stage_delays are:", stage_delays)
+//  println("[--DEBUG--]Stage_delays are:", stage_delays)
 
   val twiddle_rom = config.btwiddles.map(i => {
     Vec(i.map(j => {
@@ -154,18 +154,18 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genIn: DspComplex[T], ge
   val stage_outputs = List.fill(log2Ceil(config.bp) + 2)(List.fill(config.lanes)(Wire(genIn)))
   io.in.bits.zip(stage_outputs(0)).foreach { case (in, out) => out := in }
 
-  printf("[--DEBUG--]SYNCS ARE:")
-  for (i <- 0 until log2Ceil(config.bp)+1){
-    printf("SYNC[%d]: %d ", i.U, sync(i))
-  }
-  printf("\n")
+//  printf("[--DEBUG--]SYNCS ARE:")
+//  for (i <- 0 until log2Ceil(config.bp)+1){
+//    printf("SYNC[%d]: %d ", i.U, sync(i))
+//  }
+//  printf("\n")
   // create the FFT hardware
   for (i <- 0 until log2Ceil(config.bp) + 1) {
     for (j <- 0 until config.lanes / 2) {
 
       val skip = 1
       val start = j * 2
-      println("[--DEBUG--]Biplex:", i, j)
+//      println("[--DEBUG--]Biplex:", i, j)
       // hook it up
       // last stage just has one extra permutation, no butterfly
 
@@ -200,8 +200,8 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genIn: DspComplex[T], ge
               twiddle_rom(i)(sync(i + 1))
             )
           ).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i), name = this.name + s"_${i}_${j}_pipeline1_sram") }
-          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
-          printf("SYNC %d \n", sync(i+1))
+//          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
+//          printf("SYNC %d \n", sync(i+1))
         }
       } else {
         val mux_out = BarrelShifter(VecInit(stage_outputs(i)(start),
@@ -237,21 +237,21 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genIn: DspComplex[T], ge
 //                twiddle_rom(i)(sync(i + 1))
             )
           ).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i), name = this.name + s"_${i}_${j}_pipeline1_sram") }
-          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
+//          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
 //          printf("%d, %d",               twiddle_rom(log2Ceil(config.bp)-1-i)(sync(i+1)).real,               twiddle_rom(log2Ceil(config.bp)-1-i)(sync(i+1)).imag)
-          printf("SYNC %d \n", sync(i+1))
+//          printf("SYNC %d \n", sync(i+1))
         }
       }
 
     }
   }
-  println("twiddle_rom")
+//  println("twiddle_rom")
   twiddle_rom.foreach{x=>
    x.foreach{ y=>
      print(y,'/')
    }
   }
-  println("twiddle_rom2")
+//  println("twiddle_rom2")
 
   // wire up top-level output
   io.out.bits := stage_outputs(log2Ceil(config.bp) + 1)
