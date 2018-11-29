@@ -290,7 +290,7 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
   } .elsewhen (reg_state === acqing) {
     reg_state := Mux(reg_cnt_loop === cnt_loop_max && reg_iFreqNow === iFreqMax, acqed, acqing)
   } .otherwise {
-    Mux(io.out.ready, idle, acqed)
+    reg_state := Mux(io.out.ready, idle, acqed)
   }
 
 
