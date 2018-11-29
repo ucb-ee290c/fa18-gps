@@ -1,11 +1,6 @@
 #include "params.h"
-#define SUBFRAME_VALID 0x2000 // replace once regmap made
-#define SUBFRAME 0x2004 // replace once regmap made
 
-uint32_t words[10];
-bool word_valid[10];
-
-void extract_params(uint32_t* words, struct rcv_params* params) {
+void extract_params(struct rcv_params* params) {
   uint32_t state = 0;
   bool done = 0;
   while (!done) {

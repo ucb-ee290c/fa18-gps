@@ -30,7 +30,7 @@ float eccentric_anomaly(float Mk, struct rcv_params *params) {
 }
 
 
-void get_sv_pos(float t, float *Xx, float *Yy, float *Zz, float *xpl, float *ypl, struct rcv_params *params) {
+void get_sv_pos(float t, struct sat_loc_params *loc_params, struct rcv_params *params) {
   /*
   This function computes the position of an SV in ECEF coordinates from the ephemeris data.
   Params:
@@ -83,8 +83,8 @@ void get_sv_pos(float t, float *Xx, float *Yy, float *Zz, float *xpl, float *ypl
   xp = rk * cosf(aol);
   yp = rk * sinf(aol);
   //Return the values
-  *ypl = yp;
-  *xpl = xp;
+  loc_params->ypl = yp;
+  loc_params->xpl = xp;
   //LA is corrected longitude of ascending node
   la = Omega0 + ((OmegaDot - Omegae) * tk) - (Omegae * params->t_oe);
   //Compute the X,Y,Z coordinates
@@ -92,8 +92,8 @@ void get_sv_pos(float t, float *Xx, float *Yy, float *Zz, float *xpl, float *ypl
   Yk = (xp * sinf(la)) + (yp * cosf(inc)*cosf(la));
   Zk = yp * sinf(inc);
   //Return the values
-  *Xx = Xk;
-  *Yy = Yk;
-  *Zz = Zk;
+  loc_params->Xx = Xk;
+  loc_params->Yy = Yk;
+  loc_params->Zz = Zk;
   return;
 }

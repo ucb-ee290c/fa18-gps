@@ -1,9 +1,14 @@
 #ifndef PARAMS_HEADER
 #define PARAMS_HEADER
 
+struct sat_loc_params {
+  float Xx, Yy, Zz;
+  float xpl, ypl;
+};
+
 struct rcv_params {
   float subframe_id;
-
+  float gps_time;
   // from subframe 1
   float week_number;
   float sv_accuracy;
