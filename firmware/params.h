@@ -8,7 +8,10 @@ struct sat_loc_params {
 
 struct rcv_params {
   float subframe_id;
-  float gps_time;
+  float gps_sec;
+  float gps_ms;
+  float gps_chips;
+  float gps_phase;
   // from subframe 1
   float week_number;
   float sv_accuracy;
