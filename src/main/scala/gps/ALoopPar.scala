@@ -15,7 +15,7 @@ import freechips.rocketchip.regmapper._
 import freechips.rocketchip.tilelink._
 
 
-trait ALoopParParams[T1 <: Data, T2 <: Data] {
+trait ALoopParParams[T <: Data] {
   val wADC: Int
   val wCA: Int
   val wNCOTct: Int
@@ -37,15 +37,16 @@ trait ALoopParParams[T1 <: Data, T2 <: Data] {
   val freqStep: Int
   val fsample: Int
   val fchip: Int
-  val NCOParams_ADC: NcoParams[T1]
-  val NCOParams_CA: NcoParams[T1]
+  val NCOParams_ADC: NcoParams[T]
+  val NCOParams_CA: NcoParams[T]
   val CA_Params: CAParams
-  val pADC: T1
-  val pCA: T1
-  val pSumIQ: T1
-  val pSumCorr: T1
-  val pCorr: T1
-  val pNCO: T1
+  val ShifterParams: ShifterParams[T]
+  val pADC: T
+  val pCA: T
+  val pSumIQ: T
+  val pSumCorr: T
+  val pCorr: T
+  val pNCO: T
   val pSate: UInt
   val pFreq: UInt
   val pIFreq: UInt
@@ -67,7 +68,7 @@ case class EgALoopParParams(
                             val freqStep: Int,
                             val fsample: Int,
                             val fchip: Int
-                          ) extends ALoopParParams[SInt, FixedPoint] {
+                          ) extends ALoopParParams[SInt] {
 
   require(CPMin + (nCPSample - 1) * CPStep < nSample, s"The max CP can not exceed the nSample - 1, " +
                                                       s"CPMin = $CPMin, nCPSample = $nCPSample, " +
@@ -118,6 +119,11 @@ case class EgALoopParParams(
     codeWidth = wCA
   )
 
+  val ShifterParams = SIntShifterParams(
+    width = wCA,
+    nSample = nSample,
+  )
+
 }
 
 
@@ -125,27 +131,27 @@ case class EgALoopParParams(
 
 
 // input interface within the acquisition loop
-class ALoopParInputBundle[T1 <: Data, T2 <: Data](params: ALoopParParams[T1, T2]) extends Bundle {
+class ALoopParInputBundle[T <: Data](params: ALoopParParams[T]) extends Bundle {
 
-  val ADC: T1 = Input(params.pADC)
+  val ADC: T = Input(params.pADC)
   val idx_sate: UInt = Input(params.pSate)
   val ready = Output(Bool())
   val valid = Input(Bool())
   val debugCA = Input(Bool())
   val debugNCO = Input(Bool())
-  val CA: T1 = Input(params.pCA)
-  val cos: T1 = Input(params.pNCO)
-  val sin: T1 = Input(params.pNCO)
+  val CA: T = Input(params.pCA)
+  val cos: T = Input(params.pNCO)
+  val sin: T = Input(params.pNCO)
 
   override def cloneType: this.type = ALoopParInputBundle(params).asInstanceOf[this.type]
 }
 object ALoopParInputBundle {
-  def apply[T1 <: Data, T2 <: Data](params: ALoopParParams[T1, T2]): ALoopParInputBundle[T1, T2] = new ALoopParInputBundle(params)
+  def apply[T <: Data](params: ALoopParParams[T]): ALoopParInputBundle[T] = new ALoopParInputBundle(params)
 }
 
 
 // output interface within the acquisition loop
-class ALoopParOutputBundle[T1 <: Data, T2 <: Data](params: ALoopParParams[T1, T2]) extends Bundle {
+class ALoopParOutputBundle[T <: Data](params: ALoopParParams[T]) extends Bundle {
 
   val iFreqOpt: UInt = Output(params.pIFreq.cloneType)
   val freqOpt: UInt = Output(params.pFreq.cloneType)
@@ -159,46 +165,12 @@ class ALoopParOutputBundle[T1 <: Data, T2 <: Data](params: ALoopParParams[T1, T2
   override def cloneType: this.type = ALoopParOutputBundle(params).asInstanceOf[this.type]
 }
 object ALoopParOutputBundle {
-  def apply[T1 <: Data, T2 <: Data](params: ALoopParParams[T1, T2]): ALoopParOutputBundle[T1, T2] = new ALoopParOutputBundle(params)
+  def apply[T <: Data](params: ALoopParParams[T]): ALoopParOutputBundle[T] = new ALoopParOutputBundle(params)
 }
 
 
-//class ALoopParDebugBundle[T1 <: Data, T2 <: Data](params: ALoopParams[T1, T2]) extends Bundle {
-//
-//  val sineWaveTest = Input(Bool())
-//  val selfCATest = Input(Bool())
-//
-//  val FreqNow: UInt = Output(params.ACtrlParams.pFreq.cloneType)
-//  val iFreqNow: UInt = Output(params.ACtrlParams.pIdxFreq.cloneType)
-//  val iFreqNext: UInt = Output(params.ACtrlParams.pIdxFreq.cloneType)
-//  val iLoopNow: UInt = Output(params.ACtrlParams.pLoop.cloneType)
-//  val iLoopNext: UInt = Output(params.ACtrlParams.pLoop.cloneType)
-//  val iCPNow: UInt = Output(params.ACtrlParams.pCodePhase.cloneType)
-//  val iCPNext: UInt = Output(params.ACtrlParams.pCodePhase.cloneType)
-//  val max: T2 = Output(params.ACtrlParams.pMax.cloneType)
-//  val reg_max: T2 = Output(params.ACtrlParams.pMax.cloneType)
-//  val reg_tag_CP = Output(Bool())
-//  val reg_tag_Loop = Output(Bool())
-//  val reg_tag_Freq = Output(Bool())
-//
-//  val Correlation = Output(Vec(params.nLane, params.ACtrlParams.pCorrelation))
-//  val iFreqOptItm: UInt = Output(params.ACtrlParams.pIdxFreq.cloneType)
-//  val iFreqOptOut: UInt = Output(params.ACtrlParams.pIdxFreq.cloneType)
-//  val CPOptItm: UInt = Output(params.ACtrlParams.pCodePhase.cloneType)
-//  val CPOptOut: UInt = Output(params.ACtrlParams.pCodePhase.cloneType)
-//  val vec = Output(Vec(params.nSample, params.ACtrlParams.pCorrelation.cloneType))
-//  val state: UInt = Output(UInt(2.W))
-//
-//
-//  override def cloneType: this.type = ALoopDebugBundle(params).asInstanceOf[this.type]
-//}
-//object ALoopDebugBundle {
-//  def apply[T1 <: Data, T2 <: Data](params: ALoopParams[T1, T2]): ALoopDebugBundle[T1, T2] = new ALoopDebugBundle(params)
-//}
 
-
-
-class ALoopParIO[T1 <: Data, T2 <: Data](params: ALoopParParams[T1, T2]) extends Bundle {
+class ALoopParIO[T <: Data](params: ALoopParParams[T]) extends Bundle {
 
   val in = ALoopParInputBundle(params)
   val out = ALoopParOutputBundle(params)
@@ -207,7 +179,7 @@ class ALoopParIO[T1 <: Data, T2 <: Data](params: ALoopParParams[T1, T2]) extends
   override def cloneType: this.type = ALoopParIO(params).asInstanceOf[this.type]
 }
 object ALoopParIO {
-  def apply[T1 <: Data, T2 <: Data](params: ALoopParParams[T1, T2]): ALoopParIO[T1, T2] =
+  def apply[T <: Data](params: ALoopParParams[T]): ALoopParIO[T] =
     new ALoopParIO(params)
 }
 
@@ -233,8 +205,8 @@ object ALoopParIO {
 //}
 
 
-class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:BinaryRepresentation]
-  (val params: ALoopParParams[SInt, FixedPoint]) extends Module {
+class ALoopPar[T <: Data:Ring:Real:BinaryRepresentation]
+  (val params: ALoopParParams[SInt]) extends Module {
 
   val io = IO(ALoopParIO(params))
 
@@ -243,7 +215,7 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
   val nco_ADC = Module(new NCO[SInt](params.NCOParams_ADC))
   val nco_CA1x = Module(new NCO[SInt](params.NCOParams_CA))
   val nco_CA2x = Module(new NCO[SInt](params.NCOParams_CA))
-
+  val shifter = Module(new Shifter[SInt](params.ShifterParams))
 
 
 
@@ -294,21 +266,27 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
   }
 
 
-
+  shifter.io.in :=  Mux(io.in.debugCA,
+                        io.in.CA,
+                        Mux(reg_state === preparing,
+                          ca.io.punctual.asTypeOf(params.pCA),
+                          shifter.io.out(0)
+                        )
+                        )
 
 
 //  val reg_shift_CA = Reg(Vec(params.nSample, params.pCA))
-  val reg_shift_CA = Reg(Vec(params.nSample, SInt(params.wCA.W)))
-  for (i <- 0 until params.nSample-1) {
-    reg_shift_CA(i) := reg_shift_CA(i+1)
-  }
-  reg_shift_CA(params.nSample-1) := Mux(io.in.debugCA,
-                                        io.in.CA,
-                                        Mux(reg_state === preparing,
-                                            ca.io.punctual.asTypeOf(params.pCA),
-                                            reg_shift_CA(0)
-                                            )
-                                        )
+//  val reg_shift_CA = Reg(Vec(params.nSample, SInt(params.wCA.W)))
+//  for (i <- 0 until params.nSample-1) {
+//    reg_shift_CA(i) := reg_shift_CA(i+1)
+//  }
+//  reg_shift_CA(params.nSample-1) := Mux(io.in.debugCA,
+//                                        io.in.CA,
+//                                        Mux(reg_state === preparing,
+//                                            ca.io.punctual.asTypeOf(params.pCA),
+//                                            reg_shift_CA(0)
+//                                            )
+//                                        )
 
 
 
@@ -347,20 +325,18 @@ class ALoopPar[T1 <: Data:Ring:Real:BinaryRepresentation, T2 <: Data:Ring:Real:B
 
   when (reg_state === idle || reg_state === preparing) {
     for (i <- 0 until params.nCPSample) {
-      reg_sum_i(i) := ConvertableTo[T1].fromInt(0)
-      reg_sum_q(i) := ConvertableTo[T1].fromInt(0)
+      reg_sum_i(i) := ConvertableTo[T].fromInt(0)
+      reg_sum_q(i) := ConvertableTo[T].fromInt(0)
     }
   } .elsewhen(reg_cnt_loop === 0.U) {
     for (i <- 0 until params.nCPSample) {
-      reg_sum_i(i) := io.in.ADC * reg_shift_CA(i * params.CPStep + params.CPMin) * cos
-      reg_sum_q(i) := io.in.ADC * reg_shift_CA(i * params.CPStep + params.CPMin) * sin
-//      reg_sum_i(i) := ConvertableTo[T1].fromInt(0)
-//      reg_sum_q(i) := ConvertableTo[T1].fromInt(0)
+      reg_sum_i(i) := io.in.ADC * shifter.io.out(i * params.CPStep + params.CPMin) * cos
+      reg_sum_q(i) := io.in.ADC * shifter.io.out(i * params.CPStep + params.CPMin) * sin
     }
   } .elsewhen(reg_state === acqing) {
     for (i <- 0 until params.nCPSample) {
-      reg_sum_i(i) := io.in.ADC * reg_shift_CA(i * params.CPStep + params.CPMin) * cos + reg_sum_i(i)
-      reg_sum_q(i) := io.in.ADC * reg_shift_CA(i * params.CPStep + params.CPMin) * sin + reg_sum_q(i)
+      reg_sum_i(i) := io.in.ADC * shifter.io.out(i * params.CPStep + params.CPMin) * cos + reg_sum_i(i)
+      reg_sum_q(i) := io.in.ADC * shifter.io.out(i * params.CPStep + params.CPMin) * sin + reg_sum_q(i)
     }
   }
 
