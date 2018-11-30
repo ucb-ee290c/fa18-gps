@@ -1,9 +1,11 @@
 package gps
 
 import chisel3._
+import chisel3.experimental.FixedPoint
+import chisel3.util._
 import dsptools.numbers._
 
-trait TrackingChannelParams[T <: Data] {
+trait TrackingChannelParams[T <: Data, V <: Data] {
   val adcWidth: Int
   val carrierNcoParams: NcoParams[T]
   val caNcoParams: NcoParams[T]
@@ -11,9 +13,11 @@ trait TrackingChannelParams[T <: Data] {
   val caParams: CAParams
   val mulParams: MulParams[T]
   val intParams: IntDumpParams[T]
+  val phaseLockParams: LockDetectParams[V]
 }
-case class ExampleTrackingChannelParams() extends TrackingChannelParams[SInt] {
-  // Assume ADC in is a 2bit signed number
+case class ExampleTrackingChannelParams() extends 
+  TrackingChannelParams[SInt, FixedPoint] {
+  // Assume ADC in is a 5bit signed number
   val adcWidth = 5
   // Carrier NCO is 32 bits wide counter, 2 bit out and has a sin output
   val carrierNcoParams = SIntNcoParams(30, 5, true)
@@ -27,9 +31,11 @@ case class ExampleTrackingChannelParams() extends TrackingChannelParams[SInt] {
   val mulParams = SampledMulParams(5)
   // Int Params 
   val intParams = SampledIntDumpParams(5, 5*16*1023)
+  // Phase Lock Detector Params Limit set to +-15deg
+  val phaseLockParams = LockDetectParams(FixedPoint(20.W, 12.BP), -0.26, 0.26,100)
 }
 
-class TrackingChannelIO[T <: Data](params: TrackingChannelParams[T]) extends Bundle {
+class TrackingChannelIO[T <: Data,V <: Data](params: TrackingChannelParams[T, V]) extends Bundle {
   val adcSample = Input(SInt(params.adcWidth.W))
   val svNumber = Input(UInt(6.W)) //fixed width due to number of satellites
   val dump = Input(Bool())
@@ -42,16 +48,22 @@ class TrackingChannelIO[T <: Data](params: TrackingChannelParams[T]) extends Bun
   val dllIn = Input(UInt(32.W))
   val costasIn = Input(UInt(32.W))
   val caIndex = Output(UInt(32.W))
+  val phaseErr = Flipped(Valid(FixedPoint(20.W, 12.BP)))
+  val lock = Output(Bool())
 
   override def cloneType: this.type =
     TrackingChannelIO(params).asInstanceOf[this.type]
 }
 object TrackingChannelIO {
-  def apply[T <: Data](params: TrackingChannelParams[T]): TrackingChannelIO[T] =
+  def apply[T <: Data, V <: Data](
+    params: TrackingChannelParams[T, V]
+  ): TrackingChannelIO[T, V] =
     new TrackingChannelIO(params)
 }
 
-class TrackingChannel[T <: Data : Ring : Real](val params: TrackingChannelParams[T]) extends Module {
+class TrackingChannel[T <: Data : Real, V <: Data : Real](
+  val params: TrackingChannelParams[T, V]
+) extends Module {
   val io = IO(TrackingChannelIO(params))
 
   val carrierNco = Module(new NCO[T](params.carrierNcoParams))
@@ -123,4 +135,8 @@ class TrackingChannel[T <: Data : Ring : Real](val params: TrackingChannelParams
   intDumpQL.io.in := multQL.io.out
   intDumpQL.io.dump := io.dump
   io.ql := intDumpQL.io.integ
+
+  val lockDetector = Module(new LockDetector(params.phaseLockParams))
+  io.lock := lockDetector.io.lock
+  lockDetector.io.in := io.phaseErr
 }

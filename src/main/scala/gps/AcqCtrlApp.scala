@@ -44,7 +44,7 @@ object ACtrlApp extends App {
    * The rest get returned as a List[String] to pass to the Chisel driver
    *
    */
-  def argParse(args: List[String], params: IntACtrlParams): (List[String], IntACtrlParams) = {
+  def argParse(args: List[String], params: FixedACtrlParams): (List[String], FixedACtrlParams) = {
     args match {
       case "--help" :: tail =>
         println(usage)
@@ -71,7 +71,7 @@ object ACtrlApp extends App {
       case Nil => (args, params)
     }
   }
-  val defaultParams = IntACtrlParams(
+  val defaultParams = FixedACtrlParams(
     nLoop = 3,
     nFreq = 3,
     nSample = 3,

@@ -180,7 +180,7 @@ class ACtrlTOutputBundle[T <: Data](params: ACtrlParams[T]) extends Bundle {
   val max: T = Output(params.pMax.cloneType)
   val CPOpt_itm: UInt = Output(params.pCodePhase.cloneType)
   val vec = Output(Vec(params.nSample, params.pCorrelation.cloneType))
-  val state = Output(Bool())
+  val state: UInt = Output(UInt(2.W))
   val ready = Input(Bool())
   val valid = Output(Bool())
 
@@ -204,11 +204,16 @@ object DummyBundle {
 class ACtrlDebugBundle[T <: Data](params: ACtrlParams[T]) extends Bundle {
 
   val iFreqNow: UInt = Output(params.pIdxFreq.cloneType)
+  val iFreqNext: UInt = Output(params.pIdxFreq.cloneType)
   val iLoopNow: UInt = Output(params.pLoop.cloneType)
+  val iLoopNext: UInt = Output(params.pLoop.cloneType)
   val iCPNow: UInt = Output(params.pCodePhase.cloneType)
+  val iCPNext: UInt = Output(params.pCodePhase.cloneType)
   val max: T = Output(params.pMax.cloneType)
   val reg_max: T = Output(params.pMax.cloneType)
   val reg_tag_CP = Output(Bool())
+  val reg_tag_Loop = Output(Bool())
+  val reg_tag_Freq = Output(Bool())
 //  val freqOpt: T1 = Output(params.pFreq.cloneType)
 //  val CPOpt: T1 = Output(params.pCodePhase.cloneType)
 //  val sateFound = Output(Bool())
@@ -359,11 +364,17 @@ class ACtrl[T <: Data:ConvertableTo:Ring:Real:BinaryRepresentation](params: ACtr
 
 
   io.Debug.iFreqNow := reg_iFreqNow
+  io.Debug.iFreqNext := iFreqNext
   io.Debug.iLoopNow := reg_iLoopNow
+  io.Debug.iLoopNext := iLoopNext
   io.Debug.iCPNow := reg_iCPNow
+  io.Debug.iCPNext := iCPNext
   io.Debug.max := max_itm
   io.Debug.reg_max := reg_max
   io.Debug.reg_tag_CP := reg_tag_CP
+  io.Debug.reg_tag_Loop := reg_tag_Loop
+  io.Debug.reg_tag_Freq := reg_tag_Freq
+
 
 //  max_itm := reg_correlationArray.reduce(_ max _)
 
@@ -476,7 +487,7 @@ class ACtrl[T <: Data:ConvertableTo:Ring:Real:BinaryRepresentation](params: ACtr
 
 
     when (reg_iCPNow === 0.U && reg_iLoopNow === 0.U && reg_tag_CP) {
-      when (max_itm > reg_max) {
+      when (max_itm >= reg_max) {
         reg_max := max_itm
         reg_CPOpt_itm := CPOpt_itm
         reg_iFreqOpt_itm := Mux(reg_iFreqNow === 0.U, iFreqMax.U, reg_iFreqNow - 1.U)
