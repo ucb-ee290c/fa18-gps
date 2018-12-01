@@ -9,10 +9,11 @@ The ranging code is reponsible for taking the hardware decoded satellite paramet
 The various computation functions are spread amongst various files, but the overarching algorithm is contained within `main.c`.
 
 ## Extract hardware parameters
-The hardware parameters will be described later, but they are effectively the data encoded in satellite transmissions necessary to compute the satellite locations.
-The parameter extraction is done via a direct read from memory mapped registers. The mapping was decided on prior to software implementation, and is summarized in `regmap.h`
+The hardware parameters are the data encoded in satellite transmissions necessary to compute the satellite locations.
+The parameter extraction is done via a direct read from memory mapped registers, which interface directly with hardware. The mapping was decided on prior to software implementation, and is summarized in `regmap.h`
 
 Relevant files:
+
 * `params.h`
 * `regmap.h`
 * `ranging.c` - `extract_params(int sat_offset, struct rcv_params *params)`
@@ -42,6 +43,7 @@ Using these parameters, the SV position can be computed in terms of ECEF (Earth-
 The computation of these locations is purely in terms of these parameters, and done in `calculations.c`. 
 
 Relevant files:
+
 * `params.h`
 * `calculations.c` - `get_sat_loc(float t, struct sat_loc_params *loc_params, struct rcv_params *params)
    * Inputs:
@@ -79,7 +81,7 @@ x: -2691.466
 y: -4262.826
 z: 3894.033
 ```
-This is almost exactly the true position of the BWRC in ECEF coordinates.  While this is obviously using an ideal set of parameters, but this demonstrates that the algorithm will converge to the optimal location with the information it is given.
+This is almost exactly the true position of the BWRC in ECEF coordinates.  While this is obviously using an ideal set of parameters, this demonstrates that the algorithm will converge to the optimal location with the information it is given.
 
 ### Ongoing Work 
 * Writing algorithm in C
