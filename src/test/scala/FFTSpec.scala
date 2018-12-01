@@ -190,7 +190,7 @@ object spectrumTester {
   def setupTester[T <: Data](c: () => FFT[T], verbose: Boolean = true): FFTTester[T] = {
     var tester: FFTTester[T] = null
     val manager = new dsptools.DspTesterOptionsManager {
-      testerOptions = TesterOptions(backendName = "firrtl", testerSeed = 7L)
+      testerOptions = TesterOptions(backendName = "treadle", testerSeed = 7L)
       interpreterOptions = InterpreterOptions(setVerbose = false, writeVCD = verbose, maxExecutionDepth = 2000)
       dspTesterOptions = dspTesterOptions.copy(
         isVerbose = false
@@ -327,7 +327,7 @@ class FFTSpec extends FlatSpec with Matchers {
 //       Normal test for direct form FFT
 //      Seq(8, 8,  35, 19, 0, 0, 0),
 //       Normal test for direct form IFFT
-      Seq(16, 8,  35, 20, 0, 0, 0),
+      Seq(64, 16,  35, 20, 0, 1, 0),
       // Unscramble test for direct form FFT
 //      Seq(16, 16,  35, 19, 0, 1, 0),
       // Unscramble test for direct form IFFT

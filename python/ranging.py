@@ -10,7 +10,7 @@ C = 3.0e8
 #Height: 57 m
 x = -2691.466e3
 y = -4262.826e3
-z = 3894.033e3
+z = 3894.033e3 #if doesn't work, plug in a known location like north pole
 
 #nominal operating altitude of GPS satellite is 20,200e3 m
 
@@ -21,7 +21,7 @@ t_bias_n = 0.0
 
 nom = [x_n, y_n, z_n, t_bias_n]
 
-#x, y, z in ECEF, delta_t, pseudorange
+#x, y, z in ECEF, delta_t
 sv_1 = [0.0, (-20200.0e3 - 3894.033e3), 0.0, 0.06796112069175156]
 sv_2 = [(20200.0e3 + 3894.033e3), 0.0, 0.0, 0.09133565296265844]
 sv_3 = [(-20200.0e3 - 3894.033e3), 0.0, 0.0, 0.07389219269395515]

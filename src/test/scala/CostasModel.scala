@@ -61,6 +61,22 @@ class CostasModel (intTime: Double, pllBW: Double, fllBw: Double, mode: Int, fre
     lf
   }
 
+  def updateDouble(ips: Double, qps: Double, freqBias: Double): Double = {
+    phaseErr = -1*costasDetector(ips, qps)
+    if (freqUpdate) {
+      freqErr = freqDetector(ips, qps)
+      freqUpdate = false
+    } else {
+      freqUpdate = true
+    }
+    loopFilter()
+    var delta_freq = lf/(2*Pi)
+    var code = delta_freq / (16*1023*1e3) * (pow(2, 30) - 1) 
+    ips2 = ips
+    qps2 = qps
+    code + freqBias
+  }
+
   def update(ips: Double, qps: Double, freqBias: Int): Int = {
     phaseErr = -1*costasDetector(ips, qps)
     if (freqUpdate) {
