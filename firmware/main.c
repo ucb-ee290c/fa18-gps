@@ -37,3 +37,14 @@ get_sv_pos(sat_1_time, sat_1_loc, sat_1_params);
 get_sv_pos(sat_2_time, sat_2_loc, sat_2_params);
 get_sv_pos(sat_3_time, sat_3_loc, sat_3_params);
 get_sv_pos(sat_4_time, sat_4_loc, sat_4_params);
+
+
+free(sat_1_params);
+free(sat_2_params);
+free(sat_3_params);
+free(sat_4_params);
+
+free(sat_1_loc);
+free(sat_2_loc);
+free(sat_3_loc);
+free(sat_4_loc);
