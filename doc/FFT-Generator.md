@@ -1,6 +1,6 @@
 # FFT Generator
 ## Architecture
-The FFT supports number of points is any power of two and size of 4 or greater (n >= 4).
+The FFT generator supports number of points is any power of two and size of 4 or greater (n >= 4).
 The input lanes(p=lanes) is equal or smaller than the number of points,
 the input rate is divided down when input lanes is smaller than number of points.
 It use cooley-tukey algorithm when p<n. First it takes p input each time, these point go through a (bp: biplex point = n/p) Biplex FFT and do a direct FFT for p points.
@@ -12,10 +12,8 @@ Radix-2 Multipath Delay Commutator is a the most straightforward approach of pip
 When a new frame arrives, first half of points are multiplexed, delayed by N/2 samples and connected to the upper input of butterfly cell (BF).
 The second half of points are selected and directly connected to the lower input of butterfly, and it will arrive BF simultaneously with the first half data. 
 The output of first stage triggers the second stage.
-The upper input of second stage connect to the upper output of the first stage for first N/2 results and then switch the lower input of second stage to upper output of first stage.
-And the lower output of first stage connect to the upper input of the second stage
-In the pipelined FFT each stage have a swicth working at twice the frequency of the previous stage and delay cells have half of delay than the previous stage.
-The total required memory is N/2+N/4+N/4+...+2=3/2N-2.
+The upper input of second stage connect to the first stage's output through a commutator, it switches between two inputs at different frequency.The swicth in each stage working at twice the frequency of the previous stage and delay cells have half of delay than the previous stage.
+Therefore, the total required memory is N/2+N/4+N/4+...+2=3/2N-2. And the required BF cells number is log2(bp)
 But in this case, the butterflies only works half the time.
 By using biplex structure, each biplex core takes two channels' input and each butterfly works in an interleaved way for adjacent input samples and it can work at full rate. This result in the reduction of Biplex cells and memory usage.
 
@@ -26,7 +24,7 @@ It is expected that the bits inputs contain time-series data time-multiplexed on
 such that on the first cycle are values x[0], x[1], …, x[p-1], then the next cycle contains x[p], x[p+1], … and this continues until the input is x[n-p], x[n-p+1], …, x[n-1].
 
 ### Output unscramble
-Naturally with correct order input, the output of FFT will in bit-reversed order. If a direct form FFT is perform, the output order correction is simply rewiring. So when the generator is configured to be direct form (i.e. n=lanes). There is a unscrambleOut option to directly correct the bit order at the output.
+With correct order input, the output of FFT will in bit-reversed order. If a direct form FFT is performed, the output order correction is simply rewiring. So when the generator is configured to be direct form (i.e. n=lanes). There is a unscrambleOut option to directly correct the bit order at the output.
 
 However, when a two stages FFT is perform, there are some bit unscrambling happen between Biplex and Direct form FFT, and the  output bit order is not very straightforward. It can be correct by the following code:
 
@@ -98,10 +96,17 @@ The configuration with scrambled input performs direct FFT first and output conn
  - inverse: inverse FFT
  - unscrambleOut: with n=lanes, it should be easy for direct form to just re-wire the output to get the right order.
  - unscrambleIn: FFT/IFFT in DIF with scrambled input.
+ 
 ## IO
 The FFT uses the DSP streaming interface (a subset of AXI4-Stream) on both the data input and data output. There are nominally no status or control registers, so no SCR file exists.
-- Bits: It is expected that the bits inputs contain time-series data time-multiplexed on the inputs, such that on the first cycle are values x[0], x[1], …, x[p-1], then the next cycle contains x[p], x[p+1], … and this continues until the input is x[n-p], x[n-p+1], …, x[n-1]. 
+- Bits: the bits inputs contain time-series data time-multiplexed on the inputs, such that on the first cycle are values x[0], x[1], …, x[p-1], then the next cycle contains x[p], x[p+1], … and this continues until the input is x[n-p], x[n-p+1], …, x[n-1]. 
 - Valid: The FFT delays the input valid by a value equal to the total data delay (biplex FFT delay + pipeline depth). When valid is low, the FFT creates zeros at its input. Internal counters continue to count, flushing out extant data. The shift register delaying the valid signal is set to all 0s during reset.
 - Sync: The shift register delaying the sync signal is set to all 0s during reset. The first input sync signal will flush through, synchronizing all the FFT butterflies with the first dataset. The input sync is expected to be periodic in the size of the FFT (n) divided by the number of input lanes (p). Sync should be high on the last cycle of the spectrum. The new spectrum starts on the next valid cycle. When n=p, sync should always be high when valid is high.
 
-## Tests
+## Tests  
+The tester for FFT is in `FFTSpec.scala`. The `apply` in spectrumTester perform the tests for FFT generator. Basically there are three kinds of tester for debug purpose.
+- The `getTone` function generates single tone input, the ideal result should be only one bin in the output spectrum
+- The `getOne` function generates only one non-zero value in the input signal.
+- Random test generate random number input.
+
+In class `FFTSpec`, there is a Seq of test configurations setting, which pass in configurations to spectrum Tester.
