@@ -135,8 +135,8 @@ class ALoopParInputBundle[T <: Data](params: ALoopParParams[T]) extends Bundle {
 
   val ADC: T = Input(params.pADC)
   val idx_sate: UInt = Input(params.pSate)
-  val ready = Output(Bool())
-  val valid = Input(Bool())
+//  val ready = Output(Bool())
+//  val valid = Input(Bool())
   val debugCA = Input(Bool())
   val debugNCO = Input(Bool())
   val CA: T = Input(params.pCA)
@@ -159,8 +159,8 @@ class ALoopParOutputBundle[T <: Data](params: ALoopParParams[T]) extends Bundle 
   val max: SInt = Output(SInt(params.wCorr.W))
   val sum: SInt = Output(SInt(params.wSumCorr.W))
   val sateFound = Output(Bool())
-  val ready = Input(Bool())
-  val valid = Output(Bool())
+//  val ready = Input(Bool())
+//  val valid = Output(Bool())
 
   override def cloneType: this.type = ALoopParOutputBundle(params).asInstanceOf[this.type]
 }
@@ -172,8 +172,8 @@ object ALoopParOutputBundle {
 
 class ALoopParIO[T <: Data](params: ALoopParParams[T]) extends Bundle {
 
-  val in = ALoopParInputBundle(params)
-  val out = ALoopParOutputBundle(params)
+  val in = Flipped(Decoupled(ALoopParInputBundle(params)))
+  val out = Decoupled(ALoopParOutputBundle(params))
 //  val debug = ALoopParDebugBundle(params)
 
   override def cloneType: this.type = ALoopParIO(params).asInstanceOf[this.type]
@@ -205,7 +205,7 @@ object ALoopParIO {
 //}
 
 
-class ALoopPar[T <: Data:Ring:Real:BinaryRepresentation]
+class ALoopPar[T <: Data:Ring:Real]
   (val params: ALoopParParams[SInt]) extends Module {
 
   val io = IO(ALoopParIO(params))
@@ -265,9 +265,11 @@ class ALoopPar[T <: Data:Ring:Real:BinaryRepresentation]
     reg_state := Mux(io.out.ready, idle, acqed)
   }
 
+  ca.reset := reg_state === idle
 
-  shifter.io.in :=  Mux(io.in.debugCA,
-                        io.in.CA,
+
+  shifter.io.in :=  Mux(io.in.bits.debugCA,
+                        io.in.bits.CA,
                         Mux(reg_state === preparing,
                           ca.io.punctual.asTypeOf(params.pCA),
                           shifter.io.out(0)
@@ -304,7 +306,7 @@ class ALoopPar[T <: Data:Ring:Real:BinaryRepresentation]
   val stepSizeNCO_CA1x = (ConvertableTo[UInt].fromDouble(stepSizeCoeff) * ConvertableTo[UInt].fromDouble(fchip)) >> extrashift
   val stepSizeNCO_CA2x = stepSizeNCO_CA1x * ConvertableTo[UInt].fromInt(2)
 
-  ca.io.satellite := io.in.idx_sate
+  ca.io.satellite := io.in.bits.idx_sate
   ca.io.fco := nco_CA1x.io.sin
   ca.io.fco2x := nco_CA2x.io.sin
 
@@ -312,16 +314,13 @@ class ALoopPar[T <: Data:Ring:Real:BinaryRepresentation]
   nco_CA1x.io.stepSize := stepSizeNCO_CA1x
   nco_CA2x.io.stepSize := stepSizeNCO_CA2x
 
-//  nco_ADC.io.softRst := NCO_reset
-//  nco_CA1x.io.softRst := NCO_reset
-//  nco_CA2x.io.softRst := NCO_reset
 
 
   val reg_sum_i = Reg(Vec(params.nCPSample, params.pSumIQ))
   val reg_sum_q = Reg(Vec(params.nCPSample, params.pSumIQ))
 
-  val cos = Mux(io.in.debugNCO, io.in.cos, nco_ADC.io.cos)
-  val sin = Mux(io.in.debugNCO, io.in.sin, nco_ADC.io.sin)
+  val cos = Mux(io.in.bits.debugNCO, io.in.bits.cos, nco_ADC.io.cos)
+  val sin = Mux(io.in.bits.debugNCO, io.in.bits.sin, nco_ADC.io.sin)
 
   when (reg_state === idle || reg_state === preparing) {
     for (i <- 0 until params.nCPSample) {
@@ -330,13 +329,13 @@ class ALoopPar[T <: Data:Ring:Real:BinaryRepresentation]
     }
   } .elsewhen(reg_cnt_loop === 0.U) {
     for (i <- 0 until params.nCPSample) {
-      reg_sum_i(i) := io.in.ADC * shifter.io.out(i * params.CPStep + params.CPMin) * cos
-      reg_sum_q(i) := io.in.ADC * shifter.io.out(i * params.CPStep + params.CPMin) * sin
+      reg_sum_i(i) := io.in.bits.ADC * shifter.io.out(i * params.CPStep + params.CPMin) * cos
+      reg_sum_q(i) := io.in.bits.ADC * shifter.io.out(i * params.CPStep + params.CPMin) * sin
     }
   } .elsewhen(reg_state === acqing) {
     for (i <- 0 until params.nCPSample) {
-      reg_sum_i(i) := io.in.ADC * shifter.io.out(i * params.CPStep + params.CPMin) * cos + reg_sum_i(i)
-      reg_sum_q(i) := io.in.ADC * shifter.io.out(i * params.CPStep + params.CPMin) * sin + reg_sum_q(i)
+      reg_sum_i(i) := io.in.bits.ADC * shifter.io.out(i * params.CPStep + params.CPMin) * cos + reg_sum_i(i)
+      reg_sum_q(i) := io.in.bits.ADC * shifter.io.out(i * params.CPStep + params.CPMin) * sin + reg_sum_q(i)
     }
   }
 
@@ -382,12 +381,12 @@ class ALoopPar[T <: Data:Ring:Real:BinaryRepresentation]
 
 
   io.out.valid := reg_acqed
-  io.out.iFreqOpt := reg_optIFreq
-  io.out.CPOpt := reg_optICP * params.CPStep.U + params.CPMin.U
-  io.out.freqOpt := reg_optIFreq * params.freqStep.U + params.freqMin.U
-  io.out.max := reg_max
-  io.out.sum := reg_sum
-  io.out.sateFound := reg_max * ConvertableTo[SInt].fromDouble(params.nFreq*params.nCPSample/6) > reg_sum
+  io.out.bits.iFreqOpt := reg_optIFreq
+  io.out.bits.CPOpt := reg_optICP * params.CPStep.U + params.CPMin.U
+  io.out.bits.freqOpt := reg_optIFreq * params.freqStep.U + params.freqMin.U
+  io.out.bits.max := reg_max
+  io.out.bits.sum := reg_sum
+  io.out.bits.sateFound := reg_max * ConvertableTo[SInt].fromDouble(params.nFreq*params.nCPSample/6) > reg_sum
   io.in.ready := reg_state === idle
 
 

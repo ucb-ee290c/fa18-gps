@@ -67,7 +67,7 @@ case class ALoopParTestVec(
  *
  * Run each trial in @trials
  */
-class ALoopParTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoopPar[T1,T2], trials: Seq[ALoopParTestVec], tolLSBs: Int = 1)
+class ALoopParTester[T <: chisel3.Data](c: ALoopPar[T], trials: Seq[ALoopParTestVec], tolLSBs: Int = 1)
   extends DspTester(c) {
 
 
@@ -79,17 +79,17 @@ class ALoopParTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoopPar[T1,T2],
 
 
     poke(c.io.in.valid, 0)
-    poke(c.io.in.idx_sate, trial.idx_sate)
+    poke(c.io.in.bits.idx_sate, trial.idx_sate)
     poke(c.io.out.ready, 0)
-    poke(c.io.in.debugCA, 0)
-    poke(c.io.in.debugNCO, 0)
+    poke(c.io.in.bits.debugCA, 0)
+    poke(c.io.in.bits.debugNCO, 0)
 
     // wait until input is accepted
     var cycles = 0
 
 
     print("trial")
-    updatableDspVerbose.withValue(false) {
+    updatableDspVerbose.withValue(true) {
       while (cycles < 35000) {
 
         if (cycles == 1) {
@@ -116,17 +116,17 @@ class ALoopParTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoopPar[T1,T2],
         val temp = 0
         val data_ADC_real = byteArray(cycles + temp * 16368).toInt
 
-        poke(c.io.in.ADC, data_ADC_real)
-        poke(c.io.in.CA, data_CA)
-        poke(c.io.in.cos, data_cos)
-        poke(c.io.in.sin, data_sin)
+        poke(c.io.in.bits.ADC, data_ADC_real)
+        poke(c.io.in.bits.CA, data_CA)
+        poke(c.io.in.bits.cos, data_cos)
+        poke(c.io.in.bits.sin, data_sin)
 
         if (peek(c.io.out.valid)) {
-          peek(c.io.out.freqOpt)
-          peek(c.io.out.CPOpt)
-          peek(c.io.out.sateFound)
-          peek(c.io.out.max)
-          peek(c.io.out.sum)
+          peek(c.io.out.bits.freqOpt)
+          peek(c.io.out.bits.CPOpt)
+          peek(c.io.out.bits.sateFound)
+          peek(c.io.out.bits.max)
+          peek(c.io.out.bits.sum)
         }
 
         cycles += 1
@@ -146,10 +146,10 @@ class ALoopParTester[T1 <: chisel3.Data, T2 <: chisel3.Data](c: ALoopPar[T1,T2],
   * Convenience function for running tests
   */
 object ALoopParTester {
-  def apply(params: ALoopParParams[SInt, FixedPoint], trials: Seq[ALoopParTestVec]): Boolean = {
+  def apply(params: ALoopParParams[SInt], trials: Seq[ALoopParTestVec]): Boolean = {
 //    chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv", "-fimed", "1000000000000"), ()
       chisel3.iotesters.Driver.execute(Array("-tbn", "treadle", "-fiwv", "-fimed", "1000000000000"), ()
-    => new ALoopPar[SInt, FixedPoint](params)) {
+    => new ALoopPar[SInt](params)) {
 //    dsptools.Driver.execute(() => new ACtrl(params), TestSetup.dspTesterOptions) {
       c => new ALoopParTester(c, trials)
     }

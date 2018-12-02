@@ -15,19 +15,19 @@ trait HasPeripheryAcq extends BaseSubsystem {
   // pbus.toVariableWidthSlave(Some("QueueRead")) { AcqChain.readQueue.mem.get }
 }
 
-class ExampleTop(implicit p: Parameters) extends RocketSubsystem
-    with CanHaveMasterAXI4MemPort
-    with HasPeripheryBootROM
-    with HasSyncExtInterrupts {
-  override lazy val module = new ExampleTopModule(this)
-}
-
-class ExampleTopModule[+L <: ExampleTop](l: L) extends RocketSubsystemModuleImp(l)
-    with HasRTCModuleImp
-    with CanHaveMasterAXI4MemPortModuleImp
-    with HasPeripheryBootROMModuleImp
-    with HasExtInterruptsModuleImp
-    with DontTouch
+//class ExampleTop(implicit p: Parameters) extends RocketSubsystem
+//    with CanHaveMasterAXI4MemPort
+//    with HasPeripheryBootROM
+//    with HasSyncExtInterrupts {
+//  override lazy val module = new ExampleTopModule(this)
+//}
+//
+//class ExampleTopModule[+L <: ExampleTop](l: L) extends RocketSubsystemModuleImp(l)
+//    with HasRTCModuleImp
+//    with CanHaveMasterAXI4MemPortModuleImp
+//    with HasPeripheryBootROMModuleImp
+//    with HasExtInterruptsModuleImp
+//    with DontTouch
 
 class ExampleTopWithAcq(implicit p: Parameters) extends ExampleTop
     // mix in Acq top block

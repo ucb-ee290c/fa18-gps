@@ -13,7 +13,7 @@ import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.regmapper._
 import freechips.rocketchip.tilelink._
 
-class acqBlock[T <: Data : Real](val config: acqConfig[T])(implicit p: Parameters) extends TLDspBlock with TLHasCSR {
+class acqBlock[T <: Data : Real](val config: ALoopParParams[SInt])(implicit p: Parameters) extends TLDspBlock with TLHasCSR {
   val streamNode = AXI4StreamIdentityNode()
   def csrAddress = AddressSet(0x2200, 0xff)
   def beatBytes = 8
@@ -33,6 +33,32 @@ class acqBlock[T <: Data : Real](val config: acqConfig[T])(implicit p: Parameter
 
     // TODO: initialize the acq block and make connection, refer to cordic lab or FFT/FFTblock.scala
     // val module = Module(new acq[T](config))
+
+
+    val module = Module(new ALoopPar[T](config))
+
+//    val dataSetEndClear = RegInit(0.U(64.W))
+//    module.io.data_set_end_clear := dataSetEndClear
+
+    in.ready := module.io.in.ready
+    module.io.in.valid := in.valid
+    out.valid := module.io.out.valid
+    module.io.out.ready := out.ready
+
+    // TODO:
+    module.io.in.bits := in.bits
+    out.bits := module.io.out.bits
+
+
+
+
+
+    // TODO:
+    assert(out.ready)
+
+//    out.bits.data := module.io.out.bits.asUInt
+
+
 
 
 
