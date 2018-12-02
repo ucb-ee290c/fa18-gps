@@ -46,7 +46,7 @@ object spectrumTester {
     if (signal.size > config.n) {
       println("Warning: test signal longer than the FFT size, will only use first n points")
     }
-
+//    updatableDspVerbose.value=false
 
     // synchronize to the next input
     //dut.poke(io.in.sync, 1)
@@ -327,7 +327,7 @@ class FFTSpec extends FlatSpec with Matchers {
 //       Normal test for direct form FFT
 //      Seq(8, 8,  35, 19, 0, 0, 0),
 //       Normal test for direct form IFFT
-      Seq(8192, 64,  35, 20, 0, 1, 0),
+      Seq(64, 64,  35, 20, 0, 1, 0),
       // Unscramble test for direct form FFT
 //      Seq(16, 16,  35, 19, 0, 1, 0),
       // Unscramble test for direct form IFFT
