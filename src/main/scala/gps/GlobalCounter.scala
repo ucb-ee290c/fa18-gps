@@ -5,6 +5,14 @@ import chisel3.experimental.FixedPoint
 import chisel3.util._
 import dsptools.numbers._
 
+
+/** Parameters class for global counter
+ *
+ *  @param clkPeriod the period in seconds of the clock
+ *  @param counterWidth how many bits the counter uses
+ *  @param secondsWidth how many bits the whole-number part of the computed elapsed time in seconds is represented with
+ *  @param secondsBP how many bits the decimal point of the computed elapsed time in seconds is represented with
+ */
 case class GlobalCounterParams (
   val clkPeriod: Double,
   val counterWidth: Int,
@@ -12,6 +20,13 @@ case class GlobalCounterParams (
   val secondsBP: Int
 )
 
+/** A module that counts and computes elapsed time in seconds
+* IO:
+* currCycle: Output(UInt), counter of elapsed number of cycles since startup/reset
+* currTimeSeconds: Output(FixedPoint), based on the clock period, the elapsed time in seconds since startup/reset
+* @param params An instance of the GlobalCounterParams 
+*
+*/
 class GlobalCounter(params: GlobalCounterParams) extends Module {
   val io = IO(new Bundle {
     val currCycle = Output(UInt(params.counterWidth.W))
