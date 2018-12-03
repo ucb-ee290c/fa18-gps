@@ -12,4 +12,3 @@ out/
 *-output.json
 *.swp
 *.jar
-verilator/
