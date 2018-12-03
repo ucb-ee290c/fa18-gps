@@ -1,7 +1,3 @@
-// See LICENSE for license details.
-
-// Author: Stevo Bailey (stevo.bailey@berkeley.edu)
-
 package gps
 
 import chisel3._
@@ -72,28 +68,21 @@ class DirectFFT[T <: Data : Real](config: FFTConfig[T], genMid: DspComplex[T], g
       val j_rev = j
       val i_rev =if (config.unscrambleIn == false) i else log2Ceil(config.lanes) - i- 1
       val start = ((j_rev % skip) + floor(j_rev / skip) * skip * 2).toInt
-      println("skip", i_rev, skip, start)
       // hook it up
       val outputs = List(stage_outputs(i + 1)(start), stage_outputs(i + 1)(start + skip))
       if (config.unscrambleIn == false) {
         val butterfly_outputs = Butterfly[T](Seq(stage_outputs(i)(start), stage_outputs(i)(start + skip)), twiddle_rom(config.tdindices(j)(i_rev))(sync))
         outputs.zip(butterfly_outputs).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i + log2Ceil(config.bp)), name = this.name + s"_${i}_${j}_pipeline_sram") }
       } else {
-        // TODO: here might need to bit reverse sync signal from twiddle rom, keep use sync for now?
         val butterfly_outputs = ButterflyDIF[T](Seq(stage_outputs(i)(start), stage_outputs(i)(start + skip)), twiddle_rom(config.tdindices(j)(i_rev))(sync))
         outputs.zip(butterfly_outputs).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i + log2Ceil(config.bp)), name = this.name + s"_${i}_${j}_pipeline_sram") }
       }
       // TODO: pipeline reorder
-////      if (io.in.valid == true) {
-//        printf("SYNCC %d %d \n", sync, (Reverse(sync.asUInt())))
-//      }
     }
   }
 
-
   // wire up top-level outputs
   // note, truncation happens here!
-  //  io.out.bits := stage_outputs(log2Ceil(config.lanes))
 
   if (config.unscrambleOut == true) {
     io.out.bits := unscramble(stage_outputs(log2Ceil(config.lanes)), config.lanes)
@@ -150,22 +139,17 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genIn: DspComplex[T], ge
     }))
   })
   // wire up top-level outputs
-  //  io.out.bits := stage_outputs(log2Ceil(config.bp)+1)
   val stage_outputs = List.fill(log2Ceil(config.bp) + 2)(List.fill(config.lanes)(Wire(genIn)))
   io.in.bits.zip(stage_outputs(0)).foreach { case (in, out) => out := in }
 
-//  printf("[--DEBUG--]SYNCS ARE:")
-//  for (i <- 0 until log2Ceil(config.bp)+1){
-//    printf("SYNC[%d]: %d ", i.U, sync(i))
-//  }
-//  printf("\n")
+
   // create the FFT hardware
   for (i <- 0 until log2Ceil(config.bp) + 1) {
     for (j <- 0 until config.lanes / 2) {
 
       val skip = 1
       val start = j * 2
-//      println("[--DEBUG--]Biplex:", i, j)
+
       // hook it up
       // last stage just has one extra permutation, no butterfly
 
@@ -200,8 +184,7 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genIn: DspComplex[T], ge
               twiddle_rom(i)(sync(i + 1))
             )
           ).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i), name = this.name + s"_${i}_${j}_pipeline1_sram") }
-//          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
-//          printf("SYNC %d \n", sync(i+1))
+
         }
       } else {
         val mux_out = BarrelShifter(VecInit(stage_outputs(i)(start),
@@ -232,26 +215,16 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genIn: DspComplex[T], ge
                 ),
                 mux_out(1)
               ),
-//              twiddle_rom(i)((Reverse(sync(i+1).asUInt())))
               twiddle_rom(log2Ceil(config.bp)-1-i)(sync(i+1))
-//                twiddle_rom(i)(sync(i + 1))
             )
           ).foreach { x => x._1 := ShiftRegisterMem(x._2, config.pipe(i), name = this.name + s"_${i}_${j}_pipeline1_sram") }
-//          printf("[--DEBUG--] %d, %d, ", i.U, j.U)
-//          printf("%d, %d",               twiddle_rom(log2Ceil(config.bp)-1-i)(sync(i+1)).real,               twiddle_rom(log2Ceil(config.bp)-1-i)(sync(i+1)).imag)
-//          printf("SYNC %d \n", sync(i+1))
+
+
         }
       }
 
     }
   }
-//  println("twiddle_rom")
-  twiddle_rom.foreach{x=>
-   x.foreach{ y=>
-     print(y,'/')
-   }
-  }
-//  println("twiddle_rom2")
 
   // wire up top-level output
   io.out.bits := stage_outputs(log2Ceil(config.bp) + 1)
@@ -295,7 +268,6 @@ class FFT[T <: Data : Real](val config: FFTConfig[T])(implicit val p: Parameters
       config.genIn
     }
     else {
-//      val growth = log2Ceil(config.bp)
       val growth = if(config.unscrambleIn==false )log2Ceil(config.n) else log2Ceil(config.n)
       config.genIn.underlyingType() match {
         case "fixed" =>
