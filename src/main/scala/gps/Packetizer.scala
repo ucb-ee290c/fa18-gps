@@ -14,6 +14,10 @@ case class PacketizerParams (
   val parityLength: Int
 )
 
+object ExtractedParamsBundle {
+  def apply(): ExtractedParamsBundle = new ExtractedParamsBundle
+}
+
 class ExtractedParamsBundle extends Bundle {
   val subframe_id = UInt(3.W)
 

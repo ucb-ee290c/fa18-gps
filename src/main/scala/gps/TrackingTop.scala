@@ -11,7 +11,7 @@ case class TrackingTopParams(
   sampleRate: Double,  // Sample rate of the input data
   intBP: Int,
   ncoBP: Int
-) extends TrackingChannelParams[SInt] with LoopParams[FixedPoint] {
+) extends TrackingChannelParams[SInt] with LoopParams[FixedPoint]{
   // Width of the Integrators
   // 0.02 is the maximum integration time, sizing things to prevent overflow,
   // +1 for signed
@@ -52,20 +52,38 @@ case class TrackingTopParams(
   val intParams = SampledIntDumpParams(adcWidth, (sampleRate * 0.02).toInt)
   // Phase Lock Detector Params Limit set to +-30deg
   val phaseLockParams = LockDetectParams(FixedPoint(20.W, 12.BP), -0.54, 0.54,100)
+  // Packetizer Params
+  val packetParams = PacketizerParams(10, 30, 8, "b10001011".U(8.W), 6)
 }
 
-class TrackingTop(params: TrackingTopParams) extends Module {
-  val io = IO(new Bundle{
+
+class TrackingBundle(params: TrackingTopParams) extends Bundle {
     val adcIn = Input(SInt(params.adcWidth.W))
+    val svNumber = Input(UInt(6.W))
+    val carrierNcoBias = Input(UInt(params.ncoWidth))
+    val codeNcoBias = Input(UInt(params.ncoWidth))
+
     val epl = Output(EPLBundle(SInt(params.intWidth.W)))
     val dllErr = Output(params.protoOut)
     val freqErr = Output(params.protoOut)
     val phaseErr = Output(params.protoOut)
-    val svNumber = Input(UInt(6.W))
-    val carrierNcoBias = Input(UInt(params.ncoWidth))
-    val codeNcoBias = Input(UInt(params.ncoWidth))
     val dump = Output(Bool())
-  })
+
+    // Outputs of the packetizer needed for communication with Rocket
+    val packetValidOut = Output(Bool())
+    val packetValidBits = Output(Vec(params.packetParams.subframeLength, Bool()))
+    val packetExtractedValues = Output(new ExtractedParamsBundle)
+}
+
+object TrackingBundle {
+  def apply(params: TrackingTopParams): TrackingBundle = new TrackingBundle(params)
+}
+
+class TrackingTop(params: TrackingTopParams) extends Module {
+  val io = IO(TrackingBundle(params))
+
+  val packetizer = Module(new Packetizer(params.packetParams))
+
   val trackingChannel = Module(new TrackingChannel(params))
   trackingChannel.io.adcSample := io.adcIn
   trackingChannel.io.svNumber := io.svNumber
