@@ -19,6 +19,8 @@ class IntDumpIO[T <: Data](params: IntDumpParams[T]) extends Bundle {
   val in = Input(params.protoIn)
   val dump = Input(Bool())
   val integ = Output(params.protoInteg)
+
+  override def cloneType: this.type = IntDumpIO(params).asInstanceOf[this.type]
 }
 
 object IntDumpIO {

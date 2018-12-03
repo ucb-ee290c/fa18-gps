@@ -40,38 +40,54 @@ class CA(Block):
       32: [4,9],
     }
     
-    def __init__(self):
+    def __init__(self, sv_num, code_bias, code_length=1023):
         self.prev_tick = 0
         self.curr_index = 0
         self.curr_sv = None
         self.curr_prn_list = None
         self.shift_reg = ShiftRegister()
         self.done = 0
-    def update(self, tick, tick_2x, sv_num):
-        assert sv_num >= 1 and sv_num <= 32, "Invalid sattelite choice"
+        self.code_length = code_length
+        self.code_bias = code_bias
+        self.sv_num = sv_num
+
+    def update(self, tick, tick_2x, sv_num, code_bias):
+
+        # updates
+        self.code_bias = code_bias
+        self.sv_num = sv_num
+
+        # check satellite id
+        assert sv_num >= 1 and sv_num <= 32, "Invalid satellite choice"
+
         self.done = 0
         if self.curr_sv is None or self.curr_sv != sv_num:
            self.curr_prn_list = self.PRN(sv_num)
            self.curr_sv = sv_num
            self.curr_index = 0
            self.prev_tick = 0
-        early = self.check_tick(tick)
+
+        early = self.check_tick(tick, code_bias)
         self.shift_reg.insert(early)
         punctual, late = self.shift_reg.update(tick_2x)
-        #Convert from [0, 1] to [-1, 1]
+
+        # Convert from [0, 1] to [-1, 1]
         early = 2*early - 1
         punctual = 2*punctual - 1
         late = 2*late - 1
         return early, punctual, late, self.done
 
-    def check_tick(self, tick):
+    def check_tick(self, tick, code_bias):
+
         if self.prev_tick < 0 and tick >= 0:
             self.curr_index += 1
             if self.curr_index >= len(self.curr_prn_list):
                 self.curr_index = 0
+                print("PRN GENERATION DONE")
                 self.done = 1
+
         self.prev_tick = tick
-        return self.curr_prn_list[self.curr_index]
+        return self.curr_prn_list[(self.curr_index-code_bias) % self.code_length]
     
     def shift(self, register, feedback, output):
         """GPS Shift Register
@@ -95,12 +111,11 @@ class CA(Block):
         # shift to the right
         for i in reversed(range(len(register[1:]))):
             register[i+1] = register[i]
-            
+
         # put feedback in position 1
         register[0] = fb
         
         return out
-
 
     def PRN(self, sv):
         """Build the CA code (PRN) for a given satellite ID
@@ -114,8 +129,8 @@ class CA(Block):
         G1 = [1 for i in range(10)]
         G2 = [1 for i in range(10)]
 
-        ca = [] # stuff output in here
-        
+        ca = []     # stuff output in here
+
         # create sequence
         for i in range(1023):
             g1 = self.shift(G1, [3,10], [10])
@@ -127,18 +142,22 @@ class CA(Block):
         # return C/A code!
         return ca
 
+
 class ShiftRegister(Block):
     def __init__(self):
         self.input = None
         self.curr_index = 0
         self.prev_tick = -1
-        self.my_list = [1, 1, 1] #always length 2
+        self.my_list = [1, 1, 1]    # always length 2
+
     def update(self, tick):
+
         if self.prev_tick < 0 and tick >= 0:
             self.my_list[2] = self.my_list[1]
             self.my_list[1] = self.my_list[0]
             self.my_list[0] = self.input
         self.prev_tick = tick
         return self.my_list[1], self.my_list[2]
+
     def insert(self, val):
         self.input = val
