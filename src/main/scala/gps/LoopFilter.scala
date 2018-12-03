@@ -22,9 +22,11 @@ trait LoopFilterParams[T <: Data] {
  * Loop Filter Parameters for a Fixed Point output
  */
 case class FixedFilterParams(
-  val dcGain: Double,
-  val bandwidth: Double,
-  val sampleRate: Double,
+  inWidth: Int, 
+  inBP: Int,
+  dcGain: Double,
+  bandwidth: Double,
+  sampleRate: Double,
 ) extends LoopFilterParams[FixedPoint] {
   //FIXME: Fixed point widths hardcoded
   val proto = FixedPoint(20.W, 16.BP)

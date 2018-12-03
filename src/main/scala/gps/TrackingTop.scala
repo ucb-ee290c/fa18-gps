@@ -28,7 +28,7 @@ case class TrackingTopParams(
   val protoOut = FixedPoint((ncoWidth + ncoBP).W, ncoBP.BP)
   val lfParamsCostas = FixedFilter3rdParams(width = 20, bPWidth = 16)   
   // TODO Is there a way we can generate this? 
-  val lfParamsDLL = FixedFilterParams(6000, 5, 1) 
+  val lfParamsDLL = FixedFilterParams(intWidth+intBP, intBP, 6000, 5, 1) 
   val phaseDisc = FixedDiscParams(
     inWidth = (intWidth + intBP), 
     inBP = intBP, 

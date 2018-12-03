@@ -50,7 +50,7 @@ class LoopFilterSpec extends FlatSpec with Matchers {
     val dcGain = 12.0
     val bandwidth = 10.0
     val sampleRate = 1000.0
-    val params = new FixedFilterParams(dcGain, bandwidth, sampleRate)
+    val params = new FixedFilterParams(32, 12, dcGain, bandwidth, sampleRate)
     val (a, b) = GetLoopFilterCoeffs(params)
     println(a)
     println(b)

@@ -31,7 +31,7 @@ class LoopMachineTester[T <: chisel3.Data](c: LoopMachine[T], ie: Seq[Double], i
       step(1)
     }
 
-    fixTolLSBs.withValue(10) {
+    fixTolLSBs.withValue(1) {
       expect(c.io.out.bits.codeNco, output(i)._1)
       expect(c.io.out.bits.carrierNco, output(i)._2)
     }
@@ -40,7 +40,7 @@ class LoopMachineTester[T <: chisel3.Data](c: LoopMachine[T], ie: Seq[Double], i
 } 
 
 object FixedLoopMachineTester {
-  def apply(loopParams: ExampleLoopParams, discParams: ExampleAllDiscParams, ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Double, Double)]): Boolean = {
+  def apply(loopParams: ExampleLoopParams, ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Double, Double)]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), 
       () => new LoopMachine(loopParams)) {
       c => new LoopMachineTester(c, ie, ip, il, qe, qp, ql, output)
@@ -49,7 +49,7 @@ object FixedLoopMachineTester {
 }
 
 object RealLoopMachineTester {
-  def apply(loopParams: LoopParams[dsptools.numbers.DspReal], discParams: AllDiscParams[dsptools.numbers.DspReal], ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Double, Double)]): Boolean = {
+  def apply(loopParams: LoopParams[dsptools.numbers.DspReal], ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Double, Double)]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv"), 
       () => new LoopMachine(loopParams)) {
       c => new LoopMachineTester(c, ie, ip, il, qe, qp, ql, output)
@@ -63,12 +63,6 @@ class LoopMachineSpec extends FlatSpec with Matchers {
 
   val realDiscParams = RealDiscParams(cordicParams = realCordicParams)
 
-  // TODO Figure out if this is still being used
-  val realAllDiscParams = new AllDiscParams[DspReal] {
-    val phaseDisc = realDiscParams
-    val freqDisc = realDiscParams.copy(cordicParams=realCordicParams.copy(calAtan2 = true))
-    val dllDisc = realDiscParams.copy(cordicParams=realCordicParams.copy(dividing = true))
-  } 
   val realLfParamsCostas = new LoopFilter3rdParams[DspReal] {
     val proto = DspReal()
     val fBandwidth = 3.0
@@ -116,8 +110,36 @@ class LoopMachineSpec extends FlatSpec with Matchers {
     val costasOut = ip.zip(qp).map((a: (Double, Double)) => {costas.updateDouble(a._1, a._2, 0)})
 
     val out = dllOut.zip(costasOut)
-    RealLoopMachineTester(realLoopParams, realAllDiscParams, ie, ip, il, qe, qp, ql, out) should be (true)
+    RealLoopMachineTester(realLoopParams, ie, ip, il, qe, qp, ql, out) should be (true)
     
   } 
+  
+  behavior of "Fixed Loop Machine"
+
+  val fixedLoopParams = ExampleLoopParams(inWidth=256,inBP=192, ncoWidth=256, 192)
+
+    val ie = Seq(2500.0, 2400, 2600, 2330)
+    val ip = Seq(5000.0, 4575, 3452, 6453)
+    val il = Seq(2200.0, 2050, 2666, 2777)
+    val qe = Seq(2100.0, 2600, 1990, 2314)
+    val qp = Seq(4500.0, 5100, 4200, 3999)
+    val ql = Seq(3100.0, 2120, 2700, 2000)
+
+    val dll = new DLLModel(6000, 3, 1e3, 2)
+    val costas = new CostasModel(0.001, 17.0, 3.0, 0, 2) 
+
+    val iInt = ie.zip(ip.zip(il))
+    val qInt = qe.zip(qp.zip(ql))
+    def f2[A,B,C](t: (A,(B,C))) = (t._1, t._2._1, t._2._2)
+    val iIntFlat = iInt.map(f2(_))
+    val qIntFlat = qInt.map(f2(_))
+
+    val dllOut = iIntFlat.zip(qIntFlat).map((a: ((Double, Double, Double), (Double, Double, Double))) => {dll.updateDouble(a._1, a._2, 0)})
+    val costasOut = ip.zip(qp).map((a: (Double, Double)) => {costas.updateDouble(a._1, a._2, 0)})
+
+    val out = dllOut.zip(costasOut)
+  it should "converge all loops" in {
+    FixedLoopMachineTester(fixedLoopParams, ie, ip, il, qe, qp, ql, out) should be (true)
+  }  
   
 }

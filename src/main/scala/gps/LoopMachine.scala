@@ -27,8 +27,8 @@ case class ExampleLoopParams(
   //FIXME: widths may not be correct for costas loop filter 
   val protoIn = FixedPoint(inWidth.W, inBP.BP)
   val protoOut = FixedPoint(ncoWidth.W, ncoBP.BP)
-  val lfParamsCostas = FixedFilter3rdParams(width = 20, bPWidth = 16)   
-  val lfParamsDLL = FixedFilterParams(6000, 5, 1) 
+  val lfParamsCostas = FixedFilter3rdParams(width=inWidth, bPWidth = inBP)   
+  val lfParamsDLL = FixedFilterParams(inWidth, inBP, 6000, 5, 1) 
   val freqDisc = FixedDiscParams(inWidth, inBP, ncoWidth, ncoBP, calAtan2=true)
   val phaseDisc = FixedDiscParams(inWidth, inBP, ncoWidth, ncoBP)
   val dllDisc =  FixedDiscParams(inWidth, inBP, ncoWidth, ncoBP, dividing=true)
