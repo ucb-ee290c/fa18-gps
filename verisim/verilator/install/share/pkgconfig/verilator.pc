@@ -1,4 +1,4 @@
-prefix=/Users/zhaokail/Documents/courses/EE290C-Bora/project.nosync/fa18-ap/verisim/verilator/install
+prefix=/Users/oliviahsu/Documents/Fall_2018/290c/fa18-gps/verisim/verilator/install
 exec_prefix=${prefix}
 libdir=${exec_prefix}/lib
 datarootdir=${prefix}/share
