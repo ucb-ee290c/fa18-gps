@@ -37,3 +37,15 @@ The early/punctual/late signals are used by the DLL to help lock on, as describe
 - `late`: SInt, bit width of codeWidth, either -1 or 1
 - `done`: Bool, high when an entire 1023 length sequence has finished.
 - `currIndex`: UInt, which index of the CA code the early output is currently on
+
+
+#### Tests:
+
+- Early tester
+  - Loads in a CSV file with precomputed CA codes and verifies that at every NCO zero crossing, the current output matches the CSV. Also        checks that `done` is not high until the last value is output.
+- No output tester
+  - Checks that when a constant NCO input/no input is presented to the CA generator, the output never changes. The CA generator should only update when there are zero-crossings on the NCO. Also checks that `done` never changes. 
+- Punctual/Late tester
+  - Not currently implemented. This was used to output the punctual/late values and then were manually checked for accuracy.
+- Change satellite tester
+  - Not currently implemented. Should verify that changing which satellite code is being generated properly restarts to the first value in the sequence. 
