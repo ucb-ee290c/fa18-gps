@@ -75,6 +75,8 @@ class FFTMulTester[T <: chisel3.Data](c: FFTMul[T], trials: Seq[TEST], lanes: In
       trial.caIn.zip(c.io.caIn.bits).foreach { case (sig, port) => poke(port, sig) }
       poke(c.io.dataIn.valid, true)
       poke(c.io.caIn.valid, true)
+      poke(c.io.dataIn.sync, true)
+      poke(c.io.caIn.sync, true)
       c.io.out.bits.foreach(x => retval += peek(x))
       step(1)
     }
