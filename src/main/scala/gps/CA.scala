@@ -5,11 +5,27 @@ import chisel3.experimental.FixedPoint
 import chisel3.util._
 import dsptools.numbers._
 
+/** A set of parameters for CA modules.
+ *.
+ *  @param fcoWidth the bit width of the NCO output for both 1x and 2x frequencies
+ *  @param codeWidth the bit width of the code to be generated. The code is either +1 or -1, so it must be at least 2.
+ */
 case class CAParams (
   val fcoWidth: Int,
   val codeWidth: Int
 )
 
+/** A convenience class that replicates a shift register of 2 elements. The reason for having a second class is 
+ * due to the fact that the shift register needs to be clocked at a different frequency. This class takes in a single
+ * code input and then has a 2 element shift register. The updating is done by checking the 0 crossings of the 2x frequency clock input
+ *
+ *  IO: 
+ *  codeIN: Input(SInt), single bit of a CA code
+ *  fco2x: Input(SInt), NCO output, clocked at 2x the frequency of the NCO used in the CA generator
+ *  punctual: Output(SInt), codeIn, but delayed by one cycle. Updates at zero-crossings of the fco2x input 
+ *  late: Output(SInt), codeIn, but delayed by two cycles. Updates at zero-crossings of the fco2x input 
+ *  @param params same parameters used to generate the CA module
+ */
 class CACodeShiftReg(params: CAParams) extends Module {
   val io = IO(new Bundle {
     val codeIn = Input(SInt(params.codeWidth.W))
@@ -29,6 +45,19 @@ class CACodeShiftReg(params: CAParams) extends Module {
   io.late := late
 }
 
+/** A GPS L1 C/A PRN code generator module. 
+ *  IO:
+ *  satellite: Input(UInt), an int between 1 and 32 that selects which satellite's CA code to generate.
+ *  fco: Input(SInt), an NCO that drives the update frequency of the CA code
+ *  fco2x: Input(SInt), an NCO at 2x the frequency of fco that drives the update of the CA code
+ *  early: Output(SInt), The CA code, updated at zero-crossings of fco
+ *  late: Output(SInt), see CACodeShiftReg
+ *  punctual: Output(SInt), see CACodeShiftReg
+ *  done: Output(Bool), true for the cycle that a 1023-length CA code has fully finished
+ *  currIndex: Output(UInt), the current index of the 1023 length CA code being outputted
+ *  @constructor create a CA code generator module
+ *  @param params an instance of the case class CAParams that includes all io parameters
+ */
 class CA(params: CAParams) extends Module {
     val io = IO(new Bundle {
         val satellite = Input(UInt(6.W)) //There are 32 possible feedbacks. Need 6 bits
