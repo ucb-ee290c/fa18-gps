@@ -11,3 +11,4 @@ hammer-vlsi*
 out/
 *-output.json
 *.swp
+*.jar
