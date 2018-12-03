@@ -5,7 +5,7 @@ import dsptools.DspTester
 import dsptools.numbers._
 
 import scala.collection.mutable.ListBuffer
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.{FlatSpec, Matchers, Ignore}
 
 class LoopMachineTester[T <: chisel3.Data](c: LoopMachine[T], ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Double, Double)]) extends DspTester(c){
   poke(c.io.out.ready, 1)
@@ -57,6 +57,8 @@ object RealLoopMachineTester {
   } 
 }
 
+
+@Ignore
 class LoopMachineSpec extends FlatSpec with Matchers {
   behavior of "DspReal Loop Machine"
   val realCordicParams = RealCordicParams()
