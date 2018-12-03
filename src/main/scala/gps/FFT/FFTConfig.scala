@@ -42,11 +42,11 @@ case class FFTConfig[T <: Data](
   genOut: DspComplex[T],
   n: Int = 16, // n-point FFT
   pipelineDepth: Int = 0,
-  lanes: Int = 8,
+  lanes: Int = 8, // number of input
   quadrature: Boolean = true,
-  inverse: Boolean = false,
-  unscrambleOut: Boolean = false,
-  unscrambleIn: Boolean = false,
+  inverse: Boolean = false, // do inverse fft when true
+  unscrambleOut: Boolean = false, //  correct output bit-order, only functional when (n=lanes)
+  unscrambleIn: Boolean = false, // accept srambled input
 ) {
   require(n >= 4, "For an n-point FFT, n must be 4 or more")
   require(isPow2(n), "For an n-point FFT, n must be a power of 2")
@@ -104,11 +104,7 @@ case class FFTConfig[T <: Data](
   println(s"Total direct pipeline depth: $direct_pipe")
 
   // twiddling
-//  val twiddle = (0 until n/2).map(x => Array(cos(2*Pi/n*x),-sin(2*Pi/n*x)))
   val twiddle = (0 until n/2).map(x => if (inverse == true) Array(cos(2*Pi/n*x),sin(2*Pi/n*x)) else Array(cos(2*Pi/n*x),-sin(2*Pi/n*x)))
-//  print("The twiddle factors are:")
-//  twiddle.foreach(x=>print(x(0),x(1)))
-//  println(" ")
 
   // indicies to the twiddle factors
   var indices = Array.fill(log2Ceil(n))(0)
@@ -118,14 +114,8 @@ case class FFTConfig[T <: Data](
     prev.zip(next).foreach{case(px,nx) => {if (nx != px) indices = indices :+ nx}}
     prev = next.toArray
   }
-//  print("The indices factors are:")
-//  indices.foreach(x=> print(x))
-//  println(" ")
   indices = indices.map(x => bit_reverse(x, log2Ceil(n)-1))
 
-  print("The indices factors are:")
-  indices.foreach(x=> print(x,','))
-  println(" ")
   // take subsets of indices for split FFTs, then bit reverse to permute as needed
   var q = n
   var temp = Array(indices)
@@ -137,8 +127,6 @@ case class FFTConfig[T <: Data](
   }
   val dindices = (0 until temp.size).map(x => temp((x*2)%temp.size+x*2/temp.size)).flatten
 
-  println(dindices)
-
   // how the biplex indices (bindices) map to hardware butterflies
   var tbindices = List.fill(log2Ceil(bp))(ArrayBuffer.fill(bp/2)(0))
   bindices.zipWithIndex.foreach{ case (bindex, index) => {
@@ -146,32 +134,19 @@ case class FFTConfig[T <: Data](
     val repl = math.pow(2, log2Ceil(bp)-col-1).toInt
     val start = (index-math.pow(2,col).toInt+1)*repl
     for (i <- 0 until repl) {
-//      if (unscrambleIn == true) {
-//        tbindices(col)(bit_reverse(start + i, log2Ceil(log2Ceil(bp)))) = bindex
-//      } else {
           tbindices(col)(start + i) = bindex
-//      }
       }
     }
   }
 
-//  tbindices = if (unscrambleIn == false) tbindices else tbindices.reverse
-//  if (unscrambleIn == true){
-//    tbindices = tbindices.reverse
-//  }
-  println("The indices for biplex", tbindices)
   // pre-compute set of twiddle factors per-butterfly, including rotation for pipelining
   var btwiddles = tbindices.zipWithIndex.map{ case(i, index) => {
     val rot_amt = pipe.dropRight(log2Up(n)-index).foldLeft(0)(_+_)
     val rot_list = rotateRight(i, rot_amt)
-    println("biplex twiddle list",rot_list)
     rot_list.map(j => twiddle(j))
   }}
 
 
-  print("The twiddles for biplex")
-  btwiddles.foreach{x => x.foreach{y =>y .foreach{z => print(z,',')}}}
-  println(" ")
   // how the direct indices (dindices) map to hardware butterflies
   var tdindices = List(List(0,1),List(0,2))
 
@@ -185,10 +160,6 @@ case class FFTConfig[T <: Data](
     tdindices = tdindices ++ tdindices.map(x => x.map(y => y+tdindices_max))
     tdindices = tdindices.map(x => 0 +: x)
   }
-  print("The twiddles for Biplex ")
-//  btwiddles.foreach{x => x.foreach{y =>y .foreach{z => print(z,',')}}}
-  btwiddles.foreach{x => x.foreach{y => print(y,',')}}
-  println(" ")
 
   // pre-compute set of twiddle factors per-butterfly, including rotation for pipelining
   val dtwiddles = dindices.grouped(lanes_new-1).toList.transpose.zipWithIndex.map{ case(i,index) => {
@@ -197,17 +168,8 @@ case class FFTConfig[T <: Data](
     val rot_amt = pipe.drop(log2Ceil(bp)).dropRight(log2Up(lanes_new)-col).foldLeft(0)(_+_)
     val rot_list = rotateRight(i, rot_amt)
     // now map to twiddles
-    println("direct twiddle list",rot_list)
     rot_list.map(j => twiddle(j))
   }}
 
-  print("The twiddles for DIT direct form")
-  dtwiddles.foreach{x => x.foreach{y =>y .foreach{z => print(z,',')}}}
-  println(" ")
-
-//  val dtwiddlesDIF = dtwiddles.reverse
-//  print("The twiddles for DIF direct form")
-//  dtwiddlesDIF.foreach{x => x(0).foreach{y => print(y,',')}}
-//  println(" ")
 }
 

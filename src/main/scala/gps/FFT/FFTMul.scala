@@ -63,6 +63,8 @@ class FFTMul[T <: chisel3.Data : Ring](val params: FFTMulParams[T]) extends Modu
     io.out.bits.foreach{case (x) => x := (0.U).asTypeOf(params.protoData)}
   }
 
-//  io.out.sync := (ShiftRegisterWithReset(io.dataIn.valid, params.pipeStages, false.B, shift_en) && shift_en)
+
   io.out.sync := io.dataIn.sync
+
+
 }

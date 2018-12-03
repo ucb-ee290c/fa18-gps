@@ -47,7 +47,6 @@ object spectrumTester {
       println("Warning: test signal longer than the FFT size, will only use first n points")
     }
 
-
     // synchronize to the next input
     //dut.poke(io.in.sync, 1)
     //dut.step(1)
@@ -210,13 +209,11 @@ object spectrumTester {
   }
 
   def getTone(numSamples: Int, f: Double): Seq[Complex] = {
-    // uncomment to scale input tone 
+    // uncomment to scale input tone
     //(0 until numSamples).map(i => pow(2, -(numSamples+1))*Complex(math.cos(2 * math.Pi * f * i), math.sin(2 * math.Pi * f * i)))
     (0 until numSamples).map(i => Complex(math.cos(2 * math.Pi * f * i), math.sin(2 * math.Pi * f * i)))
   }
   def getOne(numSamples: Int, f: Double): Seq[Complex] = {
-    // uncomment to scale input tone
-    //(0 until numSamples).map(i => pow(2, -(numSamples+1))*Complex(math.cos(2 * math.Pi * f * i), math.sin(2 * math.Pi * f * i)))
     Complex(1.0, 0.0)+:(1 until numSamples).map(i => Complex(0.0, 0.0))
   }
 
@@ -231,8 +228,8 @@ object spectrumTester {
 //    (1 until 32).foreach { bin =>
       val b = if (fftSize > m) fftSize / m * bin else bin
       val tester = setupTester(c, verbose)
-//      val tone = getTone(fftSize, b.toDouble / fftSize)
-            val tone = getOne(fftSize, b.toDouble / fftSize)
+      val tone = getTone(fftSize, b.toDouble / fftSize)
+//    val tone = getOne(fftSize, b.toDouble / fftSize)
       println("Original Tones")
       tone.foreach{x=>print(x,',')}
       println(" ")
@@ -276,9 +273,9 @@ object spectrumTester {
       val tester = setupTester(c, verbose)
       val tone = (0 until fftSize).map(x => Complex(Random.nextDouble(), Random.nextDouble()))
 
-      val unscrambleTone = scramble(tone, config.lanes)
+      val scrambleTone = scramble(tone, config.lanes)
 
-      val testResult = if (config.unscrambleIn==false) testSignal(tester, tone) else testSignal(tester, unscrambleTone)
+      val testResult = if (config.unscrambleIn==false) testSignal(tester, tone) else testSignal(tester, scrambleTone)
       val expectedResult = fourierTr(DenseVector(tone.toArray)).toArray
       val expectedResultInv = iFourierTr(DenseVector(tone.toArray)).toArray.map(_ * config.n)
 
@@ -323,18 +320,15 @@ class FFTSpec extends FlatSpec with Matchers {
   it should "Fourier transform" in {
 
     val tests = Seq(
-      // (FFT points, lanes, total width, fractional bits, pipeline depth, inverse,unscramble)
-//       Normal test for direct form FFT
-//      Seq(8, 8,  35, 19, 0, 0, 0),
-//       Normal test for direct form IFFT
-      Seq(64, 16,  35, 20, 0, 1, 0),
-      // Unscramble test for direct form FFT
-//      Seq(16, 16,  35, 19, 0, 1, 0),
-      // Unscramble test for direct form IFFT
-//      Seq(32, 32,  35, 19, 0, 1, 0),
-//      Seq(4, 4, 27, 16, 17, 0, 0),
-//      Seq(128, 16, 27, 16, 17, 1, 0),
-//      Seq(16, 2, 27, 16, 10, 0)
+      // (FFT points, lanes, total width, fractional bits, pipeline depth, inverse, unscrambleOut, unscrambleIn)
+      // Normal test for direct form FFT
+      Seq(64, 64,  35, 19, 0, 0, 0, 0),
+      // Normal test for direct form IFFT
+      Seq(64, 64,  35, 20, 0, 1, 0, 0),
+      // Unscramble Output test for direct form FFT
+      Seq(64, 64,  35, 19, 0, 1, 0, 0),
+      // UnscrambleIn test for direct form IFFT
+      Seq(256, 32,  35, 19, 0, 1, 0, 1),
     )
 
     for (test <- tests) {
@@ -354,11 +348,11 @@ class FFTSpec extends FlatSpec with Matchers {
         quadrature = false,
         unscrambleOut = if (test(6) != 0) true else false,
         inverse = if (test(5) != 0) true else false,
-        unscrambleIn = true,
+        unscrambleIn = if (test(7) != 0) true else false,
       )
       implicit val p: Parameters = null
       println(s"Testing ${test(0)}-point FFT with ${test(1)} lanes, ${test(2)} total bits, ${test(3)} fractional bits, and ${test(4)} pipeline depth")
-      spectrumTester(() => new FFT(config), config, true) // false means not verbose
+      spectrumTester(() => new FFT(config), config, true)
     }
   }
 }
