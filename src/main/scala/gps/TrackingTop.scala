@@ -60,8 +60,8 @@ case class TrackingTopParams(
 class TrackingBundle(params: TrackingTopParams) extends Bundle {
     val adcIn = Input(SInt(params.adcWidth.W))
     val svNumber = Input(UInt(6.W))
-    val carrierNcoBias = Input(UInt(params.ncoWidth))
-    val codeNcoBias = Input(UInt(params.ncoWidth))
+    val carrierNcoBias = Input(UInt(params.ncoWidth.W))
+    val codeNcoBias = Input(UInt(params.ncoWidth.W))
 
     val epl = Output(EPLBundle(SInt(params.intWidth.W)))
     val dllErr = Output(params.protoOut)
@@ -83,6 +83,13 @@ class TrackingTop(params: TrackingTopParams) extends Module {
   val io = IO(TrackingBundle(params))
 
   val packetizer = Module(new Packetizer(params.packetParams))
+
+  packetizer.io.iIn := false.B
+  packetizer.io.validIn := false.B
+  
+  io.packetValidOut := packetizer.io.validOut
+  io.packetValidBits := packetizer.io.validBits
+  io.packetExtractedValues := packetizer.io.extractedValues
 
   val trackingChannel = Module(new TrackingChannel(params))
   trackingChannel.io.adcSample := io.adcIn

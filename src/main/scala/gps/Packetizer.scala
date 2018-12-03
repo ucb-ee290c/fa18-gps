@@ -14,6 +14,45 @@ case class PacketizerParams (
   val parityLength: Int
 )
 
+object ExtractedParamsUIntBundle {
+  def apply(): ExtractedParamsUIntBundle = new ExtractedParamsUIntBundle
+}
+
+class ExtractedParamsUIntBundle extends Bundle {
+  val subframe_id = UInt(3.W)
+
+  // from subframe 1
+  val week_number = UInt(10.W)
+  val sv_accuracy = UInt(4.W)
+  val sv_health = UInt(6.W)
+  val iodc = UInt(10.W)
+  val t_gd = UInt(8.W)
+  val a_f2 = UInt(8.W)
+  val a_f1 = UInt(16.W)
+  val a_f0 = UInt(22.W)
+
+  // from subframe 2
+  val iode = UInt(8.W)
+  val c_rs = UInt(16.W)
+  val delta_n = UInt(16.W)
+  val m_0 = UInt(32.W)
+  val c_uc = UInt(16.W)
+  val e = UInt(32.W)
+  val c_us = UInt(16.W)
+  val sqrt_a = UInt(32.W)
+  val t_oe = UInt(16.W)
+
+  // from subframe 3
+  val c_ic = UInt(16.W)
+  val omega_0 = UInt(32.W)
+  val c_is = UInt(16.W)
+  val i_0 = UInt(32.W)
+  val c_rc = UInt(16.W)
+  val omega = UInt(32.W)
+  val dot_omega = UInt(24.W)
+  val idot = UInt(14.W)
+}
+
 object ExtractedParamsBundle {
   def apply(): ExtractedParamsBundle = new ExtractedParamsBundle
 }
