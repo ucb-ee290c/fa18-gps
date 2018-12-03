@@ -95,7 +95,7 @@ case class EgALoopParParams(
   val pSumCorr = SInt(wSumCorr.W)
   val pNCO = SInt(wNCOTct.W)
 
-  val pSate = UInt(5.W)
+  val pSate = UInt(6.W)
   val pIFreq = UInt(wIFreq.W)
   val pFreq = UInt(wFreq.W)
   val pCP = UInt(wCP.W)

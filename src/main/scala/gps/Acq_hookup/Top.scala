@@ -10,9 +10,9 @@ trait HasPeripheryAcq extends BaseSubsystem {
   // instantiate Acq top block
   val AcqChain = LazyModule(new AcqThing())
   // connect memory interfaces to pbus, modified it if you have mem to bus
-  // pbus.toVariableWidthSlave(Some("QueueWrite")) { AcqChain.writeQueue.mem.get }
-  // pbus.toVariableWidthSlave(Some("AcqControl")) { AcqChain.acq.mem.get }
-  // pbus.toVariableWidthSlave(Some("QueueRead")) { AcqChain.readQueue.mem.get }
+   pbus.toVariableWidthSlave(Some("QueueWrite")) { AcqChain.writeQueue.mem.get }
+   pbus.toVariableWidthSlave(Some("AcqControl")) { AcqChain.acq.mem.get }
+   pbus.toVariableWidthSlave(Some("QueueRead")) { AcqChain.readQueue.mem.get }
 }
 
 //class ExampleTop(implicit p: Parameters) extends RocketSubsystem

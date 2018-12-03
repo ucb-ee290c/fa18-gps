@@ -8,7 +8,7 @@ import freechips.rocketchip.devices.debug.Debug
 import freechips.rocketchip.diplomacy.LazyModule
 import freechips.rocketchip.util.GeneratorApp
 
-class ALoopParTestHarness()(implicit p: Parameters) extends Module {
+class TestHarness()(implicit p: Parameters) extends Module {
   val io = IO(new Bundle {
     val success = Output(Bool())
   })
@@ -22,11 +22,11 @@ class ALoopParTestHarness()(implicit p: Parameters) extends Module {
   Debug.connectDebug(dut.debug, clock, reset.toBool(), io.success)
 }
 
-//object Generator extends GeneratorApp {
-//  val longName = names.configProject + "." + names.configs
-//  generateFirrtl
-//  generateAnno
-//  generateTestSuiteMakefrags
-//  generateROMs
-//  generateArtefacts
-//}
+object Generator extends GeneratorApp {
+  val longName = names.configProject + "." + names.configs
+  generateFirrtl
+  generateAnno
+  generateTestSuiteMakefrags
+  generateROMs
+  generateArtefacts
+}

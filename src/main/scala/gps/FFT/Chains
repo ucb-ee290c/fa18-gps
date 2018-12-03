@@ -25,7 +25,7 @@ class FFTThing
         n = 4,
         lanes = 4,
         pipelineDepth = 0,
-        quadrature = true,
+        quadrature = false,
         inverse = false,
 	)
   val fft = LazyModule(new FFTBlock(fftConfig))

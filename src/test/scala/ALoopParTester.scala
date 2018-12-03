@@ -89,7 +89,7 @@ class ALoopParTester[T <: chisel3.Data](c: ALoopPar[T], trials: Seq[ALoopParTest
 
 
     print("trial")
-    updatableDspVerbose.withValue(true) {
+    updatableDspVerbose.withValue(false) {
       while (cycles < 35000) {
 
         if (cycles == 1) {

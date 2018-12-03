@@ -46,8 +46,22 @@ class acqBlock[T <: Data : Real](val config: ALoopParParams[SInt])(implicit p: P
     module.io.out.ready := out.ready
 
     // TODO:
-    module.io.in.bits := in.bits
-    out.bits := module.io.out.bits
+
+    module.io.in.bits.ADC := in.bits.data(2*config.wNCOTct + config.wCA + 2 + 6 + config.wADC - 1,
+                                          2*config.wNCOTct + config.wCA + 2 + 6).asTypeOf(config.pADC)
+    module.io.in.bits.idx_sate := in.bits.data(2*config.wNCOTct + config.wCA + 2 + 5,
+                                               2*config.wNCOTct + config.wCA + 2).asTypeOf(config.pSate)
+    module.io.in.bits.debugCA := in.bits.data(2*config.wNCOTct + config.wCA + 1).asTypeOf(Bool())
+    module.io.in.bits.debugNCO := in.bits.data(2*config.wNCOTct + config.wCA).asTypeOf(Bool())
+    module.io.in.bits.CA := in.bits.data(2*config.wNCOTct + config.wCA - 1,
+                                         2*config.wNCOTct).asTypeOf(config.pCA)
+    module.io.in.bits.cos := in.bits.data(2*config.wNCOTct-1,
+                                          config.wNCOTct).asTypeOf(config.pNCO)
+    module.io.in.bits.sin := in.bits.data(config.wNCOTct-1,
+                                          0).asTypeOf(config.pNCO)
+
+
+    out.bits.data := module.io.out.bits.asUInt
 
 
 
@@ -63,8 +77,8 @@ class acqBlock[T <: Data : Real](val config: ALoopParParams[SInt])(implicit p: P
 
 
 
-    regmap(
-        // regmap...
-    )
+//    regmap(
+//        // regmap...
+//    )
   }
 }
