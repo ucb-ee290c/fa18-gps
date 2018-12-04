@@ -25,7 +25,7 @@ To allow some degree of parametrization, the acquisition loop block has a specif
 
 ```
 EgALoopParParams(
-	val wADC: Int,
+    val wADC: Int,
     val wCA: Int,
     val wNCOTct: Int,
     val wNCORes: Int,
@@ -41,15 +41,20 @@ EgALoopParParams(
     val fchip: Int
 )
 ```
-Here wXXX represents the width of signal from a block; nSample is the number of samples from the ADC (also the number of code phases);
-nLoop is the number of loops to get some correlation from signal with weak signal power and strong noise power; nFreq is the number of frequency points
-we would like to sweep; nCPSample, CPMin and CPStep is the number of code phases we would like to sample (e.g. we have 16368 code phases but we don't really
+Here, `wXXX` represents the width of signal from a block; nSample is the number of samples from the ADC (also the number of code phases)
+
+`nLoop` is the number of loops to get some correlation from signal with weak signal power and strong noise power; nFreq is the number of frequency points
+we would like to sweep
+
+`nCPSample`, `CPMi`n and `CPStep` is the number of code phases we would like to sample (e.g. we have 16368 code phases but we don't really
 need to get the correlation of all, we can just get 2046 correlation of code phase 0, 8, 16, ... and let the tracking loop find the resolute 
 code phase so that the area of the correlator can be substantially reduced. Sometimes during testing we also would like to reduce the number of 
 correlators to reduce compilation time, e.g. if we already know that the optimal code phase is around 1000, we can just let CPMin = 950, CPStep = 2 
-and nCPSample = 51 to get the correlation of code phase 950, 952, ..., 1050). freqMin and freqStep represent the minimum freqeuncy and the step
-of freqeuncy during sweeping; fsample is the sampling rate of the ADC and fchip is the frequency of CA chips, these two helps to set the correct
-input code for the NCO.
+and nCPSample = 51 to get the correlation of code phase 950, 952, ..., 1050)
+
+`freqMin` and `freqStep` represent the minimum freqeuncy and the step of freqeuncy during sweeping
+
+`fsample` is the sampling rate of the ADC and `fchip` is the frequency of CA chips, these two helps to set the correct input code for the NCOs.
 
 
 #### Inputs:
