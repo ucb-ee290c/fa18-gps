@@ -15,11 +15,7 @@ all obtained, depending on the ratio of the correlation sum to the maximum corre
 the tracking loop is found, and give the optimal freqeuncy and code phase to the tracking channel. 
 The state machine of parallel aquisition is shown as follows.
 
-<<<<<<< HEAD
 ![Parallel_Search_State_Machine](pictures/AcqLoop/state_machine.png)
-=======
-![Parallel_Search_State_Machine](pictures/state_machine.png)
->>>>>>> a64bb90c2b925c1a39b8ceeb7b38ec6455358c85
 
 ### Parameters
 
@@ -85,12 +81,6 @@ input code for the NCO.
 
 
 #### Results
-<<<<<<< HEAD
 With input data from http://gfix.dk/matlab-gnss-sdr-book/gnss-signal-records/ (giovAandB_short.zip), after searching 40 frequcencies with 500Hz frequency step and 2046 code with 8 code phase step. The parallel search could find the optimal frequency and code phase as following figure as expected.
 
 ![Parallel_Search_Result](pictures/AcqLoop/acq_result.png)
-=======
-- With input data from http://gfix.dk/matlab-gnss-sdr-book/gnss-signal-records/ (giovAandB_short.zip), after searching 40 different frequcencies with 500Hz step size and 2046 code with 8 code phase step. The parrallel search could find the optimal frequency and code phase as following figure as expected.
-
-![Parallel_Search_Result](pictures/acq_result.png)
->>>>>>> a64bb90c2b925c1a39b8ceeb7b38ec6455358c85
