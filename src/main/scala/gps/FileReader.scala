@@ -11,7 +11,7 @@ trait FileReaderParams {
 
 class FileReaderBundle(params: FileReaderParams) extends Bundle {
   val run = Input(Bool())
-  //val valid = Output(Bool())
+  val valid = Output(Bool())
   val out = Output(SInt(params.ReadBitWidth.W))
   
   override def cloneType: this.type = FileReaderBundle(params).asInstanceOf[this.type]
@@ -30,6 +30,7 @@ class FileReader(val params: FileReaderParams) extends Module {
   BBFR.io.clk := clock
   BBFR.io.data.run := io.run
   io.out := BBFR.io.data.out
+  io.valid := BBFR.io.data.valid
 }
 
 
