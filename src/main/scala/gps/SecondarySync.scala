@@ -3,13 +3,18 @@ package gps
 import chisel3._
 
 trait SecondaryLockParams[T <: Data] {
+  val intThreshold: Int
+  val intDumpWidth: Int
 }
 
-case class SecondarySyncParams(codeChunks: Int) extends SecondaryLockParams[SInt] {
+case class SecondarySyncParams(
+  intThreshold: Int, //IntDump threshold to determine bit polarity
+  intDumpWidth: Int
+  ) extends SecondaryLockParams[SInt] {
 }
 
 class SecondarySyncIO[T <: Data](params: SecondaryLockParams[T]) extends Bundle {
-  val ipIntDump = Input(SInt(32.W)) //bitwidth should be same as in phase prompt intdump
+  val ipIntDump = Input(SInt(params.intDumpWidth.W))//bitwidth should be same as in phase prompt intdump
   val lockAchieved = Input(Bool())
   val dump = Input(Bool())
   val secondarySyncAchieved = Output(Bool())
@@ -22,6 +27,27 @@ object SecondarySyncIO {
     new SecondarySyncIO(params)
 }
 
+
+/** Secondary Sync module that is used to determine the 50 Hz bit phase of the GPS signal using
+ *  1 ms integrations.  This module is generic to integration threshold (dependent on the integration
+ *  time) and to the bitwidth of the integration and dump module output.  Documented in doc/TimeKeeper.md
+ *
+ *  @param: intThreshold the integration threshold value that is used to determine the polarity of the 
+ *  currently integrated bit
+ *  @param: intDumpWidth the width of the integration and dump accumulator
+ *
+ *  IO:
+ *  ipIntDump: Input(SInt), the output of the integration and dump accumulator
+ *  lockAchieved: Input(Bool), true when the tracking loop has a lock on the signal which means the
+ *  secondary sync module can now proceed to determine the 50 Hz bit phase.
+ *  dump: Input(Bool), the same signal that is sent to the integration and dump modules; it is used
+ *  here to determine when to sample the output of the integration since it will be maximum
+ *  secondarySyncAchieved: Output(Bool), module outputs this as true when the 50 Hz bit phase has
+ *  been recovered.
+ *
+ *  Testing:
+ *  run: sbt test:testOnly gps.SecondarySyncSpec
+ */
 class SecondarySync[T <: Data](params: SecondaryLockParams[T]) extends Module {
   val io = IO(SecondarySyncIO(params))
   
@@ -49,9 +75,9 @@ class SecondarySync[T <: Data](params: SecondaryLockParams[T]) extends Module {
   when (state === stall) {
     syncReg := false.B
   } .elsewhen (state === firstCheck || state === integrating) {
-    when (io.dump && io.ipIntDump > 1000.S) { //TODO make general to input size
+    when (io.dump && io.ipIntDump > params.intThreshold.S) { //TODO make general to input size
       syncReg := true.B
-    } .elsewhen (io.dump && io.ipIntDump < (-1000).S) {
+    } .elsewhen (io.dump && io.ipIntDump < (-1*params.intThreshold).S) {
       syncReg := false.B
     }
   } //TODO add logic for when state is secondaryLock?
@@ -60,9 +86,9 @@ class SecondarySync[T <: Data](params: SecondaryLockParams[T]) extends Module {
   when (state === stall) {
     syncRegDelay := false.B
   } .elsewhen (state === firstCheck) {
-      when (io.dump && io.ipIntDump > 1000.S) { //TODO make general to input size
+      when (io.dump && io.ipIntDump > params.intThreshold.S) { //TODO make general to input size
         syncRegDelay := true.B
-      } .elsewhen (io.dump && io.ipIntDump < (-1000).S) {
+      } .elsewhen (io.dump && io.ipIntDump < (-1*params.intThreshold).S) {
         syncRegDelay := false.B
       } 
   } .elsewhen (state === integrating && io.dump) {
