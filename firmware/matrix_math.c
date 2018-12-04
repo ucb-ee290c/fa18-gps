@@ -2,9 +2,10 @@
 #include <stdlib.h>
 #include "matrix_math.h"
 
-void matrix_inverse(const long double m[16], long double invOut[16])
+//4x4 matrix inversion
+void matrix_inverse(const double m[16], double invOut[16])
 {
-    long double inv[16], det;
+    double inv[16], det;
     int i;
 
     inv[0] = m[5]  * m[10] * m[15] - 
@@ -128,11 +129,10 @@ void matrix_inverse(const long double m[16], long double invOut[16])
 
     for (i = 0; i < 16; i++)
         invOut[i] = inv[i] * det;
-
-    // return true;
 }
 
-void mat_vec_dot(const long double m[16], long double vec[4], long double vec_out[4]) {
+// 4x4 x 4x1 matrix-vector dot product
+void mat_vec_dot(const double m[16], double vec[4], double vec_out[4]) {
   for (int i=0; i<4; i++) {
      vec_out[i] = m[i*4]*vec[0] + m[i*4+1]*vec[1] + m[i*4+2]*vec[2] + m[i*4+3]*vec[3];
   }

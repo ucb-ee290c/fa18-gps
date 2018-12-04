@@ -3,54 +3,30 @@
 # include <math.h>
 # include <stdlib.h>
 
+//speed of light
 #define c 299792458
 
 struct delta_t {
-  long double delta_t_1;
-  long double delta_t_2;
-  long double delta_t_3;
-  long double delta_t_4;
+  double delta_t_1;
+  double delta_t_2;
+  double delta_t_3;
+  double delta_t_4;
 };
 
 struct ecef_pos {
-  long double x;
-  long double y;
-  long double z;
-  long double t_bias;
+  double x;
+  double y;
+  double z;
+  double t_bias;
 };
 
 struct sat_loc_params {
-  long double Xx;
-  long double Yy;
-  long double Zz;
+  double Xx;
+  double Yy;
+  double Zz;
 };
 
-long double calc_pseudorange(struct sat_loc_params* sat, long double nom[4]);
+double calc_pseudorange(struct sat_loc_params* sat, double nom[4]);
 void find_position(struct sat_loc_params* sv_1, struct sat_loc_params* sv_2, struct sat_loc_params* sv_3, struct sat_loc_params* sv_4, struct delta_t* time_deltas, struct ecef_pos* position);
-
-/*
-struct delta_t {
-  float delta_t_1;
-  float delta_t_2;
-  float delta_t_3;
-  float delta_t_4;
-};
-
-struct ecef_pos {
-  float x;
-  float y;
-  float z;
-  float t_bias;
-};
-
-struct sat_loc_params {
-  float Xx;
-  float Yy;
-  float Zz;
-};
-
-float calc_pseudorange(struct sat_loc_params* sat, float nom[4]);
-void find_position(struct sat_loc_params* sv_1, struct sat_loc_params* sv_2, struct sat_loc_params* sv_3, struct sat_loc_params* sv_4, struct delta_t* time_deltas, struct ecef_pos* position);
-*/
 
 #endif
