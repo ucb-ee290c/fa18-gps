@@ -322,6 +322,10 @@ class ALoopPar[T <: Data:Ring:Real]
   val cos = Mux(io.in.bits.debugNCO, io.in.bits.cos, nco_ADC.io.cos)
   val sin = Mux(io.in.bits.debugNCO, io.in.bits.sin, nco_ADC.io.sin)
 
+  val data_i = io.in.bits.ADC * cos
+  val data_q = io.in.bits.ADC * sin
+
+
   when (reg_state === idle || reg_state === preparing) {
     for (i <- 0 until params.nCPSample) {
       reg_sum_i(i) := ConvertableTo[T].fromInt(0)
@@ -329,13 +333,13 @@ class ALoopPar[T <: Data:Ring:Real]
     }
   } .elsewhen(reg_cnt_loop === 0.U) {
     for (i <- 0 until params.nCPSample) {
-      reg_sum_i(i) := io.in.bits.ADC * shifter.io.out(i * params.CPStep + params.CPMin) * cos
-      reg_sum_q(i) := io.in.bits.ADC * shifter.io.out(i * params.CPStep + params.CPMin) * sin
+      reg_sum_i(i) := data_i * shifter.io.out(i * params.CPStep + params.CPMin)
+      reg_sum_q(i) := data_q * shifter.io.out(i * params.CPStep + params.CPMin)
     }
   } .elsewhen(reg_state === acqing) {
     for (i <- 0 until params.nCPSample) {
-      reg_sum_i(i) := io.in.bits.ADC * shifter.io.out(i * params.CPStep + params.CPMin) * cos + reg_sum_i(i)
-      reg_sum_q(i) := io.in.bits.ADC * shifter.io.out(i * params.CPStep + params.CPMin) * sin + reg_sum_q(i)
+      reg_sum_i(i) := data_i * shifter.io.out(i * params.CPStep + params.CPMin) + reg_sum_i(i)
+      reg_sum_q(i) := data_q * shifter.io.out(i * params.CPStep + params.CPMin) + reg_sum_q(i)
     }
   }
 
