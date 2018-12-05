@@ -64,13 +64,15 @@ class ChannelTester[T <: Data](
   var inFile = None: Option[FileInputStream]
   val dll = new DLLModel(6000, 3, 1e3, 1)
   val costas = new CostasModel(0.001, 17.0, 3.0, 0, 2) 
-  val display = false
+  val display = true
   try { 
     inFile = Some(new FileInputStream(params.filename))
     var in: Int = 0
     var ind: Int = 0
     var caCode: Int = params.caNcoCodeNom
     var carrierCode: Int = params.carrierNcoCodeNom
+    var caCodeNext: Int = caCode
+    var carrierCodeNext: Int = carrierCode
     var integrationTime: Int = 0
 
     val hits = new ListBuffer[Int]()
@@ -101,6 +103,8 @@ class ChannelTester[T <: Data](
           integrationTime += 1
         }
         if (integrationTime == 1) {
+          caCode = caCodeNext
+          carrierCode = carrierCodeNext
           hits += ind
           val ie = peek(c.io.toLoop.ie)
           val ip = peek(c.io.toLoop.ip)
@@ -116,9 +120,9 @@ class ChannelTester[T <: Data](
           qpArr += qp
           qlArr += ql
 
-          caCode = dll.update((ie.toDouble, ip.toDouble, il.toDouble), 
+          caCodeNext = dll.update((ie.toDouble, ip.toDouble, il.toDouble), 
             (qe.toDouble, qp.toDouble, ql.toDouble), params.caNcoCodeNom)
-          carrierCode = costas.update(ip.toDouble, qp.toDouble, params.carrierNcoCodeNom)
+          carrierCodeNext = costas.update(ip.toDouble, qp.toDouble, params.carrierNcoCodeNom)
           
           costasError += costas.phaseErr
           freqError += costas.freqErr
@@ -136,6 +140,13 @@ class ChannelTester[T <: Data](
         }
       }
     }
+
+    print(ipArr)
+    println()
+    print(qpArr)
+    println()
+    print(costasError)
+    println()
 
     if (display) {
       val dllFig = new Figure("DLL Response", 2,1)
