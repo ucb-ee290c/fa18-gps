@@ -109,6 +109,7 @@ class NCO[T <: Data : Real](val params: NcoParams[T]) extends Module {
   val cosNCO = Module(new NCOBase(params))  
     
   cosNCO.io.stepSize := io.stepSize
+//  cosNCO.io.softRst := io.softRst
   io.cos := cosNCO.io.cos
 
   io.truncateRegOut := cosNCO.io.truncateRegOut
@@ -126,6 +127,9 @@ class NCO[T <: Data : Real](val params: NcoParams[T]) extends Module {
     /** LUT that contains sine values */
     val sineLUT = VecInit(NCOConstants.sine(params.truncateWidth).map((x:Double) => ConvertableTo[T].fromDouble(x*coefficient)))
     io.sin := sineLUT(cosNCO.io.truncateRegOut)
+//    Mux(io.highRes,
+//                  sineLUT(cosNCO.io.truncateRegOut) * ConvertableTo[T].fromDouble(8.0),
+//                  sineLUT(cosNCO.io.truncateRegOut))
   }
 }
 
