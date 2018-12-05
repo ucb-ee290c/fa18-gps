@@ -35,6 +35,7 @@ This diagram demonstrates that this timekeeping process can be thought of as a s
 
 ### Inputs
 * `record`: (Bool) control signal to tell the `TimeKeeper` to start recording time.  This is triggered when the GPS second is known exactly from the navigation message.  This timing is well defined because the exact number of bits from when the GPS second is located in the message the point in the message that it corresponds to it known exaclty.
+* `preambleDetected`: (Bool) signal that the subframe preamble is detected.  This point in time is used to reference when the start of the next subframe is, which corresponds to the exact GPS second contained in the Time of Week field of the message subframe that is currently being processed.
 * `ncoInput`: (UInt) the output of the code tracking loop that is used in the NCO accumulator. This value is integrated and an overflow signals a new chip transition. It is used in `TimeKeeper` for accumulation to get the smallest time resolution level.
 * `caInput`: (SInt) the output of the NCO.  A zero crossing indicates a new chip. This is used for tracking the chip count which is mod 1023 from the PRN code length.
 
