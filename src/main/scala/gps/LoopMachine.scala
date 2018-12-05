@@ -51,7 +51,6 @@ case class ExampleLoopParams(
 /** Input loop machine bundle
  *  
  *  @param params Loop machine parameters
- *  @param discParams  
  */
 class LoopInputBundle[T <: Data](params: LoopParams[T], discParams: AllDiscParams[T]) extends Bundle {
   val ie: T = params.protoIn.cloneType

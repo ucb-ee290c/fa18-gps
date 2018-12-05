@@ -86,8 +86,11 @@ object NcoBundle {
 }
 
 /** NCO module 
+ *
+ *  An NCO, or numerically controlled oscillator, is a digital signal generator that creates a synchronous discrete sinusoid waveform. 
+ *  This NCO an accumulator, look-up-table based design where 2^resolutionWidth represents a full period and the input step-size determines the frequency/period of the sinusoid. The accumulator register bit width is kept large for high fractional period resolution, and the output sinusoid value is binned/truncated to minimize fractional amplitude resolution.   
  *  
- *  Calculates both sine and cosine outputs
+ *  Can calculate both sine and cosine outputs
  *
  *  @param params NCO parameters
  */
