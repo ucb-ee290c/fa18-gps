@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include "matrix_math.h"
 
+//Documented in doc/Ranging.md
+
 //4x4 matrix inversion
 void matrix_inverse(const double m[16], double invOut[16])
 {

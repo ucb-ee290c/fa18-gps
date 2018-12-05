@@ -60,9 +60,9 @@ class TimeKeeper(val params: TimeKeeperParams) extends Module {
   val ncoDial = RegInit(0.U(params.resolutionWidth.W))
   val chipDial = RegInit(0.U(10.W))
   val msDial = RegInit(0.U(32.W))
-  ncoDialOut := ncoDial
-  chipDialOut := chipDial
-  msDialOut := msDial
+  io.ncoDialOut := ncoDial
+  io.chipDialOut := chipDial
+  io.msDialOut := msDial
 
   when (io.record) {
     ncoDial := ncoDial + io.ncoInput

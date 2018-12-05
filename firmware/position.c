@@ -4,6 +4,8 @@
 # include <stdlib.h>
 # include <math.h>
 
+//Documented in doc/Ranging.md
+
 //calculates pseudorange from nominal location to known satellite location
 //by using the current locations and the nominal time bias and the speed of light
 double calc_pseudorange(struct sat_loc_params* sat, double nom[4]) {
