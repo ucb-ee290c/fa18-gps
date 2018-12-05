@@ -21,6 +21,9 @@ trait LoopParams[T <: Data] {
   val lfParamsDLL: LoopFilterParams[T]
   /** Integration time */
   val intTime: Double
+  val freqDisc: DiscParams[T]
+  val phaseDisc: DiscParams[T]
+  val dllDisc: DiscParams[T]
 }
 
 /** Fixed point loop machine example parameters
@@ -43,74 +46,63 @@ case class ExampleLoopParams(
   /** Output fixed point prototype */
   val protoOut = FixedPoint(ncoWidth.W, ncoBP.BP)
   /** Instance of the Costas 3rd order loop filter parameters */
-  val lfParamsCostas = FixedFilter3rdParams(width = 20, BPWidth = 16)   
+  val lfParamsCostas = FixedFilter3rdParams(width = 20, bPWidth = 16)   
   /** Instance of the DLL loop filter parameters */
   val lfParamsDLL = FixedFilterParams(6000, 5, 1) 
+  val freqDisc = FixedDiscParams(inWidth, inBP, ncoWidth, ncoBP, calAtan2=true)
+  val phaseDisc = FixedDiscParams(inWidth, inBP, ncoWidth, ncoBP)
+  val dllDisc =  FixedDiscParams(inWidth, inBP, ncoWidth, ncoBP, dividing=true)
 } 
 
-/** Input loop machine bundle
- *  
- *  @param params Loop machine parameters
- */
-class LoopInputBundle[T <: Data](params: LoopParams[T], discParams: AllDiscParams[T]) extends Bundle {
-  /** In-phase early signal */
-  val ie: T = params.protoIn.cloneType
-  /** In-phase prompt signal */
-  val ip: T = params.protoIn.cloneType
-  /** In-phase late signal */
-  val il: T = params.protoIn.cloneType 
-  val qe: T = params.protoIn.cloneType
-  val qp: T = params.protoIn.cloneType
-  val ql: T = params.protoIn.cloneType 
-  // FIXME: type for freqBias may not be correct
-  val costasFreqBias: T = params.lfParamsCostas.proto.cloneType
-  val dllFreqBias: T = params.lfParamsDLL.proto.cloneType
+// TODO Remove this
+class LoopInputBundle[T <: Data](protoIn: T, protoOut: T) extends Bundle {
+  val epl = EPLBundle(protoIn)
 
-  override def cloneType: this.type = LoopInputBundle(params, discParams).asInstanceOf[this.type]
+  override def cloneType: this.type = LoopInputBundle(protoIn, protoOut).asInstanceOf[this.type]
 }
-
 object LoopInputBundle {
-  def apply[T <: Data](params:LoopParams[T], discParams:AllDiscParams[T]): LoopInputBundle[T] = new LoopInputBundle(params, discParams)
+  def apply[T <: Data](protoIn: T, protoOut: T): LoopInputBundle[T] = 
+    new LoopInputBundle(protoIn, protoOut)
 }
 
-class LoopOutputBundle[T <: Data](params: LoopParams[T], discParams: AllDiscParams[T]) extends Bundle {
+class LoopOutputBundle[T <: Data](params: LoopParams[T]) extends Bundle {
   val codeNco = params.protoOut.cloneType
-  val code2xNco = params.protoOut.cloneType
   val carrierNco = params.protoOut.cloneType
-  val dllErrRegOut = params.protoOut.cloneType 
-  val phaseErrRegOut = params.protoOut.cloneType
-  val freqErrRegOut = params.protoOut.cloneType 
-  val dllUpdate = Bool()
+  val dllErrOut = params.protoOut.cloneType 
+  val phaseErrOut = params.protoOut.cloneType
+  val freqErrOut = params.protoOut.cloneType 
 
-  override def cloneType: this.type = LoopOutputBundle(params, discParams).asInstanceOf[this.type]
+  override def cloneType: this.type = LoopOutputBundle(params).asInstanceOf[this.type]
 }
 
 object LoopOutputBundle {
-  def apply[T <: Data](params:LoopParams[T], discParams:AllDiscParams[T]): LoopOutputBundle[T] = new LoopOutputBundle(params, discParams)
+  def apply[T <: Data](params: LoopParams[T]): LoopOutputBundle[T] = 
+    new LoopOutputBundle(params)
 }
 
-class LoopBundle[T <: Data](params: LoopParams[T], discParams: AllDiscParams[T]) extends Bundle {
-  val in = Flipped(Decoupled(LoopInputBundle(params, discParams)))
-  val out = Decoupled(LoopOutputBundle(params, discParams))
+class LoopBundle[T <: Data](params: LoopParams[T]) extends Bundle {
+  val in = Flipped(Decoupled(LoopInputBundle(params.protoIn, params.protoOut)))
+  val out = Decoupled(LoopOutputBundle(params))
 
-  override def cloneType: this.type = LoopBundle(params, discParams).asInstanceOf[this.type]
+  override def cloneType: this.type = LoopBundle(params).asInstanceOf[this.type]
 }
-
 object LoopBundle {
-  def apply[T <: Data](params:LoopParams[T], discParams:AllDiscParams[T]): LoopBundle[T] = new LoopBundle(params, discParams)
+  def apply[T <: Data](params:LoopParams[T]): LoopBundle[T] = new LoopBundle(params)
 }
 
-class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopParams[T], val discParams: AllDiscParams[T]) extends Module {
-  val io = IO(LoopBundle(loopParams, discParams))
+class LoopMachine[T <: Data : Real : BinaryRepresentation](
+  val loopParams: LoopParams[T], 
+) extends Module {
+  val io = IO(LoopBundle(loopParams))
    
   //FIXME: Fix inputs to the loop filter
   val lfCostas = Module(new LoopFilter3rd(loopParams.lfParamsCostas))
   val lfDLL = Module(new LoopFilter(loopParams.lfParamsDLL))
 
   // Discriminator Setup  
-  val freqDisc = Module(new FreqDiscriminator(discParams.freqDisc))
-  val phaseDisc = Module(new PhaseDiscriminator(discParams.phaseDisc))
-  val dllDisc = Module(new DllDiscriminator(discParams.dllDisc)) 
+  val freqDisc = Module(new FreqDiscriminator(loopParams.freqDisc))
+  val phaseDisc = Module(new PhaseDiscriminator(loopParams.phaseDisc))
+  val dllDisc = Module(new DllDiscriminator(loopParams.dllDisc)) 
 
   val s_init :: s_cordic :: s_lf :: s_done :: nil = Enum(4)
   val state = RegInit(s_init) 
@@ -126,19 +118,16 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
   val lfDllOut = Reg(loopParams.protoOut.cloneType)
   val lfCostasOut = Reg(loopParams.protoOut.cloneType)
 
-  // Debugging purposes
-  io.out.bits.dllUpdate := dllRegUpdate
-  
   /** Costas loop input connections */ 
   lfCostas.io.intTime := ConvertableTo[T].fromDouble(loopParams.intTime)
-  phaseDisc.io.in.bits.ips := io.in.bits.ip 
-  phaseDisc.io.in.bits.qps := io.in.bits.qp
-  freqDisc.io.in.bits.ips := io.in.bits.ip
-  freqDisc.io.in.bits.qps := io.in.bits.qp
-  dllDisc.io.in.bits.ipsE := io.in.bits.ie
-  dllDisc.io.in.bits.qpsE := io.in.bits.qe
-  dllDisc.io.in.bits.ipsL := io.in.bits.il
-  dllDisc.io.in.bits.qpsL := io.in.bits.ql
+  phaseDisc.io.in.bits.ips := io.in.bits.epl.ip 
+  phaseDisc.io.in.bits.qps := io.in.bits.epl.qp
+  freqDisc.io.in.bits.ips := io.in.bits.epl.ip
+  freqDisc.io.in.bits.qps := io.in.bits.epl.qp
+  dllDisc.io.in.bits.ipsE := io.in.bits.epl.ie
+  dllDisc.io.in.bits.qpsE := io.in.bits.epl.qe
+  dllDisc.io.in.bits.ipsL := io.in.bits.epl.il
+  dllDisc.io.in.bits.qpsL := io.in.bits.epl.ql
 
   /** Phase error calculations */
   val phaseErr = -phaseDisc.io.out.bits.output   
@@ -252,14 +241,13 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
 
   val codeCoeff = ConvertableTo[T].fromDouble(1/((2*math.Pi) * (16*1023*1e3)) * (math.pow(2, 30) - 1)) 
   
-  io.out.bits.phaseErrRegOut := phaseErrReg
-  io.out.bits.freqErrRegOut := freqErrReg
+  io.out.bits.phaseErrOut := phaseErrReg
+  io.out.bits.freqErrOut := freqErrReg
 
-  io.out.bits.carrierNco := lfCostasOut * codeCoeff + io.in.bits.costasFreqBias 
+  io.out.bits.carrierNco := lfCostasOut * codeCoeff
 
 
   // DLL
-  
   when (dllDisc.io.out.fire()) {
     dllErrReg := dllErr 
     dllRegUpdate := true.B
@@ -268,11 +256,8 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
 
   lfDLL.io.in := dllErrReg
 
-  io.out.bits.dllErrRegOut := dllErrReg
+  io.out.bits.dllErrOut := dllErrReg
    
-  io.out.bits.codeNco := lfDllOut + io.in.bits.dllFreqBias
-  io.out.bits.code2xNco := 2*io.out.bits.codeNco
-    
-    
+  io.out.bits.codeNco := lfDllOut
 } 
 

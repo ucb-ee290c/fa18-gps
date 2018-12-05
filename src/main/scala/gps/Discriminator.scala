@@ -6,12 +6,11 @@ import chisel3.util._
 
 import dsptools.numbers._
 
-trait AllDiscParams [T <: Data] {
+trait AllDiscParams[T <: Data] {
   val phaseDisc : DiscParams[T]
   val freqDisc : DiscParams[T]
   val dllDisc : DiscParams[T]
 }
-
 
 case class ExampleAllDiscParams(
 ) extends AllDiscParams[FixedPoint] {
@@ -35,17 +34,26 @@ case class RealDiscParams(
   val protoIn = DspReal()
   val protoOut = DspReal()
 }
+
 case class FixedDiscParams(
   val inWidth: Int = 32,
   val inBP: Int = 12, 
   val outWidth: Int = 32,
-  val outBP: Int = 12
+  val outBP: Int = 12, 
+  val calAtan2: Boolean = false,
+  val dividing: Boolean = false
 ) extends DiscParams[FixedPoint] {
-  val cordicParams = FixedCordicParams(xyWidth = inWidth, xyBPWidth = inBP, zWidth=outWidth, zBPWidth= outBP, nStages=2) 
+  val cordicParams = FixedCordicParams(
+    xyWidth = inWidth, 
+    xyBPWidth = inBP, 
+    zWidth = outWidth, 
+    zBPWidth = outBP, 
+    nStages = 50,
+    calAtan2 = calAtan2,
+    dividing = dividing) 
   val protoIn = FixedPoint(inWidth.W, inBP.BP)
   val protoOut = FixedPoint(outWidth.W, outBP.BP)
 }
-
 class CostasDiscInputBundle[T <: Data](params: DiscParams[T]) extends Bundle { 
   val ips: T = params.protoIn.cloneType
   val qps: T = params.protoIn.cloneType

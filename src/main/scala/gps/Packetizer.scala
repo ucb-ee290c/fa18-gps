@@ -102,9 +102,18 @@ class Parser (
   val currentBit = RegInit(0.U(log2Ceil(params.wordLength).W))
   val currentWord = RegInit(0.U(log2Ceil(params.subframeLength).W))
   val completeSubframe = RegInit(Vec(Seq.fill(10)(0.U(params.wordLength.W))))
+  val inverted = RegInit(false.B)
+  val correctedBit = Wire(UInt(1.W))
   val sIdle :: sRecording :: sDone :: Nil = Enum(3)
 
-  fifoNext := (fifo << 1) + io.iIn.asUInt()
+  when(inverted) {
+    correctedBit := !io.iIn
+  } .otherwise {
+    correctedBit := io.iIn
+  }
+  correctedBit := io.iIn
+
+  fifoNext := (fifo << 1) + correctedBit.asUInt()
   io.dStarOut := dStar
   io.subframeValid := (state === 2.U)
   io.dataOut := completeSubframe
@@ -117,17 +126,22 @@ class Parser (
   switch (state) {
     is(sIdle) {
       when (io.validIn) {
-        when (params.preamble === fifoNext) {
+        when (params.preamble === fifoNext || ~params.preamble === ~fifoNext) {
           state := sRecording
           subframe(0) := Cat(0.U((params.wordLength - params.preambleLength).W), fifoNext)
           currentWord := 0.U
           currentBit := (params.preambleLength).U
+
+          inverted := false.B
+          when (!params.preamble === !fifoNext) {
+            inverted := true.B
+          }
         }
       }
     }
     is (sRecording) {
       when (io.validIn) {
-        subframe(currentWord) := (subframe(currentWord) << 1) + io.iIn
+        subframe(currentWord) := (subframe(currentWord) << 1) + correctedBit
         when (currentBit === (params.wordLength - 1).U) {
           when (currentWord === (params.subframeLength - 1).U) {
             state := sDone
@@ -135,7 +149,7 @@ class Parser (
             for (w <- 0 until params.subframeLength - 1) {
               completeSubframe(w) := subframe(w)
             }
-            completeSubframe(params.subframeLength - 1) := (subframe(params.subframeLength - 1) << 1) + io.iIn
+            completeSubframe(params.subframeLength - 1) := (subframe(params.subframeLength - 1) << 1) + correctedBit
           } .otherwise {
             currentBit := 0.U
             currentWord := currentWord + 1.U

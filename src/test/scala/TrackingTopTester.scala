@@ -15,63 +15,59 @@ import scala.collection.mutable.ListBuffer
  * Data Set Params hold info about the test vector being used
  * as well as info about the channel setup
  */
-case class ChannelDataSetParam[T <: Data](
+case class TrackingDataSetParam(
   sampleFreq: Double, // Data Sample Rate
   svFreq: Double, // SV frequency
   startInd: Long, // Index of the file for the test to start on
   stopInd: Long,
   svNumber: Int,
+  adcWidth: Int,
   filename: String,
-  channelParams: TrackingChannelParams[T, V]
 ) {
-  val carrierNcoCodeNom: Int = ((svFreq / sampleFreq) * 
-    pow(2, channelParams.carrierNcoParams.resolutionWidth)).round.toInt
-  val caNcoCodeNom: Int = ((1.023e6 / sampleFreq) * 
-    pow(2, channelParams.caNcoParams.resolutionWidth)).round.toInt
+  val carrierNcoCodeNom: Int = ((svFreq / sampleFreq) * pow(2, 20)).round.toInt
+  val caNcoCodeNom: Int = ((1.023e6 / sampleFreq) * pow(2, 20)).round.toInt
+  val topParams = TrackingTopParams(adcWidth, sampleFreq, 12, 20)
 }
 
 /**
  * Example Data from adc_sample_data.bin
  */
-object ExampleChannelData extends ChannelDataSetParam(
+object ExampleTopData extends TrackingDataSetParam(
   16367600,
   4.128460*1e6, 
   31408,
-  16000000,
+  160000,
   22,
-  "python/adc_sample_data.bin",
-  ExampleTrackingChannelParams()
+  5,
+  "python/adc_sample_data.bin"
 )
 
 /* 
  * DspSpec for a Tracking Channel
  */
-class ChannelSpec extends FlatSpec with Matchers {
-  behavior of "TrackingChannel"
+class TrackingTopSpec extends FlatSpec with Matchers {
+  behavior of "TrackingTop"
   it should "track" in {
-    val params = ExampleChannelData
-    ChannelTester(params)
+    val params = ExampleTopData
+    TrackingTopTester(params)
   }  
 }
 
 /*
  * DspTester for Tracking Channel
  */
-class ChannelTester[T <: Data](
-  c: TrackingChannel[T], 
-  params: ChannelDataSetParam[T]
+class TrackingTopTester(
+  c: TrackingTop,
+  params: TrackingDataSetParam
 ) extends DspTester(c) {
   var inFile = None: Option[FileInputStream]
-  val dll = new DLLModel(6000, 3, 1e3, 1)
-  val costas = new CostasModel(0.001, 17.0, 3.0, 0, 2) 
-  val display = false
+  val display = true
   try { 
     inFile = Some(new FileInputStream(params.filename))
     var in: Int = 0
     var ind: Int = 0
     var caCode: Int = params.caNcoCodeNom
     var carrierCode: Int = params.carrierNcoCodeNom
-    var integrationTime: Int = 0
 
     val hits = new ListBuffer[Int]()
     val ieArr = new ListBuffer[Int]()
@@ -80,7 +76,6 @@ class ChannelTester[T <: Data](
     val qeArr = new ListBuffer[Int]()
     val qpArr = new ListBuffer[Int]()
     val qlArr = new ListBuffer[Int]()
-    val lockArr = new ListBuffer[Int]()
     val costasError = new ListBuffer[Double]()
     val freqError = new ListBuffer[Double]()
     val dllError = new ListBuffer[Double]()
@@ -90,25 +85,18 @@ class ChannelTester[T <: Data](
     }
     
     poke(c.io.svNumber, params.svNumber)
-    poke(c.io.dump, false)
     updatableDspVerbose.withValue(false) {
       while ({in = inFile.get.read; (in != -1) && (ind < params.stopInd)}) {
-        poke(c.io.dllIn, caCode)
-        poke(c.io.costasIn, carrierCode)
-        poke(c.io.adcSample, in.byteValue)
+        poke(c.io.adcIn, in.byteValue)
         step(1)
-        val count = peek(c.io.caIndex)
-        if (count == 1023) {
-          integrationTime += 1
-        }
-        if (integrationTime == 1) {
+        if (peek(c.io.dump)) {
           hits += ind
-          val ie = peek(c.io.toLoop.ie)
-          val ip = peek(c.io.toLoop.ip)
-          val il = peek(c.io.toLoop.il)
-          val qe = peek(c.io.toLoop.qe)
-          val qp = peek(c.io.toLoop.qp)
-          val ql = peek(c.io.toLoop.ql)
+          val ie = peek(c.io.epl.ie)
+          val ip = peek(c.io.epl.ip)
+          val il = peek(c.io.epl.il)
+          val qe = peek(c.io.epl.qe)
+          val qp = peek(c.io.epl.qp)
+          val ql = peek(c.io.epl.ql)
 
           ieArr += ie
           ipArr += ip
@@ -116,37 +104,21 @@ class ChannelTester[T <: Data](
           qeArr += qe
           qpArr += qp
           qlArr += ql
-
-          caCode = dll.update((ie.toDouble, ip.toDouble, il.toDouble), 
-            (qe.toDouble, qp.toDouble, ql.toDouble), params.caNcoCodeNom)
-          carrierCode = costas.update(ip.toDouble, qp.toDouble, params.carrierNcoCodeNom)
           
-          costasError += costas.phaseErr
-          freqError += costas.freqErr
-          dllError += dll.disOut
-          integrationTime = 0
-
-          poke(c.io.phaseErr.bits, costas.phaseErr)
-          poke(c.io.phaseErr.valid, true)
-          
-          poke(c.io.dump, true)
-          val lock = peek(c.io.lock)
-          if (peek(c.io.lock)) {
-            lockArr += 1
-          } else {
-            lockArr += 0
-          }
-        } else {
-          poke(c.io.dump, false)
-          poke(c.io.phaseErr.valid, false)
+          costasError += peek(c.io.phaseErr)
+          freqError += peek(c.io.freqErr)
+          dllError += peek(c.io.dllErr)
         }
-        ind += 1
+        
         if (ind.toDouble / params.stopInd * 10 % 1 == 0) {
           println(s"Percentage = ${(ind.toDouble / params.stopInd.toDouble *
             100.0).toInt}")
         }
+        ind += 1
       }
     }
+    print(hits)
+    println()
 
     if (display) {
       val dllFig = new Figure("DLL Response", 2,1)
@@ -169,7 +141,6 @@ class ChannelTester[T <: Data](
       val costasErrPlt = costasFig.subplot(2)
       costasErrPlt += plot(DenseVector.rangeD(0.0, dllError.length.toDouble, 1.0),
         costasError)
-      costasErrPlt += plot(DenseVector.range(0, lockArr.length, 1), lockArr)
       costasFig.refresh()
     }
   } catch {
@@ -178,12 +149,11 @@ class ChannelTester[T <: Data](
     if (inFile.isDefined) inFile.get.close
   }
 }
-object ChannelTester {
-
-  def apply[T <: Data : Real](params: ChannelDataSetParam[T]): Boolean = { 
-    chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-tgvo", "off"), 
-      () => new TrackingChannel(params.channelParams)) {
-      c => new ChannelTester(c, params)
+object TrackingTopTester {
+  def apply(params: TrackingDataSetParam): Boolean = { 
+    chisel3.iotesters.Driver.execute(Array("-tbn", "verilator"), 
+      () => new TrackingTop(params.topParams)) {
+      c => new TrackingTopTester(c, params)
     }   
   }
 }

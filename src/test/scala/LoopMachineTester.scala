@@ -10,27 +10,24 @@ import org.scalatest.{FlatSpec, Matchers}
 class LoopMachineTester[T <: chisel3.Data](c: LoopMachine[T], ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Double, Double)]) extends DspTester(c){
   poke(c.io.out.ready, 1)
   poke(c.io.in.valid, 1)
-  poke(c.io.in.bits.costasFreqBias, 0.0)
-  poke(c.io.in.bits.dllFreqBias, 0.0)
 
   var i = 0
   for (i <- 0 until ie.size) {
-    poke(c.io.in.bits.ie, ie(i))
-    poke(c.io.in.bits.ip, ip(i))
-    poke(c.io.in.bits.il, il(i))
-    poke(c.io.in.bits.qe, qe(i))
-    poke(c.io.in.bits.qp, qp(i))
-    poke(c.io.in.bits.ql, ql(i))
+    poke(c.io.in.bits.epl.ie, ie(i))
+    poke(c.io.in.bits.epl.ip, ip(i))
+    poke(c.io.in.bits.epl.il, il(i))
+    poke(c.io.in.bits.epl.qe, qe(i))
+    poke(c.io.in.bits.epl.qp, qp(i))
+    poke(c.io.in.bits.epl.ql, ql(i))
 
     while (!peek(c.io.in.ready)) {
       step(1)
     }
 
     while (!peek(c.io.out.valid)) {
-      peek(c.io.out.bits.phaseErrRegOut)
-      peek(c.io.out.bits.freqErrRegOut)
-      peek(c.io.out.bits.dllErrRegOut)
-      peek(c.io.out.bits.dllUpdate)
+      peek(c.io.out.bits.phaseErrOut)
+      peek(c.io.out.bits.freqErrOut)
+      peek(c.io.out.bits.dllErrOut)
       step(1)
     }
 
@@ -45,7 +42,7 @@ class LoopMachineTester[T <: chisel3.Data](c: LoopMachine[T], ie: Seq[Double], i
 object FixedLoopMachineTester {
   def apply(loopParams: ExampleLoopParams, discParams: ExampleAllDiscParams, ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Double, Double)]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "firrtl", "-fiwv"), 
-      () => new LoopMachine(loopParams, discParams)) {
+      () => new LoopMachine(loopParams)) {
       c => new LoopMachineTester(c, ie, ip, il, qe, qp, ql, output)
     }
   } 
@@ -54,7 +51,7 @@ object FixedLoopMachineTester {
 object RealLoopMachineTester {
   def apply(loopParams: LoopParams[dsptools.numbers.DspReal], discParams: AllDiscParams[dsptools.numbers.DspReal], ie: Seq[Double], ip: Seq[Double], il: Seq[Double], qe: Seq[Double], qp: Seq[Double], ql: Seq[Double], output: Seq[(Double, Double)]): Boolean = {
     chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-fiwv"), 
-      () => new LoopMachine(loopParams, discParams)) {
+      () => new LoopMachine(loopParams)) {
       c => new LoopMachineTester(c, ie, ip, il, qe, qp, ql, output)
     }
   } 
@@ -66,6 +63,7 @@ class LoopMachineSpec extends FlatSpec with Matchers {
 
   val realDiscParams = RealDiscParams(cordicParams = realCordicParams)
 
+  // TODO Figure out if this is still being used
   val realAllDiscParams = new AllDiscParams[DspReal] {
     val phaseDisc = realDiscParams
     val freqDisc = realDiscParams.copy(cordicParams=realCordicParams.copy(calAtan2 = true))
@@ -75,9 +73,6 @@ class LoopMachineSpec extends FlatSpec with Matchers {
     val proto = DspReal()
     val fBandwidth = 3.0
     val pBandwidth = 17.0
-    val a2 = 1.414
-    val a3 = 1.1
-    val b3 = 2.4
     val fDCGain = 1.0
     val pDCGain = 1.0 
   }
@@ -95,6 +90,9 @@ class LoopMachineSpec extends FlatSpec with Matchers {
     val intTime = 0.001
     val lfParamsCostas = realLfParamsCostas
     val lfParamsDLL = realLfParamsDLL
+    val phaseDisc = realDiscParams
+    val freqDisc = realDiscParams.copy(cordicParams=realCordicParams.copy(calAtan2 = true))
+    val dllDisc = realDiscParams.copy(cordicParams=realCordicParams.copy(dividing = true))
   }
   
   it should "converge all loops" in {
