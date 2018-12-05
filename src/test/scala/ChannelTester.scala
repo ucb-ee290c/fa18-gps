@@ -15,14 +15,14 @@ import scala.collection.mutable.ListBuffer
  * Data Set Params hold info about the test vector being used
  * as well as info about the channel setup
  */
-case class DataSetParam[T <: Data, V <: Data](
+case class ChannelDataSetParam[T <: Data](
   sampleFreq: Double, // Data Sample Rate
   svFreq: Double, // SV frequency
   startInd: Long, // Index of the file for the test to start on
   stopInd: Long,
   svNumber: Int,
   filename: String,
-  channelParams: TrackingChannelParams[T, V]
+  channelParams: TrackingChannelParams[T]
 ) {
   val carrierNcoCodeNom: Int = ((svFreq / sampleFreq) * 
     pow(2, channelParams.carrierNcoParams.resolutionWidth)).round.toInt
@@ -33,7 +33,7 @@ case class DataSetParam[T <: Data, V <: Data](
 /**
  * Example Data from adc_sample_data.bin
  */
-object ExampleData extends DataSetParam(
+object ExampleChannelData extends ChannelDataSetParam(
   16367600,
   4.128460*1e6, 
   31408,
@@ -49,7 +49,7 @@ object ExampleData extends DataSetParam(
 class ChannelSpec extends FlatSpec with Matchers {
   behavior of "TrackingChannel"
   it should "track" in {
-    val params = ExampleData
+    val params = ExampleChannelData
     ChannelTester(params)
   }  
 }
@@ -57,20 +57,22 @@ class ChannelSpec extends FlatSpec with Matchers {
 /*
  * DspTester for Tracking Channel
  */
-class ChannelTester[T <: Data, V <: Data](
-  c: TrackingChannel[T, V], 
-  params: DataSetParam[T, V]
+class ChannelTester[T <: Data](
+  c: TrackingChannel[T], 
+  params: ChannelDataSetParam[T]
 ) extends DspTester(c) {
   var inFile = None: Option[FileInputStream]
   val dll = new DLLModel(6000, 3, 1e3, 1)
   val costas = new CostasModel(0.001, 17.0, 3.0, 0, 2) 
-  val display = false
+  val display = false 
   try { 
     inFile = Some(new FileInputStream(params.filename))
     var in: Int = 0
     var ind: Int = 0
     var caCode: Int = params.caNcoCodeNom
     var carrierCode: Int = params.carrierNcoCodeNom
+    var caCodeNext: Int = caCode
+    var carrierCodeNext: Int = carrierCode
     var integrationTime: Int = 0
 
     val hits = new ListBuffer[Int]()
@@ -102,13 +104,15 @@ class ChannelTester[T <: Data, V <: Data](
           integrationTime += 1
         }
         if (integrationTime == 1) {
+          caCode = caCodeNext
+          carrierCode = carrierCodeNext
           hits += ind
-          val ie = peek(c.io.ie)
-          val ip = peek(c.io.ip)
-          val il = peek(c.io.il)
-          val qe = peek(c.io.qe)
-          val qp = peek(c.io.qp)
-          val ql = peek(c.io.ql)
+          val ie = peek(c.io.toLoop.ie)
+          val ip = peek(c.io.toLoop.ip)
+          val il = peek(c.io.toLoop.il)
+          val qe = peek(c.io.toLoop.qe)
+          val qp = peek(c.io.toLoop.qp)
+          val ql = peek(c.io.toLoop.ql)
 
           ieArr += ie
           ipArr += ip
@@ -117,17 +121,17 @@ class ChannelTester[T <: Data, V <: Data](
           qpArr += qp
           qlArr += ql
 
-          caCode = dll.update((ie.toDouble, ip.toDouble, il.toDouble), 
+          caCodeNext = dll.update((ie.toDouble, ip.toDouble, il.toDouble), 
             (qe.toDouble, qp.toDouble, ql.toDouble), params.caNcoCodeNom)
-          carrierCode = costas.update(ip.toDouble, qp.toDouble, params.carrierNcoCodeNom)
+          carrierCodeNext = costas.update(ip.toDouble, qp.toDouble, params.carrierNcoCodeNom)
           
-          costasError += costas.phaseErr
+//          costasError += costas.phaseErr
           freqError += costas.freqErr
           dllError += dll.disOut
           integrationTime = 0
 
-          poke(c.io.phaseErr.bits, costas.phaseErr)
-          poke(c.io.phaseErr.valid, true)
+//          poke(c.io.phaseErr.bits, costas.phaseErr)
+//          poke(c.io.phaseErr.valid, true)
           
           poke(c.io.dump, true)
           val lock = peek(c.io.lock)
@@ -138,7 +142,7 @@ class ChannelTester[T <: Data, V <: Data](
           }
         } else {
           poke(c.io.dump, false)
-          poke(c.io.phaseErr.valid, false)
+//          poke(c.io.phaseErr.valid, false)
         }
         ind += 1
         if (ind.toDouble / params.stopInd * 10 % 1 == 0) {
@@ -147,6 +151,13 @@ class ChannelTester[T <: Data, V <: Data](
         }
       }
     }
+
+    print(ipArr)
+    println()
+    print(qpArr)
+    println()
+    print(costasError)
+    println()
 
     if (display) {
       val dllFig = new Figure("DLL Response", 2,1)
@@ -172,8 +183,6 @@ class ChannelTester[T <: Data, V <: Data](
       costasErrPlt += plot(DenseVector.range(0, lockArr.length, 1), lockArr)
       costasFig.refresh()
     }
-    print(lockArr)
-  
   } catch {
     case e: IOException => e.printStackTrace
   } finally {
@@ -181,7 +190,7 @@ class ChannelTester[T <: Data, V <: Data](
   }
 }
 object ChannelTester {
-  def apply[T <: Data : Real, V <: Data : Real](params: DataSetParam[T, V]): Boolean = { 
+  def apply[T <: Data : Real](params: ChannelDataSetParam[T]): Boolean = { 
     chisel3.iotesters.Driver.execute(Array("-tbn", "verilator", "-tgvo", "off"), 
       () => new TrackingChannel(params.channelParams)) {
       c => new ChannelTester(c, params)

@@ -6,7 +6,7 @@ import chisel3.util._
 import dsptools.numbers._
 
 /** A set of parameters for CA modules.
- *.
+ *
  *  @param fcoWidth the bit width of the NCO output for both 1x and 2x frequencies
  *  @param codeWidth the bit width of the code to be generated. The code is either +1 or -1, so it must be at least 2.
  */

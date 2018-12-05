@@ -6,14 +6,13 @@ import org.scalatest.{FlatSpec, Matchers}
 class FixedCordicSpec extends FlatSpec with Matchers {
   behavior of "FixedIterativeCordic"
 
-
   val params = FixedCordicParams(
     xyWidth = 32,
-    xyBPWidth = 12,
+    xyBPWidth = 16,
     zWidth = 32,
-    zBPWidth = 12,
+    zBPWidth = 20,
     correctGain = true,
-    nStages = 20,
+    nStages = 32,
     stagesPerCycle = 1,
     calAtan2 = false,
     dividing = true,
@@ -62,15 +61,4 @@ class FixedCordicSpec extends FlatSpec with Matchers {
   it should "atan with stagePerCycle=1" in {
     FixedCordicTester(params.copy(calAtan2=false, dividing=false), atanTrials) should be (true)
   }
-
-//  it should "rotate with stagesPerCycle=4" in {
-//    FixedCordicTester(params.copy(stagesPerCycle = 4), rotateTrials) should be (true)
-//  }
-//  it should "vector with stagesPerCycle=1" in {
-//    FixedCordicTester(params, trials) should be (true)
-//  }
-//  it should "vector with stagesPerCycle=4" in {
-//    FixedCordicTester(params.copy(stagesPerCycle = 4), vectorTrials) should be (true)
-//  }
-
 }

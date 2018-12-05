@@ -78,6 +78,7 @@ object ParserTester {
   }
 }
 
+
 class ParityCheckerSpec extends FlatSpec with Matchers {
   behavior of "Packetizer: parity checker submodule"
 

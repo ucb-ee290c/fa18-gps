@@ -14,7 +14,7 @@ case class SecondarySyncParams(
 }
 
 class SecondarySyncIO[T <: Data](params: SecondaryLockParams[T]) extends Bundle {
-  val ipIntDump = Input(SInt(params.intDumpWidth.W))//bitwidth should be same as in phase prompt intdump
+  val ipIntDump = Input(SInt(32.W)) //bitwidth should be same as in phase prompt intdump
   val lockAchieved = Input(Bool())
   val dump = Input(Bool())
   val secondarySyncAchieved = Output(Bool())
