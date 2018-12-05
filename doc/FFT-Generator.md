@@ -5,7 +5,7 @@ The input lanes(p=lanes) is equal or smaller than the number of points,
 the input rate is divided down when input lanes is smaller than number of points.
 It use cooley-tukey algorithm when p<n. First it takes p input each time, these point go through a (bp: biplex point = n/p) Biplex FFT and do a direct FFT for p points.
 The input lanes must be a power of 2, greater than or equal to 2, but less than or equal to the FFT size.
-![FFT_Diagram](pictures/fft/fft-diagram.png)
+![FFT_Diagram](pictures/fft/fft_diagram.png)
 
 ### Pipelined FFT and Biplex FFT
 Radix-2 Multipath Delay Commutator is a the most straightforward approach of pipelined FFT. 
