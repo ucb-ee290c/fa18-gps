@@ -54,67 +54,119 @@ case class ExampleLoopParams(
   val dllDisc =  FixedDiscParams(inWidth, inBP, ncoWidth, (ncoWidth-3), dividing=true)
 } 
 
-// TODO Remove this
+// TODO: Remove this
+/** Bundle type that describes the input IO for the loop machine */
 class LoopInputBundle[T <: Data](protoIn: T, protoOut: T) extends Bundle {
+  /** Bundle that contains early, prompt, and late signals */
   val epl = EPLBundle(protoIn)
 
   override def cloneType: this.type = LoopInputBundle(protoIn, protoOut).asInstanceOf[this.type]
 }
+
+/** Factory for [[gps.LoopInputBundle]] instances. */
 object LoopInputBundle {
+  /** Creates a LoopInputBundle with given set of input and output types.
+   *
+   *  @param protoIn The input prototype for the loop machine
+   *  @param protoOut The output prototype for the loop machine 
+   */
   def apply[T <: Data](protoIn: T, protoOut: T): LoopInputBundle[T] = 
     new LoopInputBundle(protoIn, protoOut)
 }
 
+/** Bundle type that describes the output IO for the loop machine */
 class LoopOutputBundle[T <: Data](params: LoopParams[T]) extends Bundle {
+  /** Step size of the code NCO */
   val codeNco = params.protoOut.cloneType
+  /** Step size of the carrier NCO */
   val carrierNco = params.protoOut.cloneType
+  /** the output of the DLL discriminator */
   val dllErrOut = params.protoOut.cloneType 
+  /** The output of the Costas phase discriminator */
   val phaseErrOut = params.protoOut.cloneType
+  /** The output of the Costas frequency discriminator */
   val freqErrOut = params.protoOut.cloneType 
 
   override def cloneType: this.type = LoopOutputBundle(params).asInstanceOf[this.type]
 }
+
+/** Factory for [[gps.LoopOutputBundle]] instances. */
 object LoopOutputBundle {
+  /** Creates a LoopOutputBundle with given a given loop machine param.
+   *
+   *  @param params The parameters of the loop FSM
+   */
   def apply[T <: Data](params: LoopParams[T]): LoopOutputBundle[T] = 
     new LoopOutputBundle(params)
 }
 
+/** Overall IO bundle for the loop machine */
 class LoopBundle[T <: Data](params: LoopParams[T]) extends Bundle {
+  /** The input bundle of type Flipped, Decoupled LoopInputBundle */
   val in = Flipped(Decoupled(LoopInputBundle(params.protoIn, params.protoOut)))
+  /** The output bundle of type Decoupled LoopOutputBundle */
   val out = Decoupled(LoopOutputBundle(params))
 
   override def cloneType: this.type = LoopBundle(params).asInstanceOf[this.type]
 }
+
+/** Factory for [[gps.LoopBundle]] instances. */
 object LoopBundle {
+  /** Creates a LoopBundle with given a given loop machine param.
+   *
+   *  @param params The parameters of the loop FSM
+   */
   def apply[T <: Data](params:LoopParams[T]): LoopBundle[T] = new LoopBundle(params)
 }
 
+/** The loop machine module is an FSM that coordinates the timing between the discriminators and loop filters for all three loops: Costas (FLL and PLL) and DLL. 
+ * 
+ *  The loop machine waits for the error of all three loops to be ready before forwarding the signals to their respective loop filters. 
+ */ 
 class LoopMachine[T <: Data : Real : BinaryRepresentation](
   val loopParams: LoopParams[T], 
 ) extends Module {
+
+  /** IO for the LoopMachine */
   val io = IO(LoopBundle(loopParams))
    
   //FIXME: Fix inputs to the loop filter
+  // LF setup
+  /** Instance of the Costas loop filter module */
   val lfCostas = Module(new LoopFilter3rd(loopParams.lfParamsCostas))
+  /** Instance of the DLL loop filter module */
   val lfDLL = Module(new LoopFilter(loopParams.lfParamsDLL))
 
   // Discriminator Setup  
+  /** Instance of the frequency discriminator module */
   val freqDisc = Module(new FreqDiscriminator(loopParams.freqDisc))
+  /** Instance of the phase discriminator module */
   val phaseDisc = Module(new PhaseDiscriminator(loopParams.phaseDisc))
+  /** Instance of the DLL discriminator module */
   val dllDisc = Module(new DllDiscriminator(loopParams.dllDisc)) 
 
+  /** Enum of FSM states */
   val s_init :: s_cordic :: s_lf :: s_done :: nil = Enum(4)
+  /** FSM state variable */
   val state = RegInit(s_init) 
 
+  /** Register that determines whether the phase discriminator is up-to-date */
   val phaseRegUpdate = RegInit(false.B)
+  /** Register that determines whether the frequency discriminator is up-to-date */
   val freqRegUpdate = RegInit(false.B)
+  /** Register that determines whether the DLL discriminator is up-to-date */
   val dllRegUpdate = RegInit(false.B)
 
+  /** Phase discriminator output register */
   val phaseErrReg = Reg(loopParams.protoOut.cloneType)
+  /** Frequency discriminator output register */
   val freqErrReg = Reg(loopParams.protoOut.cloneType)
+  /** DLL discriminator output register */
   val dllErrReg = Reg(loopParams.protoOut.cloneType)
 
+  /** DLL Loop Filter output register */
   val lfDllOut = Reg(loopParams.protoOut.cloneType)
+  /** Costas Loop Filter output register */
   val lfCostasOut = Reg(loopParams.protoOut.cloneType)
 
   /** Costas loop input connections */ 

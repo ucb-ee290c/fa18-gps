@@ -6,26 +6,44 @@ import chisel3.util._
 
 import dsptools.numbers._
 
+//TODO: No longer used, should be safely removed
+/** Base class for the parameters for all three discriminators 
+ *
+ */
 trait AllDiscParams[T <: Data] {
+  /** Phase discriminator parameters */
   val phaseDisc : DiscParams[T]
+  /** Frequency discriminator parameters */
   val freqDisc : DiscParams[T]
+  /** DLL discriminator parameters */
   val dllDisc : DiscParams[T]
 }
 
+/** Fixed point example implementation of all of the discriminator parameters */
 case class ExampleAllDiscParams(
 ) extends AllDiscParams[FixedPoint] {
+  /** Phase discriminator fixed point parameters */
   val phaseDisc = FixedDiscParams()
+  /** Frequency discriminator fixed point parameters */
   val freqDisc = FixedDiscParams()
+  /** DLL discriminator fixed point parameters */
   val dllDisc = FixedDiscParams()
 }
 
 // Discriminator code 
+/** Parameters for an individual discriminator block */
 trait DiscParams [T <: Data]{
+  /** Cordic parameter for that given discriminator */
   val cordicParams: CordicParams[T]
+  /** Input prototype */
   val protoIn : T
+  /** Output prototype */
   val protoOut: T
 }
 
+/** DSPReal implementation of the discriminator parameters 
+ *  
+ */
 case class RealDiscParams(
   inWidth: Int = 32,
   outWidth: Int = 32,
@@ -35,6 +53,7 @@ case class RealDiscParams(
   val protoOut = DspReal()
 }
 
+/** Fixed point implementation of the discriminator parameters */
 case class FixedDiscParams(
   val inWidth: Int = 32,
   val inBP: Int = 12, 
@@ -57,6 +76,7 @@ case class FixedDiscParams(
   print(outBP)
   println()
 }
+
 class CostasDiscInputBundle[T <: Data](params: DiscParams[T]) extends Bundle { 
   val ips: T = params.protoIn.cloneType
   val qps: T = params.protoIn.cloneType
@@ -89,6 +109,12 @@ object CostasDiscBundle {
   def apply[T <: Data](params:DiscParams[T]): CostasDiscBundle[T] = new CostasDiscBundle(params)
 }
 
+/** The Costas phase discriminator 
+ * 
+ *  The discriminator is used to pull data from the I and Q int signals. It
+ *  uses a 2 quadrant arctan function, implemented through a hardware CORDIC,
+ *  to calculate the phase error. 
+ */
 class PhaseDiscriminator[T <: Data : Real : BinaryRepresentation](val params: DiscParams[T]) extends Module {
   val io = IO(CostasDiscBundle(params))
 
@@ -108,6 +134,12 @@ class PhaseDiscriminator[T <: Data : Real : BinaryRepresentation](val params: Di
   cordicCostas.io.out.ready := io.out.ready
 }
 
+/** The Costas frequency discriminator
+ *
+ *  The discriminator is used to pull data from the I and Q int signals. It
+ *  uses a 4 quadrant arctan function, implemented through a
+ *  hardware CORDIC, to calculate the frequency error. 
+ */ 
 class FreqDiscriminator[T <: Data : Real : BinaryRepresentation](val params: DiscParams[T]) extends Module {
   val io = IO(new CostasDiscBundle(params))
 
@@ -205,6 +237,12 @@ object DllDiscBundle {
   def apply[T <: Data](params:DiscParams[T]): DllDiscBundle[T] = new DllDiscBundle(params)
 }
 
+/** The DLL discriminator
+ *
+ *  The discriminator is used to pull data from the I and Q early and late int signals. It
+ *  uses an early-minus-late scheme, implemented through a
+ *  hardware CORDIC, to calculate the DLL error. 
+ */ 
 class DllDiscriminator[T <: Data : Real : BinaryRepresentation](val params: DiscParams[T]) extends Module {
   val io = IO(DllDiscBundle(params))
 
