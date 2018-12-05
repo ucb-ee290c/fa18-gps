@@ -125,13 +125,13 @@ class ChannelTester[T <: Data](
             (qe.toDouble, qp.toDouble, ql.toDouble), params.caNcoCodeNom)
           carrierCodeNext = costas.update(ip.toDouble, qp.toDouble, params.carrierNcoCodeNom)
           
-          costasError += costas.phaseErr
+//          costasError += costas.phaseErr
           freqError += costas.freqErr
           dllError += dll.disOut
           integrationTime = 0
 
-          poke(c.io.phaseErr.bits, costas.phaseErr)
-          poke(c.io.phaseErr.valid, true)
+//          poke(c.io.phaseErr.bits, costas.phaseErr)
+//          poke(c.io.phaseErr.valid, true)
           
           poke(c.io.dump, true)
           val lock = peek(c.io.lock)
@@ -142,7 +142,7 @@ class ChannelTester[T <: Data](
           }
         } else {
           poke(c.io.dump, false)
-          poke(c.io.phaseErr.valid, false)
+//          poke(c.io.phaseErr.valid, false)
         }
         ind += 1
         if (ind.toDouble / params.stopInd * 10 % 1 == 0) {
