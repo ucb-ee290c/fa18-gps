@@ -134,12 +134,6 @@ class ChannelTester[T <: Data](
           poke(c.io.phaseErr.valid, true)
           
           poke(c.io.dump, true)
-          val lock = peek(c.io.lock)
-          if (peek(c.io.lock)) {
-            lockArr += 1
-          } else {
-            lockArr += 0
-          }
         } else {
           poke(c.io.dump, false)
           poke(c.io.phaseErr.valid, false)
@@ -180,7 +174,6 @@ class ChannelTester[T <: Data](
       val costasErrPlt = costasFig.subplot(2)
       costasErrPlt += plot(DenseVector.rangeD(0.0, dllError.length.toDouble, 1.0),
         costasError)
-      costasErrPlt += plot(DenseVector.range(0, lockArr.length, 1), lockArr)
       costasFig.refresh()
     }
   } catch {

@@ -60,7 +60,7 @@ class TrackingChannelIO[T <: Data](params: TrackingChannelParams[T]) extends Bun
   val dllIn = Input(UInt(params.ncoWidth.W))
   val costasIn = Input(UInt(params.ncoWidth.W))
   val caIndex = Output(UInt(32.W))
-  val lock = Output(Bool())
+  val phaseErr = Flipped(Valid(FixedPoint(20.W, 12.BP)))
 
   override def cloneType: this.type =
     TrackingChannelIO(params).asInstanceOf[this.type]
