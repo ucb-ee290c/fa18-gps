@@ -49,9 +49,9 @@ case class ExampleLoopParams(
   val lfParamsCostas = FixedFilter3rdParams(width = 20, bPWidth = 16)   
   /** Instance of the DLL loop filter parameters */
   val lfParamsDLL = FixedFilterParams(6000, 5, 1) 
-  val freqDisc = FixedDiscParams(inWidth, inBP, ncoWidth, ncoBP, calAtan2=true)
-  val phaseDisc = FixedDiscParams(inWidth, inBP, ncoWidth, ncoBP)
-  val dllDisc =  FixedDiscParams(inWidth, inBP, ncoWidth, ncoBP, dividing=true)
+  val freqDisc = FixedDiscParams(inWidth, inBP, ncoWidth, (ncoWidth-3), calAtan2=true)
+  val phaseDisc = FixedDiscParams(inWidth, inBP, ncoWidth, (ncoWidth-3))
+  val dllDisc =  FixedDiscParams(inWidth, inBP, ncoWidth, (ncoWidth-3), dividing=true)
 } 
 
 // TODO Remove this
@@ -74,7 +74,6 @@ class LoopOutputBundle[T <: Data](params: LoopParams[T]) extends Bundle {
 
   override def cloneType: this.type = LoopOutputBundle(params).asInstanceOf[this.type]
 }
-
 object LoopOutputBundle {
   def apply[T <: Data](params: LoopParams[T]): LoopOutputBundle[T] = 
     new LoopOutputBundle(params)
@@ -132,7 +131,7 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](
   /** Phase error calculations */
   val phaseErr = -phaseDisc.io.out.bits.output   
   /** Frequency error calculations */ 
-  val freqErr = ConvertableTo[T].fromDouble(1/loopParams.intTime) * freqDisc.io.out.bits.output
+  val freqErr = freqDisc.io.out.bits.output
   /** DLL error calculations */
   val dllErr = dllDisc.io.out.bits.output
 
@@ -239,7 +238,7 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](
   lfCostas.io.freqErr := freqErrReg
   lfCostas.io.phaseErr := phaseErrReg
 
-  val codeCoeff = ConvertableTo[T].fromDouble(1/((2*math.Pi) * (16*1023*1e3)) * (math.pow(2, 30) - 1)) 
+  val codeCoeff = loopParams.protoOut.fromDouble(1/((2*math.Pi) * (16367600)) * (math.pow(2, 30) - 1)) 
   
   io.out.bits.phaseErrOut := phaseErrReg
   io.out.bits.freqErrOut := freqErrReg

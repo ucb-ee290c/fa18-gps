@@ -53,6 +53,9 @@ case class FixedDiscParams(
     dividing = dividing) 
   val protoIn = FixedPoint(inWidth.W, inBP.BP)
   val protoOut = FixedPoint(outWidth.W, outBP.BP)
+  print("Disc Params OutBP: ")
+  print(outBP)
+  println()
 }
 class CostasDiscInputBundle[T <: Data](params: DiscParams[T]) extends Bundle { 
   val ips: T = params.protoIn.cloneType

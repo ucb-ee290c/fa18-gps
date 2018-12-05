@@ -3,18 +3,13 @@ package gps
 import chisel3._
 
 trait SecondaryLockParams[T <: Data] {
-  val intThreshold: Int
-  val intDumpWidth: Int
 }
 
-case class SecondarySyncParams(
-  intThreshold: Int, //IntDump threshold to determine bit polarity
-  intDumpWidth: Int
-  ) extends SecondaryLockParams[SInt] {
+case class SecondarySyncParams(codeChunks: Int) extends SecondaryLockParams[SInt] {
 }
 
 class SecondarySyncIO[T <: Data](params: SecondaryLockParams[T]) extends Bundle {
-  val ipIntDump = Input(SInt(params.intDumpWidth.W))//bitwidth should be same as in phase prompt intdump
+  val ipIntDump = Input(SInt(32.W)) //bitwidth should be same as in phase prompt intdump
   val lockAchieved = Input(Bool())
   val dump = Input(Bool())
   val secondarySyncAchieved = Output(Bool())

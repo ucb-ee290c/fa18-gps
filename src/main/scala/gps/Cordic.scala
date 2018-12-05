@@ -51,21 +51,11 @@ case class FixedCordicParams(
 ) extends CordicParams[FixedPoint] {
   val protoXY = FixedPoint(xyWidth.W, xyBPWidth.BP)
   val protoZ = FixedPoint(zWidth.W, zBPWidth.BP)
-
-  // define number of stages from out side
-//  // number of stages needed to get LSBs of xy
-//  private val xyStages = xyWidth
-//  // number of stages needed to get LSBs of z
-//  private val zStages = {
-//    val minNumber = math.pow(2.0, -(zWidth-3))
-//    // number of cordic stages
-//    var n = 0
-//    while (breeze.numerics.tan(math.pow(2.0, -(n+1))) >= minNumber) {
-//      n += 1
-//    }
-//    n
-//  }
-//  val nStages = 24 // xyStages.max(zStages)
+  print("Z Width: ")
+  print(zWidth)
+  print(" ")
+  print(zBPWidth)
+  println()
 }
 
 class CordicBundle[T <: Data](val params: CordicParams[T]) extends Bundle {
@@ -170,7 +160,7 @@ class CordicStage[T <: Data : Real : BinaryRepresentation](params: CordicParams[
     val in = Input(CordicBundle(params))
     val vectoring = Input(Bool())
     val shift = Input(UInt(params.nStages.U.getWidth.W))
-    val romIn = Input(params.protoXY.cloneType)
+    val romIn = Input(params.protoZ.cloneType)
     val out = Output(CordicBundle(params))
   })
   val xshift = io.in.x >> io.shift
@@ -215,11 +205,15 @@ class FixedIterativeCordic[T <: Data : Real : BinaryRepresentation](val params: 
   // Counter for the current iteration
   val iter = RegInit(0.U(log2Ceil(params.nStages + 1).W))
 
-  val gain = ConvertableTo[T].fromDouble(1 / CordicConstants.gain(params.nStages))
+  val gain = params.protoXY.fromDouble(1 / CordicConstants.gain(params.nStages))
 
   // get table
   val table =
     if (!params.dividing) {
+      print(params.nStages)
+      println()
+      print(CordicConstants.arctan(params.nStages))
+      println()
       CordicConstants.arctan(params.nStages)
     } else{
       CordicConstants.linear(params.nStages)
@@ -228,9 +222,9 @@ class FixedIterativeCordic[T <: Data : Real : BinaryRepresentation](val params: 
   // put in rom
   val rom =
     if (!params.dividing) {
-      VecInit(table.map(ConvertableTo[T].fromDouble(_)))
+      VecInit(table.map(params.protoZ.fromDouble(_)))
     }else{
-      VecInit(table.map(ConvertableTo[T].fromDouble(_))) // may need change
+      VecInit(table.map(params.protoZ.fromDouble(_))) // may need change
     }
   val regVectoring = Reg(Bool())
 
@@ -257,6 +251,7 @@ class FixedIterativeCordic[T <: Data : Real : BinaryRepresentation](val params: 
 
     xyz := TransformInput(io.in.bits, io.vectoring)
   }
+  // FIXME Cordic broken!!!, need to end early if y = 0 in vectoring mode!
   when (state === sWork) {
     val iterNext = iter + params.stagesPerCycle.U
     iter := iterNext

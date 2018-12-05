@@ -24,9 +24,9 @@ case class TrackingDataSetParam(
   adcWidth: Int,
   filename: String,
 ) {
-  val carrierNcoCodeNom: Int = ((svFreq / sampleFreq) * pow(2, 20)).round.toInt
-  val caNcoCodeNom: Int = ((1.023e6 / sampleFreq) * pow(2, 20)).round.toInt
-  val topParams = TrackingTopParams(adcWidth, sampleFreq, 12, 20)
+  val carrierNcoCodeNom: Int = ((svFreq / sampleFreq) * pow(2, 30)).round.toInt
+  val caNcoCodeNom: Int = ((1.023e6 / sampleFreq) * pow(2, 30)).round.toInt
+  val topParams = TrackingTopParams(adcWidth, sampleFreq, 12, 30)
 }
 
 /**
@@ -36,7 +36,7 @@ object ExampleTopData extends TrackingDataSetParam(
   16367600,
   4.128460*1e6, 
   31408,
-  160000,
+  16000000,
   22,
   5,
   "python/adc_sample_data.bin"
@@ -66,8 +66,6 @@ class TrackingTopTester(
     inFile = Some(new FileInputStream(params.filename))
     var in: Int = 0
     var ind: Int = 0
-    var caCode: Int = params.caNcoCodeNom
-    var carrierCode: Int = params.carrierNcoCodeNom
 
     val hits = new ListBuffer[Int]()
     val ieArr = new ListBuffer[Int]()
@@ -85,6 +83,8 @@ class TrackingTopTester(
     }
     
     poke(c.io.svNumber, params.svNumber)
+    poke(c.io.carrierNcoBias, params.carrierNcoCodeNom)
+    poke(c.io.codeNcoBias, params.caNcoCodeNom)
     updatableDspVerbose.withValue(false) {
       while ({in = inFile.get.read; (in != -1) && (ind < params.stopInd)}) {
         poke(c.io.adcIn, in.byteValue)
@@ -117,7 +117,11 @@ class TrackingTopTester(
         ind += 1
       }
     }
-    print(hits)
+    print(ipArr)
+    println()
+    print(qpArr)
+    println()
+    print(costasError)
     println()
 
     if (display) {
