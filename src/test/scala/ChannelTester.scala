@@ -64,7 +64,7 @@ class ChannelTester[T <: Data](
   var inFile = None: Option[FileInputStream]
   val dll = new DLLModel(6000, 3, 1e3, 1)
   val costas = new CostasModel(0.001, 17.0, 3.0, 0, 2) 
-  val display = true
+  val display = false 
   try { 
     inFile = Some(new FileInputStream(params.filename))
     var in: Int = 0

@@ -61,7 +61,7 @@ class TrackingTopTester(
   params: TrackingDataSetParam
 ) extends DspTester(c) {
   var inFile = None: Option[FileInputStream]
-  val display = true
+  val display = false 
   try { 
     inFile = Some(new FileInputStream(params.filename))
     var in: Int = 0
