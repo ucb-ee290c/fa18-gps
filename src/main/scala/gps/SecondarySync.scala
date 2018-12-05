@@ -27,6 +27,27 @@ object SecondarySyncIO {
     new SecondarySyncIO(params)
 }
 
+
+/** Secondary Sync module that is used to determine the 50 Hz bit phase of the GPS signal using
+ *  1 ms integrations.  This module is generic to integration threshold (dependent on the integration
+ *  time) and to the bitwidth of the integration and dump module output.  Documented in doc/TimeKeeper.md
+ *
+ *  @param: intThreshold the integration threshold value that is used to determine the polarity of the 
+ *  currently integrated bit
+ *  @param: intDumpWidth the width of the integration and dump accumulator
+ *
+ *  IO:
+ *  ipIntDump: Input(SInt), the output of the integration and dump accumulator
+ *  lockAchieved: Input(Bool), true when the tracking loop has a lock on the signal which means the
+ *  secondary sync module can now proceed to determine the 50 Hz bit phase.
+ *  dump: Input(Bool), the same signal that is sent to the integration and dump modules; it is used
+ *  here to determine when to sample the output of the integration since it will be maximum
+ *  secondarySyncAchieved: Output(Bool), module outputs this as true when the 50 Hz bit phase has
+ *  been recovered.
+ *
+ *  Testing:
+ *  run: sbt test:testOnly gps.SecondarySyncSpec
+ */
 class SecondarySync[T <: Data](params: SecondaryLockParams[T]) extends Module {
   val io = IO(SecondarySyncIO(params))
   
