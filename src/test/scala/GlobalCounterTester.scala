@@ -23,9 +23,19 @@ class GlobalCounterSpec extends FlatSpec with Matchers {
 
 class GlobalCounterFunctionalTester(c: GlobalCounter, params: GlobalCounterParams) extends DspTester(c) {
   val maxVal = (scala.math.pow(2, params.counterWidth) - 1).toInt
-  for(i <- 0 until maxVal) {
-    expect(c.io.currCycle, i)
-    step(1)
+
+  val full_test = false
+  if(full_test) {
+    for(i <- 0 until maxVal) {
+      expect(c.io.currCycle, i)
+      step(1)
+    }
+  }
+  else {
+    for(i <- 0 until 16) {
+      expect(c.io.currCycle, i)
+      step(1)
+    }
   }
 }
 
