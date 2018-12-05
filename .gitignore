@@ -9,6 +9,7 @@ test_run_dir/
 generated-src/
 hammer-vlsi*
 out/
+verilator/
 *-output.json
 *.swp
 *.jar
