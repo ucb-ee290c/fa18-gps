@@ -31,12 +31,20 @@ object TimeKeeperIO {
  * @param: resolutionWidth width of the accumulator in the NCO for measuring sub-chip level of time
  *
  * IO:
- * record: Input(Bool) starting recording time since the exact GPS time is known at that moment
- * ncoInput: Input(UInt) input also to the NCO used for sub-chip level time accuracy
- * caInput: Input(SInt) output of NCO that is used to determine PRN chip transitions based on zero-crossings
- * ncoDialOut: Output(UInt) smallest time resolution output for sub-chip level timing
- * chipDialOut: Output(UInt) tracker for number of chips elapsed mod 1023 (1023 chips is 1ms)
- * msDialOut: Output(UInt) tracker for number of milliseconds elapsed since the known GPS second measured from the GPS message 
+ *
+ * '''record''': Input(Bool) starting recording time since the exact GPS time is known at that moment
+ *
+ * '''preambleDetected''': Input(Bool) indicates preamble is detected so that the TimeKeeper can start synchronized to a precise GPS second
+ *
+ * '''ncoInput''': Input(UInt) input also to the NCO used for sub-chip level time accuracy
+ * 
+ * '''caInput''': Input(SInt) output of NCO that is used to determine PRN chip transitions based on zero-crossings
+ * 
+ * '''ncoDialOut''': Output(UInt) smallest time resolution output for sub-chip level timing
+ * 
+ * '''chipDialOut''': Output(UInt) tracker for number of chips elapsed mod 1023 (1023 chips is 1ms)
+ * 
+ * '''msDialOut''': Output(UInt) tracker for number of milliseconds elapsed since the known GPS second measured from the GPS message 
  */
 class TimeKeeper(val params: TimeKeeperParams) extends Module {
   val io = IO(new TimeKeeperIO(params))
