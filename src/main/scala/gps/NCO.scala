@@ -2,6 +2,7 @@ package gps
 
 import chisel3._
 import chisel3.util._
+import scala.math._
 
 import dsptools.numbers._
 
@@ -19,6 +20,8 @@ trait NcoParams[T <: Data] {
   val truncateWidth: Int
   /** Boolean that determines if the NCO outputs a sine wave */
   val sinOut: Boolean
+  /** Boolean that determines if the NCO output has a scale-factor */ 
+  val highRes: Boolean
 }
 
 /** NCO parameters object for an NCO with an SInt output
@@ -30,7 +33,9 @@ trait NcoParams[T <: Data] {
 case class SIntNcoParams(
   resolutionWidth: Int,
   truncateWidth: Int,
-  sinOut: Boolean
+  sinOut: Boolean,
+  highRes: Boolean = false
+
 ) extends NcoParams[SInt] {
   /** Output prototype: SInt of width truncateWidth */
   val proto = SInt(truncateWidth.W)
@@ -49,6 +54,7 @@ class NcoSinOutBundle[T <: Data](params: NcoParams[T]) extends Bundle {
   val sin: T = Output(params.proto.cloneType)
   /** Output cosinde signal */ 
   val cos: T = Output(params.proto.cloneType)
+//  val softRst = Input(Bool())
 
   override def cloneType: this.type = NcoSinOutBundle(params).asInstanceOf[this.type]
 }
@@ -72,6 +78,7 @@ class NcoBundle[T <: Data](params: NcoParams[T]) extends Bundle {
   val cos: T = Output(params.proto.cloneType)
   /** The NCO register output */ 
   val truncateRegOut = Output(UInt(params.truncateWidth.W))
+//  val softRst = Input(Bool())
 
   override def cloneType: this.type = NcoBundle(params).asInstanceOf[this.type]
 }
@@ -108,8 +115,16 @@ class NCO[T <: Data : Real](val params: NcoParams[T]) extends Module {
   io.sin := ConvertableTo[T].fromDouble(0.0)
 
   if (params.sinOut) {
+
+    var coefficient = 1.0
+    if (params.highRes) {
+      coefficient = math.pow(2,max(params.truncateWidth-2,0))
+    }
+    else {
+      coefficient = 1.0
+    }
     /** LUT that contains sine values */
-    val sineLUT = VecInit(NCOConstants.sine(params.truncateWidth).map(ConvertableTo[T].fromDouble(_)))
+    val sineLUT = VecInit(NCOConstants.sine(params.truncateWidth).map((x:Double) => ConvertableTo[T].fromDouble(x*coefficient)))
     io.sin := sineLUT(cosNCO.io.truncateRegOut)
   }
 }
@@ -127,9 +142,16 @@ class NCOBase[T <: Data : Real](val params: NcoParams[T]) extends Module {
   /** Register that accumulates NCO value */
   val reg = RegInit(UInt(params.resolutionWidth.W), 0.U)
     
-  /** LUT that contains cosine values */
-  val cosineLUT = VecInit(NCOConstants.cosine(params.truncateWidth).map(ConvertableTo[T].fromDouble(_)))
+  var coefficient = 1.0
+  if (params.highRes) {
+    coefficient = math.pow(2,max(params.truncateWidth-2,0))
+  }
+  else {
+    coefficient = 1.0
+  }
 
+  /** LUT that contains cosine values */
+  val cosineLUT = VecInit(NCOConstants.cosine(params.truncateWidth).map((x:Double) => ConvertableTo[T].fromDouble(x*coefficient)))
   reg := reg + io.stepSize
   io.truncateRegOut := reg >> (params.resolutionWidth - params.truncateWidth)
   io.cos := cosineLUT(io.truncateRegOut)

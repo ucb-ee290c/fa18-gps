@@ -8,7 +8,8 @@ from blocks.nco_model import NCO
 from gps_fft import FFT, SFFT
 import math
 from functools import partial
-
+from array import array
+import struct
 
 
 
@@ -22,6 +23,9 @@ def test(k_max, sparse):
     nSample = 16368
     freq_idx_max = 2 * int(round(dopOffset / dopStep))
     p = 4
+
+
+    fft_data_arr = []
 
     acq_ctrl_model = AcquisitionControl(n_satellite=1,
                                         freq_idx_max=freq_idx_max,
@@ -78,7 +82,7 @@ def test(k_max, sparse):
         else:
             FFT_result = FFT(_data_iq, caCode)
 
-
+        fft_data_arr.extend(FFT_result)
 
         acq_ctrl_model.update(FFT_result)
 
@@ -108,9 +112,44 @@ def test(k_max, sparse):
     print('max', c.max(), 'mean', c.mean(), 'ratio', c.max() / c.mean())
     ax.plot_surface(X, Y, c.transpose())
 
-
+    print('size of data')
+    print(len(fft_data_arr))
+    print(max(fft_data_arr))
+    print(fft_data_arr[0], fft_data_arr[1])
+    # print(fft_data_arr[100])
+    # output_file = open('python/data/acqctrl_test_vec.bin', 'wb')
+    # float_array = array('d', fft_data_arr)
+    # float_array.tofile(output_file)
+    # output_file.close()
+    # print(len(fft_data_arr[0]))
+    # s = struct.pack('f' * len(fft_data_arr), *fft_data_arr)
+    # f = open('python/data/acqctrl_test_vec.bin', 'wb')
+    # f.write(s)
+    # f.close()
 
 
 if __name__ == "__main__":
-    test(k_max=10, sparse = False)
-    plt.show()
+    # test(k_max=10, sparse = False)
+    # plt.show()
+    with open("python/data/acqctrl_test_vec.bin", "rb") as binary_file:
+        data = binary_file.read()
+
+    ndata = 410 * 16368
+
+    output_file = open('python/data/acqctrl_test_vec.bin', 'rb')
+    firstco = struct.unpack('d'*ndata, output_file.read(8*ndata))
+    print('length', len(firstco))
+    output_file.close()
+
+    print(len(data))
+    print(data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7])
+    print(data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15])
+
+
+    print(data[-1], data[-2], data[-3], data[-4], data[-5], data[-6], data[-7], data[-8])
+    print(data[-9], data[-10], data[-11], data[-12], data[-13], data[-14], data[-15], data[-16])
+
+    # input_file = open('python/data/acqctrl_test_vec.bin', 'r')
+    # float_array = array('d')
+    # float_array.fromstring(input_file.read())
+    # print(len(float_array))

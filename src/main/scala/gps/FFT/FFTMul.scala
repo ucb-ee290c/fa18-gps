@@ -47,7 +47,7 @@ object FFTMulIO {
 
 class FFTMul[T <: chisel3.Data : Ring](val params: FFTMulParams[T]) extends Module {
   require(params.lanes > 0, "Must have parallel input size greater than 1")
-  require(params.pipeStages > 0, "pipeline stage numbers must greater than 1, should depends on FFT pipeline depth")
+  require(params.pipeStages >= 0, "pipeline stage numbers must greater than 1, should depends on FFT pipeline depth")
   val io = IO(FFTMulIO[T](params))
   val shift_en = Wire(Bool())
   val counter = RegInit(UInt( ((log10(params.lanes)/log10(2)).ceil.toInt+1).W ),0.U)
@@ -63,6 +63,8 @@ class FFTMul[T <: chisel3.Data : Ring](val params: FFTMulParams[T]) extends Modu
     io.out.bits.foreach{case (x) => x := (0.U).asTypeOf(params.protoData)}
   }
 
+
   io.out.sync := io.dataIn.sync
+
 
 }
