@@ -103,7 +103,12 @@ Where coefficients {\alpha}<sub>ij</sub> are defined as (with i = 1,2,3,4):
 {\alpha}<sub>i2</sub> = [yn - ysvi] / [PRni - Tbn*C]
 {\alpha}<sub>i3</sub> = [zn - zsvi] / [PRni - Tbn*C]
 ```
-Theses equations are linear in the present delta terms with all other terms either known or initially guessed.
+Theses equations are linear in the present delta terms with all other terms either known or initially guessed. The delta pseudorage terms are calculated as the difference between the measured path delay and the nominal pseudorange:
+```
+{\delta}PRi = {\delta}ti*C - PRni
+with {\delta}ti = Trec - Tsent,i + Terr    (Terr is an error correction term from the GPS message)
+```
+These linear equations allows us to set up a 4x4 matrix equation, so that the current iteration coordinate and time bias deltas can be found with a matrix inversion.  These deltas are then added onto the nominal coordinates and time bias and the iteration repeats.  At the end of each iteration, the error magnitude is calculated as `Error Magnitude = sqrt({\delta}x^2 + {\delta}y^2 + {\delta}z^2)`.  If this error is below the desired threshold, then the algorithm may exit, and the receiver location is found in the nominal coordinates and nominal time bias which were augmented by the calculated deltas in each iteration. 
 
 ### Results
 In this example, we use a set of 4 dummy satellites located approximately 20,000 km above the surface of the Earth (the approximate altitude of real GPS satellites), with known locations in ECEF coordinates (this location would be calculated from each satellite's navigation message).  We chose the BWRC as a place to locate.  Because we know the locations of the satellites and the BWRC, we can approximately calculate the send and receive times of the satellites that would be calculated from the GPS satellite replica clocks as a product of the tracking loops.
