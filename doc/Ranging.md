@@ -57,18 +57,58 @@ Passing both of these into `get_sat_loc` will update the pointers with the compu
 ## Computing user position
 
 ### Overview
+Note SV stands for space vehicle and C on its own refers to the speed of light.
 GPS locationing requires a lock on several satellites to determine the receiver's location on the Earth as well as the receiver reference clock bias with respect to true GPS time.  The locationing makes use of the pseudorange of the receiver to each satellite it is tracking.  The pseudorange is defined as
 ```
 PR = [Tsent - Trec]*C
 ``` 
-where `Tsent` is the time at which the message is transmitted from the satellite, `Trec` is the receiver time at the time of measurement, and C is the speed of light.  
+where `Tsent` is the time at which the message is transmitted from the satellite, `Trec` is the receiver time at the time of measurement, and C is the speed of light.  `Trec` is not initially found directly, but a nominal receive time is chosen by adding a nominal amount of time (~70 ms which is based on the average altitude of GPS satellites) to one of the transmit times. The time delta is then calculated on each SV's `Tsent` and the chosen `Trec`.
 We can use this information in conjunction with the locations of the tracked satellites (from the navigation message) to approximate our receiver position.  The calculation at a high level is iterative since it starts with assuming a nominal location and time bias (ie. the center of the Earth (0,0,0)) and calculates a set of deltas that it then adds onto the current nominal position.  In each iteration, an error magnitude is calculated using the deltas and uses that to determine when to keep iterating or stop (ie. if the delta (x,y,z) magnitude of smaller than some threshold then the calculation should be accurate up to that threshold). 
 
+### Implementation
+* Python implementation: `python/ranging.py` takes similar inputs to those described above
+* C implementation: `firmware/position.c` takes inputs as described above;  uses `firmware/matrix_math.c` for matrix inversion and matrix-vector dot product calculations
+
 ### Inputs and Outputs
-* Input: `Tsent` from the tracking loop for each satellite
-* Input: `Trec` from the tracking loops for each satellite
-* Input: satellite positions in ECEF coordinates from navigation message
-* Output: approximate location of receiver
+From each satellite:
+* Input: `delta_t` (double) Propagation time from the SV to the receiver as measured from the tracking loop
+* Input: `sat_loc_params` (double) SV positions in ECEF coordinates from navigation message and transmit time
+* Output: `ecef_position` (double) approximate location of receiver
+
+### Calculation
+This calculation is included in `python/ranging.py` and `firmware/position.c`.  In `firmware/position.c`, `find_position` takes in the locations of four different satellites and also the approximate propagation times for each satellite transmission.  These are contained in the structs `sat_loc_params` and `time_deltas`. The calculation will output the approximate receiver location and also the time bias of the approximate `Trec` with respect to the real receive time. Note that the time deltas are calculated as discussed above in the Overview section. The calculation then occurs as follows:
+```c
+  double nom[4] = {0.0, 0.0, 0.0, 0.0};     //initial nominal values for X, Y, Z, and time_bias
+  double pr_nom[4];			    //nominal pseudo range calculated form calc_pseudorange
+  double deltas[4] = {0.0, 0.0, 0.0, 0.0};  //stores the updates for each iteration
+  double delta_pr[4];			    //difference between measured and nominal pseudorange
+  double alpha[4][4];			    //storage of alpha coefficients (described below)
+```
+We will denote the nominal coordinate values and time bias as `(xn, yn, zn, tb_n)`  and the space vehicle coordinates `(xsv, ysv, zsv)`. The nominal pseudoranges (PRn) for each SV are calculated as follows:
+`PRn = [(xn - xsv)<sup>2</sup> + (yn - ysv)<sup>2</sup> + (zn - zsv)<sup>2</sup> + tb_n*C`
+Using the fact that in each iteration we calculate deltas for each of the x, y, z coordinates, time bias, and each pseudorange we can combine the above equations with the following equations to form a set of linear equations:
+```
+x = xn + {\delta}x
+y = yn + {\delta}y
+z = zn + {\delta}z
+Tbias = Tbiasn + {\delta}Tb
+PR1 = PRn1 + {\delta}PR1 //this goes for PR(1-4), which is one for each SV
+Linear Equations:
+{\delta}PR1 = {\alpha}<sub>11</sub>{\delta}x + {\alpha}<sub>12</sub>{\delta}y + {\alpha}<sub>13</sub>{\delta}z + C*{\delta}Tbias
+{\delta}PR2 = {\alpha}<sub>21</sub>{\delta}x + {\alpha}<sub>22</sub>{\delta}y + {\alpha}<sub>23</sub>{\delta}z + C*{\delta}Tbias
+{\delta}PR3 = {\alpha}<sub>31</sub>{\delta}x + {\alpha}<sub>32</sub>{\delta}y + {\alpha}<sub>33</sub>{\delta}z + C*{\delta}Tbias
+{\delta}PR4 = {\alpha}<sub>41</sub>{\delta}x + {\alpha}<sub>42</sub>{\delta}y + {\alpha}<sub>43</sub>{\delta}z + C*{\delta}Tbias
+Where coefficients {\alpha}<sub>ij</sub> are defined as (with i = 1,2,3,4):
+{\alpha}<sub>i1</sub> = [xn - xsvi] / [PRni - Tbn*C]
+{\alpha}<sub>i2</sub> = [yn - ysvi] / [PRni - Tbn*C]
+{\alpha}<sub>i3</sub> = [zn - zsvi] / [PRni - Tbn*C]
+```
+Theses equations are linear in the present delta terms with all other terms either known or initially guessed. The delta pseudorage terms are calculated as the difference between the measured path delay and the nominal pseudorange:
+```
+{\delta}PRi = {\delta}ti*C - PRni
+with {\delta}ti = Trec - Tsent,i + Terr    (Terr is an error correction term from the GPS message)
+```
+These linear equations allows us to set up a 4x4 matrix equation, so that the current iteration coordinate and time bias deltas can be found with a matrix inversion.  These deltas are then added onto the nominal coordinates and time bias and the iteration repeats.  At the end of each iteration, the error magnitude is calculated as `Error Magnitude = sqrt({\delta}x^2 + {\delta}y^2 + {\delta}z^2)`.  If this error is below the desired threshold, then the algorithm may exit, and the receiver location is found in the nominal coordinates and nominal time bias which were augmented by the calculated deltas in each iteration. 
 
 ### Results
 In this example, we use a set of 4 dummy satellites located approximately 20,000 km above the surface of the Earth (the approximate altitude of real GPS satellites), with known locations in ECEF coordinates (this location would be calculated from each satellite's navigation message).  We chose the BWRC as a place to locate.  Because we know the locations of the satellites and the BWRC, we can approximately calculate the send and receive times of the satellites that would be calculated from the GPS satellite replica clocks as a product of the tracking loops.
