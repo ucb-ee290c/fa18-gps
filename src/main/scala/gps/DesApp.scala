@@ -22,8 +22,9 @@ object Int {
  */
 object DesApp extends App {
   val usage = s"""Des arguments:
-  |--wADC <Int>\t\tWidth of ADC
+  |--width <Int>\t\tWidth of Input
   |--nSample <Int>\t\tnumber of samples
+  |--nLane <Int>\t\tnumber of lanes
   |""".stripMargin
   /**
    * Parse arguments
@@ -38,8 +39,9 @@ object DesApp extends App {
         println(usage)
         val (newArgs, newParams) = argParse(tail, params)
         ("--help" +: newArgs, newParams)
-      case "--wADC" :: Int(wADC) :: tail => argParse(tail, params.copy(wADC = wADC))
+      case "--width" :: Int(width) :: tail => argParse(tail, params.copy(width = width))
       case "--nSample" :: Int(nSample) :: tail => argParse(tail, params.copy(nSample = nSample))
+      case "--nLane" :: Int(nLane) :: tail => argParse(tail, params.copy(nLane = nLane))
       case chiselOpt :: tail => {
         val (newArgs, newParams) = argParse(tail, params)
         (chiselOpt +: newArgs, newParams)
@@ -48,8 +50,9 @@ object DesApp extends App {
     }
   }
   val defaultParams = SIntDesParams(
-    wADC = 3,
+    width = 5,
     nSample = 16,
+    nLane = 4,
   )
   val (chiselArgs, params) = argParse(args.toList, defaultParams)
   // Run the Chisel driver to generate a cordic

@@ -11,18 +11,18 @@ import dsptools.numbers._
 import scala.collection._
 
 trait FFTMulParams[T <: Data] {
-  val protoData: T
+  val protoData: DspComplex[T]
   val lanes: Int // How many inputs
   val pipeStages: Int // How many pipelined output
 }
 
-case class FixedFFTMulParams(
+case class complexFFTMulParams(
   width: Int,
   bp: Int,
   laneCount: Int,
   pipeStageCount: Int,
 ) extends FFTMulParams[FixedPoint] {
-  val protoData = FixedPoint(width.W, bp.BP)
+  val protoData = DspComplex(FixedPoint(width.W, bp.BP),FixedPoint(width.W, bp.BP))
   val lanes = laneCount
   val pipeStages = pipeStageCount
 }
@@ -31,9 +31,12 @@ case class FixedFFTMulParams(
   * Bundle type as IO for FIR Filter modules
   */
 class FFTMulIO[T <: chisel3.Data : Ring](params: FFTMulParams[T]) extends Bundle {
-  val dataIn = Input(ValidWithSync(Vec(params.lanes, params.protoData.cloneType)))
-  val caIn = Input(ValidWithSync(Vec(params.lanes, params.protoData.cloneType)))
-  val out = Output(ValidWithSync(Vec(params.lanes, params.protoData.cloneType)))
+//  val dataIn = Input(ValidWithSync(Vec(params.lanes, params.protoData.cloneType)))
+//  val caIn = Input(ValidWithSync(Vec(params.lanes, params.protoData.cloneType)))
+//  val out = Output(ValidWithSync(Vec(params.lanes, params.protoData.cloneType)))
+  val dataIn = Input(ValidWithSync(Vec(params.lanes, params.protoData)))
+  val caIn = Input(ValidWithSync(Vec(params.lanes, params.protoData)))
+  val out = Output(ValidWithSync(Vec(params.lanes, params.protoData)))
   //TODO: does it need extend bits?
   override def cloneType: this.type = FFTMulIO(params).asInstanceOf[this.type]
 }
@@ -44,7 +47,7 @@ object FFTMulIO {
 
 class FFTMul[T <: chisel3.Data : Ring](val params: FFTMulParams[T]) extends Module {
   require(params.lanes > 0, "Must have parallel input size greater than 1")
-  require(params.pipeStages > 0, "pipeline stage numbers must greater than 1, should depends on FFT pipeline depth")
+  require(params.pipeStages >= 0, "pipeline stage numbers must greater than 1, should depends on FFT pipeline depth")
   val io = IO(FFTMulIO[T](params))
   val shift_en = Wire(Bool())
   val counter = RegInit(UInt( ((log10(params.lanes)/log10(2)).ceil.toInt+1).W ),0.U)
@@ -60,6 +63,8 @@ class FFTMul[T <: chisel3.Data : Ring](val params: FFTMulParams[T]) extends Modu
     io.out.bits.foreach{case (x) => x := (0.U).asTypeOf(params.protoData)}
   }
 
-  io.out.sync := (ShiftRegisterWithReset(io.dataIn.valid, params.pipeStages, false.B, shift_en) && shift_en)
+
+  io.out.sync := io.dataIn.sync
+
 
 }

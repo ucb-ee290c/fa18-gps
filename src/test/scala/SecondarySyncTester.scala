@@ -10,7 +10,7 @@ import org.scalatest.{FlatSpec, Matchers}
 class SecondarySyncSpec extends FlatSpec with Matchers {
   behavior of "SecondarySync"
 
-  val params = new SecondarySyncParams(intThreshold = 1000, intDumpWidth = 32) {}
+  val params = new SecondarySyncParams(codeChunks = 20) {}
 
   it should "synchronize with the baseband data bits" in {
     SecondarySyncTester(params) should be (true)

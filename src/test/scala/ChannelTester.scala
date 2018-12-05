@@ -22,7 +22,7 @@ case class ChannelDataSetParam[T <: Data](
   stopInd: Long,
   svNumber: Int,
   filename: String,
-  channelParams: TrackingChannelParams[T]
+  channelParams: TrackingChannelParams[T, V]
 ) {
   val carrierNcoCodeNom: Int = ((svFreq / sampleFreq) * 
     pow(2, channelParams.carrierNcoParams.resolutionWidth)).round.toInt
@@ -82,6 +82,7 @@ class ChannelTester[T <: Data](
     val qeArr = new ListBuffer[Int]()
     val qpArr = new ListBuffer[Int]()
     val qlArr = new ListBuffer[Int]()
+    val lockArr = new ListBuffer[Int]()
     val costasError = new ListBuffer[Double]()
     val freqError = new ListBuffer[Double]()
     val dllError = new ListBuffer[Double]()
@@ -128,10 +129,20 @@ class ChannelTester[T <: Data](
           freqError += costas.freqErr
           dllError += dll.disOut
           integrationTime = 0
+
+          poke(c.io.phaseErr.bits, costas.phaseErr)
+          poke(c.io.phaseErr.valid, true)
           
           poke(c.io.dump, true)
+          val lock = peek(c.io.lock)
+          if (peek(c.io.lock)) {
+            lockArr += 1
+          } else {
+            lockArr += 0
+          }
         } else {
           poke(c.io.dump, false)
+          poke(c.io.phaseErr.valid, false)
         }
         ind += 1
         if (ind.toDouble / params.stopInd * 10 % 1 == 0) {
@@ -169,6 +180,7 @@ class ChannelTester[T <: Data](
       val costasErrPlt = costasFig.subplot(2)
       costasErrPlt += plot(DenseVector.rangeD(0.0, dllError.length.toDouble, 1.0),
         costasError)
+      costasErrPlt += plot(DenseVector.range(0, lockArr.length, 1), lockArr)
       costasFig.refresh()
     }
   } catch {
