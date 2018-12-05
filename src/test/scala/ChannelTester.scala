@@ -22,7 +22,7 @@ case class ChannelDataSetParam[T <: Data](
   stopInd: Long,
   svNumber: Int,
   filename: String,
-  channelParams: TrackingChannelParams[T, V]
+  channelParams: TrackingChannelParams[T]
 ) {
   val carrierNcoCodeNom: Int = ((svFreq / sampleFreq) * 
     pow(2, channelParams.carrierNcoParams.resolutionWidth)).round.toInt
