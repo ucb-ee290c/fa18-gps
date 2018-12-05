@@ -24,7 +24,7 @@ INSERT DIAGRAM HERE
 The time keeping module (`src/main/scala/gps/TimeKeeper.scala`) is used to track the transmit time of the GPS signal for the nagivation process.  The tracking loop essentially creates a model of the gps signal at the time it was transmitted from the satellite vehicle, so it is natural that the navigation process can extract this time for navigation purposes from the tracking loop.  Embedded in the navigation message is a time of week that is the exact GPS second that the next navigation data frame starts at.  This sets the lowest time resolution time point for the time tracking process.  The `TimeKeeper` module, from this known point in time, then tracks the number of milliseconds (number of 1023 chip periods), the number of chips mod 1023 (0.977us each, measured from NCO zero crossing like in the CA code generator module), and has a replica of the NCO accumulator to get the smallest level of time resolution (these can all be thought of as a set of dials, as pictured below, that can be measured at any cycle). These times are added to the measured GPS second for each satellite to measure the transmit time for each signal, and these measurements are then sent to the navigation process to be used in the positioning calculation.
 
 ![Time_Keeping_Diagram](pictures/time_dials.png)
-
+credit: Doberstein, Dan. Fundamentals of GPS Receivers A HardwareApproach, Springer, 2012
 This diagram demonstrates that this timekeeping process can be thought of as a set of dials that are intially set by the decoded GPS message and then tracked from measurements from the tracking loop.
 
 ### Parameters
