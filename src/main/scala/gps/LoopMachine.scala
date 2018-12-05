@@ -53,8 +53,11 @@ case class ExampleLoopParams(
  *  @param params Loop machine parameters
  */
 class LoopInputBundle[T <: Data](params: LoopParams[T], discParams: AllDiscParams[T]) extends Bundle {
+  /** In-phase early signal */
   val ie: T = params.protoIn.cloneType
+  /** In-phase prompt signal */
   val ip: T = params.protoIn.cloneType
+  /** In-phase late signal */
   val il: T = params.protoIn.cloneType 
   val qe: T = params.protoIn.cloneType
   val qp: T = params.protoIn.cloneType
@@ -126,7 +129,7 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
   // Debugging purposes
   io.out.bits.dllUpdate := dllRegUpdate
   
-  // Costas Loop  
+  /** Costas loop input connections */ 
   lfCostas.io.intTime := ConvertableTo[T].fromDouble(loopParams.intTime)
   phaseDisc.io.in.bits.ips := io.in.bits.ip 
   phaseDisc.io.in.bits.qps := io.in.bits.qp
@@ -137,44 +140,57 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
   dllDisc.io.in.bits.ipsL := io.in.bits.il
   dllDisc.io.in.bits.qpsL := io.in.bits.ql
 
+  /** Phase error calculations */
   val phaseErr = -phaseDisc.io.out.bits.output   
+  /** Frequency error calculations */ 
   val freqErr = ConvertableTo[T].fromDouble(1/loopParams.intTime) * freqDisc.io.out.bits.output
+  /** DLL error calculations */
   val dllErr = dllDisc.io.out.bits.output
 
   phaseErrReg := phaseErrReg
   freqErrReg := freqErrReg
   dllErrReg := dllErrReg
 
+  /** Boolean register that determines if the DLL discriminator input signal is valid */
   val dllDiscInValid = RegInit(false.B)
+  /** Boolean register that determines if the Costas phase discriminator input signal is valid */
   val phaseDiscInValid = RegInit(false.B)
+  /** Boolean register that determines if the Costas frequency discriminator input signal is valid */
   val freqDiscInValid = RegInit(false.B)
 
+  /** Connection between the input valid signals of all discriminators to their respective registers */
   phaseDisc.io.in.valid := phaseDiscInValid
   freqDisc.io.in.valid := freqDiscInValid
   dllDisc.io.in.valid := dllDiscInValid
 
+  /** By default the input valid registers set to themselves unless otherwise changed below */
   phaseDiscInValid := phaseDiscInValid
   freqDiscInValid := freqDiscInValid
   dllDiscInValid := dllDiscInValid 
 
+  /** By default the output ready signals for all three discriminators get set to false */
   phaseDisc.io.out.ready := false.B
   freqDisc.io.out.ready := false.B
   dllDisc.io.out.ready := false.B
 
+  /** By default the discriminator output valid register flags get set to themselves */
   phaseRegUpdate := phaseRegUpdate
   freqRegUpdate := freqRegUpdate
   dllRegUpdate := dllRegUpdate
 
+  /** Initialization of loop filter output connections */
   lfCostas.io.valid := false.B
   lfDLL.io.valid := false.B
   lfDllOut := lfDllOut
   lfCostasOut := lfCostasOut
 
   when (state === s_init) {
+    /** Initial State */
     io.in.ready := true.B
     io.out.valid := false.B 
     state := s_init
 
+    /** When the input values are ready and valid, move to the discriminator calculation state */
     when (io.in.fire()) {
       state := s_cordic
 
@@ -183,6 +199,7 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
       dllDiscInValid := true.B
     }
   } .elsewhen (state === s_cordic) {
+    /** Cordic and discriminator calculation state */
     io.in.ready := false.B
     io.out.valid := false.B
     state := s_cordic
@@ -191,7 +208,8 @@ class LoopMachine[T <: Data : Real : BinaryRepresentation](val loopParams: LoopP
     phaseDisc.io.out.ready := true.B
     freqDisc.io.out.ready := true.B
     dllDisc.io.out.ready := true.B
-
+    
+    /** When all discriminator output values have been updated, move to the loop filter calculation state */
     when (phaseRegUpdate && freqRegUpdate && dllRegUpdate) {
       state := s_lf
     }
