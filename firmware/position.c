@@ -8,11 +8,13 @@
 
 //calculates pseudorange from nominal location to known satellite location
 //by using the current locations and the nominal time bias and the speed of light
-double calc_pseudorange(struct sat_loc_params* sat, double nom[4]) {
+
+double calc_pseudorange(struct double_sat_loc_params* sat, double nom[4]) {
   return sqrt(powl(nom[0] - (sat->Xx), 2.0) + pow(nom[1] - (sat->Yy), 2.0) + pow(nom[2] - (sat->Zz), 2.0)) - nom[3]*c;
 }
 
-void find_position(struct sat_loc_params* sv_1, struct sat_loc_params* sv_2, struct sat_loc_params* sv_3, struct sat_loc_params* sv_4, struct delta_t* time_deltas, struct ecef_pos* position) {
+void find_position(struct double_sat_loc_params* sv_1, struct double_sat_loc_params* sv_2, struct double_sat_loc_params* sv_3, struct double_sat_loc_params* sv_4, struct delta_t* time_deltas, struct ecef_pos* position) {
+
   double sv_data[4][4];
   sv_data[0][0] = sv_1->Xx;   
   sv_data[0][1] = sv_1->Yy;   
@@ -95,17 +97,15 @@ void find_position(struct sat_loc_params* sv_1, struct sat_loc_params* sv_2, str
   position->x = nom[0];
   position->y = nom[1];
   position->z = nom[2];
-  position->t_bias = nom[3];
-  double test_val = 0.06796112069L;
-  printf("TEST: %f\n", test_val);
 
 }
 
 int main() {
-  struct sat_loc_params sv_1 = { 0.0, -20200000.0-3894033.0, 0.0 };  
-  struct sat_loc_params sv_2 = {20200000.0+3894033.0, 0.0, 0.0};
-  struct sat_loc_params sv_3 = {-20200000.0-3894033.0, 0.0, 0.0};
-  struct sat_loc_params sv_4 = {0.0, 0.0, 20200000.0+3894033.0};
+  struct double_sat_loc_params sv_1 = { 0.0, -20200000.0-3894033.0, 0.0 };  
+  struct double_sat_loc_params sv_2 = {20200000.0+3894033.0, 0.0, 0.0};
+  struct double_sat_loc_params sv_3 = {-20200000.0-3894033.0, 0.0, 0.0};
+  struct double_sat_loc_params sv_4 = {0.0, 0.0, 20200000.0+3894033.0};
+
 
   struct ecef_pos final_result;
   struct delta_t time_deltas = {0.06796112069, 0.09133565296, 0.07389219269, 0.069398661109};
