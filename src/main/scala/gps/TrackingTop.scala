@@ -16,27 +16,27 @@ case class TrackingTopParams(
   // 0.02 is the maximum integration time, sizing things to prevent overflow,
   // +1 for signed
   val intWidth = log2Ceil(pow(2, adcWidth - 1).toInt*(sampleRate * 0.02).toInt) + 1
-  // TODO Can we come up with some logical reasoning for this? 
+  // TODO Can we come up with some logical reasoning for this?
   val ncoWidth = 20
- 
+
   // Loop Filters and discriminator parameters
   // FIXME this should take a list of integration times and generate LUTs for
   // loop parameter values
   val intTime = 0.001
-  // FIXME: widths may not be correct for costas loop filter 
+  // FIXME: widths may not be correct for costas loop filter
   val protoIn = FixedPoint((intWidth + intBP).W, intBP.BP)
   val protoOut = FixedPoint((ncoWidth + ncoBP).W, ncoBP.BP)
-  val lfParamsCostas = FixedFilter3rdParams(width = 20, bPWidth = 16)   
-  // TODO Is there a way we can generate this? 
-  val lfParamsDLL = FixedFilterParams(6000, 5, 1) 
+  val lfParamsCostas = FixedFilter3rdParams(width = 20, bPWidth = 16)
+  // TODO Is there a way we can generate this?
+  val lfParamsDLL = FixedFilterParams(6000, 5, 1)
   val phaseDisc = FixedDiscParams(
-    inWidth = (intWidth + intBP), 
-    inBP = intBP, 
-    outWidth = (ncoWidth + ncoBP), 
+    inWidth = (intWidth + intBP),
+    inBP = intBP,
+    outWidth = (ncoWidth + ncoBP),
     outBP = ncoBP)
   val freqDisc = phaseDisc.copy(calAtan2=true)
   val dllDisc = phaseDisc.copy(dividing=true)
-  
+
   // Tracking Channel stuff
   // Carrier NCO is ncoWidth wide count, adcWidth out and has a sin output
   val carrierNcoParams = SIntNcoParams(ncoWidth, adcWidth, true)
@@ -45,10 +45,10 @@ case class TrackingTopParams(
   // Ca NCO 2x is ncoWidth - 1 bits wide to create double the frequency
   val ca2xNcoParams = SIntNcoParams(ncoWidth  - 1, 1, false)
   // Ca Params, 1 bit input from caNCO and 2 bits out to represent 1 and -1
-  val caParams = CAParams(1, 2) 
+  val caParams = CAParams(1, 2)
   // Multipliers are 5 bit in and 5 bit out
   val mulParams = SampledMulParams(adcWidth)
-  // Int Params 
+  // Int Params
   val intParams = SampledIntDumpParams(adcWidth, (sampleRate * 0.02).toInt)
   // Phase Lock Detector Params Limit set to +-30deg
   val phaseLockParams = LockDetectParams(FixedPoint(20.W, 12.BP), -0.54, 0.54,100)
@@ -62,14 +62,14 @@ class TrackingTop(params: TrackingTopParams) extends Module {
     val freqErr = Output(params.protoOut)
     val phaseErr = Output(params.protoOut)
     val svNumber = Input(UInt(6.W))
-    val carrierNcoBias = Input(UInt(params.ncoWidth))
-    val codeNcoBias = Input(UInt(params.ncoWidth))
+    val carrierNcoBias = Input(UInt(params.ncoWidth.W))
+    val codeNcoBias = Input(UInt(params.ncoWidth.W))
     val dump = Output(Bool())
   })
   val trackingChannel = Module(new TrackingChannel(params))
   trackingChannel.io.adcSample := io.adcIn
   trackingChannel.io.svNumber := io.svNumber
-  
+
   val eplReg = Reg(EPLBundle(SInt(params.intWidth.W)))
   io.epl := eplReg
   val loopFilters = Module(new LoopMachine(params))
@@ -79,9 +79,9 @@ class TrackingTop(params: TrackingTopParams) extends Module {
   loopFilters.io.in.bits.epl.qe := eplReg.qe.asFixed
   loopFilters.io.in.bits.epl.qp := eplReg.qp.asFixed
   loopFilters.io.in.bits.epl.ql := eplReg.ql.asFixed
- 
-  val loopValues = Reg(LoopOutputBundle(params)) 
-  val stagedValues = Reg(LoopOutputBundle(params)) 
+
+  val loopValues = Reg(LoopOutputBundle(params))
+  val stagedValues = Reg(LoopOutputBundle(params))
   trackingChannel.io.dllIn := loopValues.codeNco.asUInt + io.carrierNcoBias.asUInt
   trackingChannel.io.costasIn := loopValues.carrierNco.asUInt + io.codeNcoBias
   trackingChannel.io.dump := false.B
