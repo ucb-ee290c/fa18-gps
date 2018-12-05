@@ -3,9 +3,14 @@ package gps
 import chisel3._
 
 trait SecondaryLockParams[T <: Data] {
+  val intThreshold: Int
+  val intDumpWidth: Int
 }
 
-case class SecondarySyncParams(codeChunks: Int) extends SecondaryLockParams[SInt] {
+case class SecondarySyncParams(
+  intThreshold: Int, //IntDump threshold to determine bit polarity
+  intDumpWidth: Int
+  ) extends SecondaryLockParams[SInt] {
 }
 
 class SecondarySyncIO[T <: Data](params: SecondaryLockParams[T]) extends Bundle {
