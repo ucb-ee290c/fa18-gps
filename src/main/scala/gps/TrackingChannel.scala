@@ -5,7 +5,7 @@ import chisel3.experimental.FixedPoint
 import chisel3.util._
 import dsptools.numbers._
 
-trait TrackingChannelParams[T <: Data, V <: Data] {
+trait TrackingChannelParams[T <: Data] {
   val adcWidth: Int
   val ncoWidth: Int
   val intWidth: Int
@@ -15,7 +15,6 @@ trait TrackingChannelParams[T <: Data, V <: Data] {
   val caParams: CAParams
   val mulParams: MulParams[T]
   val intParams: IntDumpParams[T]
-  val phaseLockParams: LockDetectParams[V]
 }
 case class ExampleTrackingChannelParams() extends 
   TrackingChannelParams[SInt] {
@@ -53,7 +52,7 @@ object EPLBundle {
     new EPLBundle(protoIn)
 }
 
-class TrackingChannelIO[T <: Data,V <: Data](params: TrackingChannelParams[T, V]) extends Bundle {
+class TrackingChannelIO[T <: Data](params: TrackingChannelParams[T]) extends Bundle {
   val adcSample = Input(SInt(params.adcWidth.W))
   val svNumber = Input(UInt(6.W)) //fixed width due to number of satellites
   val dump = Input(Bool())
@@ -68,7 +67,6 @@ class TrackingChannelIO[T <: Data,V <: Data](params: TrackingChannelParams[T, V]
     TrackingChannelIO(params).asInstanceOf[this.type]
 }
 object TrackingChannelIO {
-<<<<<<< HEAD
   def apply[T <: Data](
     params: TrackingChannelParams[T]
   ): TrackingChannelIO[T] =
@@ -77,16 +75,6 @@ object TrackingChannelIO {
 
 class TrackingChannel[T <: Data : Real](
   val params: TrackingChannelParams[T]
-=======
-  def apply[T <: Data, V <: Data](
-    params: TrackingChannelParams[T, V]
-  ): TrackingChannelIO[T, V] =
-    new TrackingChannelIO(params)
-}
-
-class TrackingChannel[T <: Data : Real, V <: Data : Real](
-  val params: TrackingChannelParams[T, V]
->>>>>>> master
 ) extends Module {
   val io = IO(TrackingChannelIO(params))
 
