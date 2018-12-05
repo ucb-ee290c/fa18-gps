@@ -7,7 +7,7 @@ For documentation of tape-ins, please see the /doc directory.
 
 ## Documentation
 - [Final Presentation Slides](http://tinyurl.com/UCB290C-gps)
-- [Scala Docs](https://github.com/ucberkeley-ee290c/fa18-gps/target/scala-2.12/api/index.html)
+- [Scala Docs](https://github.com/ucberkeley-ee290c/fa18-gps/index.html)
 - [Documentation for Acquisition Serial Search](https://github.com/ucberkeley-ee290c/fa18-gps/blob/zhaokai/doc/AcquisitionLoopParallel.md)
 - [Documentation for FFT Generator](https://github.com/ucberkeley-ee290c/fa18-gps/blob/zhaokai/doc/FFT-Generator.md)
 - [Documentation for Loop Filter](https://github.com/ucberkeley-ee290c/fa18-gps/blob/zhaokai/doc/Loopfilter3rd.md)
