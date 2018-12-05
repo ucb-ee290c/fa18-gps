@@ -124,7 +124,7 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genIn: DspComplex[T], ge
   val genTwiddleReal = genTwiddle.real
   val genTwiddleImag = genTwiddle.imag
 
-  println("[--DEBUG--]Stage_delays are:", stage_delays)
+//  println("[--DEBUG--]Stage_delays are:", stage_delays)
 
   val twiddle_rom = config.btwiddles.map(i => {
     Vec(i.map(j => {
@@ -141,6 +141,7 @@ class BiplexFFT[T <: Data : Real](config: FFTConfig[T], genIn: DspComplex[T], ge
   // wire up top-level outputs
   val stage_outputs = List.fill(log2Ceil(config.bp) + 2)(List.fill(config.lanes)(Wire(genIn)))
   io.in.bits.zip(stage_outputs(0)).foreach { case (in, out) => out := in }
+
 
   // create the FFT hardware
   for (i <- 0 until log2Ceil(config.bp) + 1) {

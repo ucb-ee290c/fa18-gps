@@ -16,6 +16,9 @@ For Costas loop, it's a 3rd-order filter,
     a3 = 1.1
     b3 = 2.4
 
+
+![3rd_Order_Loop_Filter](pictures/Loop_filter.png)
+
 #### Parameters
 
  - fBandwidth: frequency bandwidth, 3Hz optimum
