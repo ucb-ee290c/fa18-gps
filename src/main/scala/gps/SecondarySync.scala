@@ -32,9 +32,9 @@ object SecondarySyncIO {
  *  1 ms integrations.  This module is generic to integration threshold (dependent on the integration
  *  time) and to the bitwidth of the integration and dump module output.  Documented in doc/TimeKeeper.md
  *
- *  @param: intThreshold the integration threshold value that is used to determine the polarity of the 
+ *  @param intThreshold the integration threshold value that is used to determine the polarity of the 
  *  currently integrated bit
- *  @param: intDumpWidth the width of the integration and dump accumulator
+ *  @param intDumpWidth the width of the integration and dump accumulator
  *
  *  IO:
  *

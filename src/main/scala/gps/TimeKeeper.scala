@@ -27,8 +27,8 @@ object TimeKeeperIO {
  *  GPS second based on the navigation message.  This module tracks several levels of time resoultion
  *  for the positioning process. Documented in doc/TimeKeeper.md.
  *
- * @param: fcoWidth the width of the output of the NCO used to track the code chips
- * @param: resolutionWidth width of the accumulator in the NCO for measuring sub-chip level of time
+ * @param fcoWidth the width of the output of the NCO used to track the code chips
+ * @param resolutionWidth width of the accumulator in the NCO for measuring sub-chip level of time
  *
  * IO:
  *

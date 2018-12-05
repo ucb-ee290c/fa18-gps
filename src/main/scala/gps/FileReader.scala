@@ -24,8 +24,8 @@ object FileReaderBundle {
 /** Black Box verilog module used to read test data from a file for Rocketchip integration tests
  *  Black Box verilog module is located at src/main/resources/BBFileReader.sv
  *
- *  @param: ReadBitWidth the bitwidth of the data to read
- *  @param: Filename name of the test data file to read from
+ *  @param ReadBitWidth the bitwidth of the data to read
+ *  @param Filename name of the test data file to read from
  *
  *  IO:
  *  run: Input(Bool) send high when you want to read from the file
