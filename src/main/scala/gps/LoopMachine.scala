@@ -6,28 +6,53 @@ import chisel3.util._
 
 import dsptools.numbers._
 
+/** Loop machine parameters
+ *  
+ *  This is type generic
+ */
 trait LoopParams[T <: Data] {
+  /** Input prototype */
   val protoIn: T
+  /** Output prototype */
   val protoOut: T
+  /** Costas loop filter parameters */
   val lfParamsCostas: LoopFilter3rdParams[T]
+  /** DLL loop filter parameters */
   val lfParamsDLL: LoopFilterParams[T]
+  /** Integration time */
   val intTime: Double
 }
 
+/** Fixed point loop machine example parameters
+ *
+ *  @param inWidth Loop machine input fixed point overall bit width
+ *  @param inBP Loop machine input fixed point binary point bit width
+ *  @param ncoWidth Loop machine output fixed point overall bit width
+ *  @param ncoBP Loop machine output fixed point binary point bit width
+ */
 case class ExampleLoopParams(
   inWidth: Int = 32,
   inBP: Int = 12,
   ncoWidth: Int = 32,
   ncoBP: Int = 0,
 ) extends LoopParams[FixedPoint] {
+  /** Integration time */
   val intTime = 0.001
-  //FIXME: widths may not be correct for costas loop filter 
+  /** Input fixed point prototype */
   val protoIn = FixedPoint(inWidth.W, inBP.BP)
+  /** Output fixed point prototype */
   val protoOut = FixedPoint(ncoWidth.W, ncoBP.BP)
+  /** Instance of the Costas 3rd order loop filter parameters */
   val lfParamsCostas = FixedFilter3rdParams(width = 20, BPWidth = 16)   
+  /** Instance of the DLL loop filter parameters */
   val lfParamsDLL = FixedFilterParams(6000, 5, 1) 
 } 
 
+/** Input loop machine bundle
+ *  
+ *  @param params Loop machine parameters
+ *  @param discParams  
+ */
 class LoopInputBundle[T <: Data](params: LoopParams[T], discParams: AllDiscParams[T]) extends Bundle {
   val ie: T = params.protoIn.cloneType
   val ip: T = params.protoIn.cloneType
