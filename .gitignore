@@ -1,4 +1,5 @@
 __pycache__/
+verisim/
 .ipynb_checkpoints/
 .DS_Store
 target/

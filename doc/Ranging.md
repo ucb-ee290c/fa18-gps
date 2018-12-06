@@ -58,6 +58,7 @@ Passing both of these into `get_sat_loc` will update the pointers with the compu
 
 ### Overview
 Note, SV stands for space vehicle and C on its own refers to the speed of light.
+
 GPS locationing requires a lock on several satellites to determine the receiver's location on the Earth as well as the receiver reference clock bias with respect to true GPS time.  The locationing makes use of the pseudorange of the receiver to each satellite it is tracking.  The pseudorange is defined as
 ```
 PR = [Tsent - Trec]*C
@@ -72,11 +73,13 @@ We can use this information in conjunction with the locations of the tracked sat
 ### Inputs and Outputs
 From each satellite:
 * Input: `delta_t` (double) Propagation time from the SV to the receiver as measured from the tracking loop
+
 * Input: `double_sat_loc_params` (double) SV positions in ECEF coordinates from navigation message and transmit time
 * Output: `ecef_position` (double) approximate location of receiver
 
 ### Calculation
 This calculation is included in `python/ranging.py` and `firmware/position.c`.  In `firmware/position.c`, `find_position` takes in the locations of four different satellites and also the approximate propagation times for each satellite transmission.  These are contained in the structs `double_sat_loc_params` and `time_deltas`. The calculation will output the approximate receiver location and also the time bias of the approximate `Trec` with respect to the real receive time. To reiterate, the algorithm begins by choosing a nominal receiver position (ie. (0,0,0)) and uses the satellite location and timing information to refine this nominal receiver location to be more accurate. The calculation then occurs as follows:
+
 ```c
   double nom[4] = {0.0, 0.0, 0.0, 0.0};     //initial nominal values for X, Y, Z, and time_bias
   double pr_nom[4];			    //nominal pseudo range calculated form calc_pseudorange
@@ -101,6 +104,7 @@ These linear equations allow us to set up a 4x4 matrix equation, so that the cur
 ![Error_Magnitude](pictures/error_mag.PNG)
 
 If this error is below the desired threshold, then the algorithm may exit, and the receiver location is found in the nominal coordinates and nominal time bias which were augmented by the calculated deltas in each iteration. 
+
 
 ### Results
 In this example, we use a set of 4 dummy satellites located approximately 20,000 km above the surface of the Earth (the approximate altitude of real GPS satellites), with known locations in ECEF coordinates (this location would be calculated from each satellite's navigation message).  We chose the BWRC as a place to locate.  Because we know the locations of the satellites and the BWRC, we can approximately calculate the send and receive times of the satellite messages that would be calculated from the timing of the tracking loop for each satellite.

@@ -21,9 +21,13 @@ case class CAParams (
  *
  *  IO: 
  *  codeIN: Input(SInt), single bit of a CA code
+ *
  *  fco2x: Input(SInt), NCO output, clocked at 2x the frequency of the NCO used in the CA generator
+ * 
  *  punctual: Output(SInt), codeIn, but delayed by one cycle. Updates at zero-crossings of the fco2x input 
+ *
  *  late: Output(SInt), codeIn, but delayed by two cycles. Updates at zero-crossings of the fco2x input 
+ *
  *  @param params same parameters used to generate the CA module
  */
 class CACodeShiftReg(params: CAParams) extends Module {
@@ -47,14 +51,23 @@ class CACodeShiftReg(params: CAParams) extends Module {
 
 /** A GPS L1 C/A PRN code generator module. 
  *  IO:
+ *
  *  satellite: Input(UInt), an int between 1 and 32 that selects which satellite's CA code to generate.
+ *
  *  fco: Input(SInt), an NCO that drives the update frequency of the CA code
+ *
  *  fco2x: Input(SInt), an NCO at 2x the frequency of fco that drives the update of the CA code
+ *
  *  early: Output(SInt), The CA code, updated at zero-crossings of fco
+ *
  *  late: Output(SInt), see CACodeShiftReg
+ *
  *  punctual: Output(SInt), see CACodeShiftReg
+ *
  *  done: Output(Bool), true for the cycle that a 1023-length CA code has fully finished
+ *
  *  currIndex: Output(UInt), the current index of the 1023 length CA code being outputted
+ *
  *  @constructor create a CA code generator module
  *  @param params an instance of the case class CAParams that includes all io parameters
  */

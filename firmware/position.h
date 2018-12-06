@@ -21,10 +21,12 @@ struct ecef_pos {
 };
 
 struct double_sat_loc_params {
+
   double Xx;
   double Yy;
   double Zz;
 };
+
 
 double calc_pseudorange(struct double_sat_loc_params* sat, double nom[4]);
 void find_position(struct double_sat_loc_params* sv_1, struct double_sat_loc_params* sv_2, struct double_sat_loc_params* sv_3, struct double_sat_loc_params* sv_4, struct delta_t* time_deltas, struct ecef_pos* position);
