@@ -1,5 +1,5 @@
 module BBFileReader #(
-   parameter IO_READWIDTH = 8,
+   parameter IO_READWIDTH = 16,
    parameter FILE_NAME = "") (
   input clk,
   input data_run,

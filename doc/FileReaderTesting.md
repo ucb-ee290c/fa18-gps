@@ -12,3 +12,6 @@
 ## Outputs
 * `valid`: (Bool) high when the data is valid (ie. not at the end of the file yet)
 * `out`: (SInt) test data read from the file
+
+## Test
+* run `sbt test:testOnly gps.FileReaderSpec` and see that it passes the test.  It will read and display several lines from the file `src/test/resources/BBFileReaderData.txt`. 
