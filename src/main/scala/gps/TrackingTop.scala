@@ -6,6 +6,16 @@ import chisel3.util._
 import dsptools.numbers._
 import scala.math.pow
 
+
+/** Tracking Top Parameters Case class
+ * 
+ * These parameters are for creating an instance of [[gps.TrackingTop]]
+ * 
+ * @param adcWidth The Width of the ADC input (assumed signed)
+ * @param sampleRate The sample rate of the input data from the AFE
+ * @param intBP The binary point of the internal loop computers
+ * @param ncoBP The Binary point of the NCO's inside the tracking block
+ */
 case class TrackingTopParams(
   adcWidth: Int,       // Width of the ADC Input
   sampleRate: Double,  // Sample rate of the input data
@@ -54,7 +64,21 @@ case class TrackingTopParams(
   val phaseLockParams = LockDetectParams(FixedPoint(20.W, 12.BP), -0.54, 0.54,100)
 }
 
+/** Tracking Top Module
+ * 
+ * The Tracking top module contains multipliers, integraters, NCO, Costas, FLL,
+ * and DLL discriminators, as well as the loop filters and the packetizer. This
+ * design creates Signed Integer signals from the ADC input to the CORDIC that
+ * computes the discriminators. The output of the CORDIC is then of a Fixed
+ * Point type which is then multiplied by scale factors before connecting to
+ * the NCO. Currently, this module does not correctly support single bit input
+ * ADCs. As a work around, create an instance of this with width 2, then cast
+ * the one bit input to a 2 bit signed input to this module. 
+ * 
+ * @param params The params for this design (instance of [[gps.TrackingTop]]
+ */
 class TrackingTop(params: TrackingTopParams) extends Module {
+  /** 
   val io = IO(new Bundle{
     val adcIn = Input(SInt(params.adcWidth.W))
     val epl = Output(EPLBundle(SInt(params.intWidth.W)))
