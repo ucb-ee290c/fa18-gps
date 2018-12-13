@@ -146,7 +146,4 @@ class TrackingChannel[T <: Data : Real](
   intDumpQL.io.in := multQL.io.out
   intDumpQL.io.dump := io.dump
   io.toLoop.ql := intDumpQL.io.integ
-
-  //TODO: Implement this
-  io.lock := false.B
 }
